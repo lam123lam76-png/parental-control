@@ -188,6 +188,17 @@ function ParentalControlApp() {
   const [device, setDevice] = useState(null)
   const [currentTime, setCurrentTime] = useState(Date.now())
 
+
+
+  // UPDATE CURRENT TIME MỖI 10 GIÂY ĐỂ ĐÁNH GIÁ ONLINE/OFFLINE THỜI GIAN THỰC
+  useEffect(() => {
+    const timer = setInterval(() => setCurrentTime(Date.now()), 10000)
+    return () => clearInterval(timer)
+  }, [])
+
+  const [processes, setProcesses] = useState([])
+  const [activeWindows, setActiveWindows] = useState([])
+
   // TỰ ĐỘNG TÍNH TOÁN DYNAMIC IS_ONLINE (ĐA NGUỒN: HEARTBEAT, SCREENSHOTS & WINDOW LOGS)
   const isDeviceOnline = useMemo(() => {
     try {
@@ -220,15 +231,6 @@ function ParentalControlApp() {
       return false
     }
   }, [device, screenshots, activeWindows, currentTime])
-
-  // UPDATE CURRENT TIME MỖI 10 GIÂY ĐỂ ĐÁNH GIÁ ONLINE/OFFLINE THỜI GIAN THỰC
-  useEffect(() => {
-    const timer = setInterval(() => setCurrentTime(Date.now()), 10000)
-    return () => clearInterval(timer)
-  }, [])
-
-  const [processes, setProcesses] = useState([])
-  const [activeWindows, setActiveWindows] = useState([])
   const [screenshots, setScreenshots] = useState([])
   const [browserHistory, setBrowserHistory] = useState([])
   const [historySearch, setHistorySearch] = useState('')

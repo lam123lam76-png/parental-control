@@ -1161,12 +1161,22 @@ function ParentalControlApp() {
     return merged.reverse()
   }
 
+  // C4 FIX: Giữ reference mới nhất của loadData để tránh Stale Closure trong Polling 5s
+  const loadDataRef = useRef(loadData)
+  useEffect(() => {
+    loadDataRef.current = loadData
+  })
+
   useEffect(() => {
     loadData(true)
     fetchGoogleSheetTasks()
     loadAvailableDates()
     loadHistoryForDate(new Date().toISOString().split('T')[0])
-    const interval = setInterval(() => loadData(false), 5000)
+    const interval = setInterval(() => {
+      if (loadDataRef.current) {
+        loadDataRef.current(false)
+      }
+    }, 5000)
     return () => clearInterval(interval)
   }, [])
 

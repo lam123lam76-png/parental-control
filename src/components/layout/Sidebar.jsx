@@ -24,54 +24,51 @@ export function Sidebar({
 }) {
   const getIcon = (id) => {
     switch (id) {
-      case 'overview': return <LayoutDashboard className="w-4 h-4 stroke-[1.5]" />
-      case 'usage': return <AppWindow className="w-4 h-4 stroke-[1.5]" />
-      case 'schedules': return <Calendar className="w-4 h-4 stroke-[1.5]" />
-      case 'chat': return <MessageSquare className="w-4 h-4 stroke-[1.5]" />
-      case 'screenshots': return <Camera className="w-4 h-4 stroke-[1.5]" />
-      case 'history': return <History className="w-4 h-4 stroke-[1.5]" />
-      case 'black_list': return <Globe className="w-4 h-4 stroke-[1.5]" />
-      case 'settings': return <Settings className="w-4 h-4 stroke-[1.5]" />
-      default: return <Shield className="w-4 h-4 stroke-[1.5]" />
+      case 'overview': return <LayoutDashboard className="w-4 h-4 stroke-[1.5] shrink-0" />
+      case 'usage': return <AppWindow className="w-4 h-4 stroke-[1.5] shrink-0" />
+      case 'schedules': return <Calendar className="w-4 h-4 stroke-[1.5] shrink-0" />
+      case 'chat': return <MessageSquare className="w-4 h-4 stroke-[1.5] shrink-0" />
+      case 'screenshots': return <Camera className="w-4 h-4 stroke-[1.5] shrink-0" />
+      case 'history': return <History className="w-4 h-4 stroke-[1.5] shrink-0" />
+      case 'black_list': return <Globe className="w-4 h-4 stroke-[1.5] shrink-0" />
+      case 'settings': return <Settings className="w-4 h-4 stroke-[1.5] shrink-0" />
+      default: return <Shield className="w-4 h-4 stroke-[1.5] shrink-0" />
     }
   }
 
   const safeTabList = Array.isArray(tabList) ? tabList : []
 
   return (
-    <aside className="hidden lg:flex w-64 bg-black border-r border-zinc-800 p-4 flex-col justify-between shrink-0 sticky top-0 h-screen z-30">
-      <div className="space-y-6">
-        {/* BRAND HEADER */}
-        <div className="flex items-center gap-2.5 pb-4 border-b border-zinc-800">
-          <div className="w-8 h-8 rounded-lg bg-zinc-900 border border-zinc-800 flex items-center justify-center text-zinc-100">
-            <Shield className="w-4 h-4 text-zinc-100 stroke-[1.5]" />
-          </div>
-          <div>
-            <h1 className="text-xs font-mono font-bold tracking-wider text-zinc-100 uppercase">PARENTAL CONTROL</h1>
-            <p className="text-[10px] font-mono text-zinc-500">Geist SaaS Console</p>
-          </div>
+    <aside className="hidden lg:flex w-64 bg-black border-r border-zinc-800/80 p-3 flex-col justify-between shrink-0 sticky top-0 h-screen z-30 select-none">
+      <div className="space-y-4">
+        {/* BRAND HEADER (THU GỌN - BỎ LOGO KHUNG VUÔNG) */}
+        <div className="px-3 py-2 border-b border-zinc-800/80">
+          <h1 className="text-xs font-bold text-zinc-100 tracking-wider uppercase font-mono">PARENTAL CONTROL</h1>
+          <p className="text-[10px] text-zinc-500 font-mono mt-0.5">Geist SaaS Console</p>
         </div>
 
-        {/* NAVIGATION TABS WITH PURE STRING LABELS */}
-        <nav className="space-y-1">
+        {/* NAVIGATION TABS (GIÓNG HÀNG THẲNG LỀ TRÁI 100%) */}
+        <nav className="flex flex-col space-y-1 w-full">
           {(safeTabList ?? []).map(tab => {
             if (!tab || !tab.id) return null
             const isActive = activeTab === tab.id
-            const labelText = typeof tab.label === 'string' ? tab.label.replace(/<[^>]*>/g, '').trim() : 'Tab'
+            const rawLabel = typeof tab.label === 'string' ? tab.label.replace(/<[^>]*>/g, '').trim() : 'Tab'
+            const displayLabel = rawLabel.includes('Google Sheet') ? 'Thời gian biểu' : rawLabel
+
             return (
               <button
                 key={tab.id}
                 onClick={() => changeActiveTab && changeActiveTab(tab.id)}
-                className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-md text-xs font-medium transition-colors ${
+                className={`w-full flex items-center justify-start text-left px-3 py-2 text-xs font-medium rounded-md transition-colors gap-2.5 ${
                   isActive
                     ? 'bg-zinc-100 text-black font-semibold shadow-sm'
                     : 'text-zinc-400 hover:text-zinc-100 hover:bg-zinc-900/60'
                 }`}
               >
-                <span className={isActive ? 'text-black' : 'text-zinc-500 group-hover:text-zinc-200'}>
+                <span className={isActive ? 'text-black' : 'text-zinc-400'}>
                   {getIcon(tab.id)}
                 </span>
-                <span className="truncate">{labelText}</span>
+                <span className="truncate">{displayLabel}</span>
               </button>
             )
           })}
@@ -79,16 +76,16 @@ export function Sidebar({
       </div>
 
       {/* USER ROLE FOOTER */}
-      <div className="pt-4 border-t border-zinc-800 space-y-2">
-        <div className="p-2.5 rounded-lg bg-zinc-900/50 border border-zinc-800 flex items-center justify-between text-xs">
+      <div className="pt-3 border-t border-zinc-800/80">
+        <div className="p-2.5 rounded-lg bg-zinc-950 border border-zinc-800/80 flex items-center justify-between text-xs">
           <div className="flex items-center gap-2 truncate">
-            <UserCheck className="w-4 h-4 text-zinc-400 stroke-[1.5]" />
+            <UserCheck className="w-4 h-4 text-zinc-400 stroke-[1.5] shrink-0" />
             <span className="truncate text-zinc-300 font-mono text-xs">{isAdmin ? 'Admin' : (userRole || 'Viewer')}</span>
           </div>
           {setShowRoleModal && (
             <button
               onClick={() => setShowRoleModal(true)}
-              className="p-1 hover:bg-zinc-800 rounded text-zinc-500 hover:text-zinc-200 transition"
+              className="p-1 hover:bg-zinc-900 rounded text-zinc-500 hover:text-zinc-200 transition"
               title="Đổi tư cách"
             >
               <Lock className="w-3.5 h-3.5 stroke-[1.5]" />

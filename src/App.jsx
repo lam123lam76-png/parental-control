@@ -1961,7 +1961,7 @@ function ParentalControlApp() {
   const rawTabList = [
     { id: 'overview', label: 'Tổng quan' },
     { id: 'todo', label: ' To Do Notes' },
-    { id: 'calendar', label: ' Lịch học (Google Sheet)' },
+    { id: 'calendar', label: ' Thời gian biểu' },
     { id: 'chat', label: ' Chat 2 chiều' },
     { id: 'ai_analysis', label: ' AI Phân tích' },
     { id: 'app_usage', label: ' Quá trình sử dụng' },

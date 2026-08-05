@@ -2605,7 +2605,7 @@ function ParentalControlApp() {
       />
 
         {/* MAIN CONTENT AREA */}
-        <div className="flex-1 flex flex-col min-w-0 overflow-y-auto">
+        <div className="flex-1 flex flex-col min-w-0 overflow-y-auto lg:pl-64">
           {/* HEADER BAR */}
           <header className="bg-black/90 border-b border-zinc-800 backdrop-blur-md sticky top-0 z-20 px-4 sm:px-6 py-3.5 flex flex-col md:flex-row md:items-center justify-between gap-3">
             <div className="flex items-center justify-between md:justify-start gap-3">

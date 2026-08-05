@@ -1306,6 +1306,21 @@ function ParentalControlApp() {
     }
   }
 
+  
+  async function deleteScreenshot(id, filePath) {
+    if (!confirm('Bạn có chắc muốn xóa ảnh này?')) return
+    try {
+      if (filePath) {
+        await supabase.storage.from('screenshots').remove([filePath])
+      }
+      await supabase.from('screenshot_logs').delete().eq('id', id)
+      setSelectedScreenshotIds(prev => (prev ?? []).filter(i => i !== id))
+      loadData(false)
+    } catch (err) {
+      alert('Lỗi xóa ảnh: ' + (err.message || err))
+    }
+  }
+
   async function handleBulkDeleteScreenshots() {
     if (selectedScreenshotIds.length === 0) return
     if (!confirm(`Bạn có chắc muốn xóa ${selectedScreenshotIds.length} ảnh đã chọn?`)) return

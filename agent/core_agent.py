@@ -319,19 +319,25 @@ def main():
                         time.sleep(SEND_INTERVAL)
                         continue
 
-                    # 1. KIEM TRA MANG MUC 2 (LATENCY RTT + SUPABASE HOST CONNECT)
+                    # 1. KIEM TRA MANG CHÍNH XÁC MỨC 2 (QUALITY: GOOD / SLOW / DOWN)
                     net_info = check_network(timeout=3.0)
-                    if not net_info["online"]:
-                        print("[NET] Khong co internet!")
+                    quality = net_info.get("quality", "down")
+                    latency = net_info.get("latency_ms", -1)
+                    supabase_ok = net_info.get("supabase_ok", False)
+
+                    if quality == "down":
+                        print(f"[NET] Mất mạng hoặc latency quá cao (>3000ms): quality={quality} latency={latency}ms")
                         unlocked = start_blocker(supabase)
                         if unlocked:
-                            print("[NET] Da mo khoa bang mat khau")
+                            print("[NET] Đã mở khóa bằng mật khẩu")
                         time.sleep(SEND_INTERVAL)
                         continue
 
-                    if net_info["latency_ms"] > 3000 or not net_info["supabase_ok"]:
-                        print(f"[NET] [WARN] Mang kem: latency={net_info['latency_ms']}ms supabase_ok={net_info['supabase_ok']}. Uu tien Local-First.")
-                        log_debug(f"[NET] High latency or Supabase host unreachable: {net_info}")
+                    if quality == "slow":
+                        print(f"[NET] quality=slow latency={latency}ms supabase_ok={supabase_ok}")
+                        log_debug(f"[NET] Warning slow network: {net_info}")
+                    else:
+                        print(f"[NET] quality=good latency={latency}ms supabase_ok={supabase_ok}")
 
                     # 2. KIEM TRA LICH HOC TAP
                     is_study, study_title = check_current_schedule(supabase)

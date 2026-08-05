@@ -660,119 +660,102 @@ function ParentalControlApp() {
     setIsSyncingSheet(false)
   }
 
+  // Ref chống Overlap Requests khi Polling
+  const isFetchingRef = useRef(false)
+
   async function loadData(isInitial = false) {
+    // 3. CHỐNG OVERLAP: Bỏ qua lượt fetch mới nếu lượt fetch trước chưa xong
+    if (isFetchingRef.current) return
+    isFetchingRef.current = true
     if (isInitial) setLoading(true)
 
     try {
-      const { data: deviceData } = await supabase
-        .from('devices')
-        .select('*')
-        .eq('device_name', DEVICE_NAME)
-        .maybeSingle()
-      setDevice(deviceData)
+      const targetDate = historyDateRef.current || new Date().toISOString().split('T')[0]
 
-      const { data: processData } = await supabase
-        .from('process_logs')
-        .select('*')
-        .eq('device_name', DEVICE_NAME)
-        .order('created_at', { ascending: false })
-        .limit(30)
-      setProcesses(processData || [])
+      // 2. PARALLEL API: Tải toàn bộ 14 bảng dữ liệu song song qua Promise.all (thay vì await tuần tự)
+      const [
+        deviceRes,
+        processRes,
+        windowRes,
+        screenshotRes,
+        historyRes,
+        rulesRes,
+        appsRes,
+        webRulesRes,
+        usageRes,
+        webUsageRes,
+        schedRes,
+        chatRes,
+        todosRes,
+        cfgRes
+      ] = await Promise.all([
+        supabase.from('devices').select('*').eq('device_name', DEVICE_NAME).maybeSingle(),
+        supabase.from('process_logs').select('*').eq('device_name', DEVICE_NAME).order('created_at', { ascending: false }).limit(30),
+        supabase.from('active_window_logs').select('*').eq('device_name', DEVICE_NAME).order('created_at', { ascending: false }).limit(100),
+        supabase.from('screenshot_logs').select('*').eq('device_name', DEVICE_NAME).order('created_at', { ascending: false }).limit(40),
+        supabase.from('browser_history_logs').select('*').eq('device_name', DEVICE_NAME).order('visit_time', { ascending: false }).limit(100),
+        supabase.from('time_restrictions').select('*').eq('device_name', DEVICE_NAME).order('day_of_week'),
+        supabase.from('app_rules').select('*').eq('device_name', DEVICE_NAME),
+        supabase.from('web_rules').select('*').eq('device_name', DEVICE_NAME).order('created_at', { ascending: false }),
+        supabase.from('app_usage_logs').select('*').eq('device_name', DEVICE_NAME).eq('usage_date', targetDate),
+        supabase.from('web_usage_logs').select('*').eq('device_name', DEVICE_NAME).eq('usage_date', targetDate),
+        supabase.from('schedules').select('*').eq('device_name', DEVICE_NAME).order('start_time', { ascending: true }),
+        supabase.from('chat_messages').select('*').eq('device_name', DEVICE_NAME).order('created_at', { ascending: true }),
+        supabase.from('todo_notes').select('*').eq('device_name', DEVICE_NAME).order('created_at', { ascending: false }),
+        supabase.from('app_config').select('*').eq('device_name', DEVICE_NAME).maybeSingle()
+      ])
 
-      const { data: windowData } = await supabase
-        .from('active_window_logs')
-        .select('*')
-        .eq('device_name', DEVICE_NAME)
-        .order('created_at', { ascending: false })
-        .limit(100)
-      setActiveWindows(windowData || [])
+      // 4. XỬ LÝ LỖI SUPABASE ĐÚNG: Chỉ set state khi KHÔNG có lỗi và data hợp lệ (không gán rỗng [] làm xóa trắng UI)
+      if (!deviceRes.error && deviceRes.data !== undefined) setDevice(deviceRes.data)
+      else if (deviceRes.error) console.error('[Supabase Error] devices:', deviceRes.error)
 
-      const { data: screenshotData } = await supabase
-        .from('screenshot_logs')
-        .select('*')
-        .eq('device_name', DEVICE_NAME)
-        .order('created_at', { ascending: false })
-        .limit(40)
-      setScreenshots(screenshotData || [])
+      if (!processRes.error && processRes.data) setProcesses(processRes.data)
+      else if (processRes.error) console.error('[Supabase Error] process_logs:', processRes.error)
 
-      // Tải lịch sử duyệt web
-      const { data: historyData } = await supabase
-        .from('browser_history_logs')
-        .select('*')
-        .eq('device_name', DEVICE_NAME)
-        .order('visit_time', { ascending: false })
-        .limit(100)
-      setBrowserHistory(historyData || [])
+      if (!windowRes.error && windowRes.data) setActiveWindows(windowRes.data)
+      else if (windowRes.error) console.error('[Supabase Error] active_window_logs:', windowRes.error)
 
-      const { data: rulesData } = await supabase
-        .from('time_restrictions')
-        .select('*')
-        .eq('device_name', DEVICE_NAME)
-        .order('day_of_week')
-      setTimeRules(rulesData || [])
+      if (!screenshotRes.error && screenshotRes.data) setScreenshots(screenshotRes.data)
+      else if (screenshotRes.error) console.error('[Supabase Error] screenshot_logs:', screenshotRes.error)
 
-      const { data: appsData } = await supabase
-        .from('app_rules')
-        .select('*')
-        .eq('device_name', DEVICE_NAME)
-      setAppRules(appsData || [])
+      if (!historyRes.error && historyRes.data) setBrowserHistory(historyRes.data)
+      else if (historyRes.error) console.error('[Supabase Error] browser_history_logs:', historyRes.error)
 
-      const { data: webRulesData } = await supabase
-        .from('web_rules')
-        .select('*')
-        .eq('device_name', DEVICE_NAME)
-        .order('created_at', { ascending: false })
-      setWebRules(webRulesData || [])
+      if (!rulesRes.error && rulesRes.data) setTimeRules(rulesRes.data)
+      else if (rulesRes.error) console.error('[Supabase Error] time_restrictions:', rulesRes.error)
 
-      const targetDate = historyDateRef.current
-      const { data: usageData } = await supabase
-        .from('app_usage_logs')
-        .select('*')
-        .eq('device_name', DEVICE_NAME)
-        .eq('usage_date', targetDate)
-      setAppUsage(usageData || [])
+      if (!appsRes.error && appsRes.data) setAppRules(appsRes.data)
+      else if (appsRes.error) console.error('[Supabase Error] app_rules:', appsRes.error)
 
-      const { data: webUsageData } = await supabase
-        .from('web_usage_logs')
-        .select('*')
-        .eq('device_name', DEVICE_NAME)
-        .eq('usage_date', targetDate)
-      setWebUsage(webUsageData || [])
+      if (!webRulesRes.error && webRulesRes.data) setWebRules(webRulesRes.data)
+      else if (webRulesRes.error) console.error('[Supabase Error] web_rules:', webRulesRes.error)
 
-      const { data: schedData } = await supabase
-        .from('schedules')
-        .select('*')
-        .eq('device_name', DEVICE_NAME)
-        .order('start_time', { ascending: true })
-      setSchedules(schedData || [])
+      if (!usageRes.error && usageRes.data) setAppUsage(usageRes.data)
+      else if (usageRes.error) console.error('[Supabase Error] app_usage_logs:', usageRes.error)
 
-      const { data: chatData } = await supabase
-        .from('chat_messages')
-        .select('*')
-        .eq('device_name', DEVICE_NAME)
-        .order('created_at', { ascending: true })
-      
-      const dbChats = chatData || []
-      setChatMessages(prev => {
-        const tempChats = prev.filter(m => typeof m.id === 'string' && m.id.startsWith('temp_'))
-        const existingIds = new Set(dbChats.map(m => m.id))
-        const unSyncedTemps = tempChats.filter(t => !existingIds.has(t.id))
-        return [...dbChats, ...unSyncedTemps]
-      })
+      if (!webUsageRes.error && webUsageRes.data) setWebUsage(webUsageRes.data)
+      else if (webUsageRes.error) console.error('[Supabase Error] web_usage_logs:', webUsageRes.error)
 
-      const { data: todos } = await supabase
-        .from('todo_notes')
-        .select('*')
-        .eq('device_name', DEVICE_NAME)
-        .order('created_at', { ascending: false })
-      setTodoNotes(todos || [])
+      if (!schedRes.error && schedRes.data) setSchedules(schedRes.data)
+      else if (schedRes.error) console.error('[Supabase Error] schedules:', schedRes.error)
 
-      const { data: cfgData } = await supabase
-        .from('app_config')
-        .select('*')
-        .eq('device_name', DEVICE_NAME)
-        .maybeSingle()
-      if (cfgData) {
+      if (!todosRes.error && todosRes.data) setTodoNotes(todosRes.data)
+      else if (todosRes.error) console.error('[Supabase Error] todo_notes:', todosRes.error)
+
+      if (!chatRes.error && chatRes.data) {
+        const dbChats = chatRes.data
+        setChatMessages(prev => {
+          const tempChats = prev.filter(m => typeof m.id === 'string' && m.id.startsWith('temp_'))
+          const existingIds = new Set(dbChats.map(m => m.id))
+          const unSyncedTemps = tempChats.filter(t => !existingIds.has(t.id))
+          return [...dbChats, ...unSyncedTemps]
+        })
+      } else if (chatRes.error) {
+        console.error('[Supabase Error] chat_messages:', chatRes.error)
+      }
+
+      if (!cfgRes.error && cfgRes.data) {
+        const cfgData = cfgRes.data
         setAppConfig(cfgData)
         if (!newAgentPass) setNewAgentPass(cfgData.agent_password || '')
         if (!newAdminPin) setNewAdminPin(cfgData.admin_pin || '')
@@ -785,81 +768,82 @@ function ParentalControlApp() {
         if (cfgData.is_paused !== undefined && cfgData.is_paused !== null) {
           setIsPaused(cfgData.is_paused)
         }
-        // Task 1: Đọc quyền mở máy
         if (cfgData.is_allowed !== undefined && cfgData.is_allowed !== null) {
           setIsDeviceAllowed(cfgData.is_allowed)
         }
-        // Task 4: Đọc phương thức giới hạn giờ
         if (cfgData.time_limit_mode) {
           setTimeLimitMode(cfgData.time_limit_mode)
         }
+      } else if (cfgRes.error) {
+        console.error('[Supabase Error] app_config:', cfgRes.error)
       }
 
       // Tải danh sách session thiết bị đang truy cập & Lọc bỏ session rác quá 35s
       const cutoff35s = new Date(Date.now() - 35000).toISOString()
-      
-      // Auto-purge stale sessions from DB
       try {
         await supabase.from('web_access_sessions').delete().lt('last_active', cutoff35s)
       } catch (e) {}
 
-      const { data: sessData } = await supabase
+      const { data: sessData, error: sessErr } = await supabase
         .from('web_access_sessions')
         .select('*')
         .gte('last_active', cutoff35s)
         .order('last_active', { ascending: false })
-      
-      let rawSessions = sessData ? [...sessData] : []
-      
-      const hasCurrentSess = rawSessions.some(s => s.session_id === sessionId)
-      if (!hasCurrentSess) {
-        rawSessions.unshift({
-          session_id: sessionId,
-          device_id: deviceId,
-          user_role: isAdmin ? 'Admin' : (userRole || 'Viewer'),
-          device_info: getDetailedDeviceInfo(),
-          last_active: new Date().toISOString(),
-          is_blocked: false
-        })
-      }
 
-      //  NHÓM DỮ LIỆU THIẾT BỊ (DEDUPLICATION LOGIC BY DEVICE & ROLE)
-      const groupedDeviceMap = new Map()
-      for (const s of rawSessions) {
-        const key = (s.device_id || s.device_info) + '___' + (s.user_role || 'Viewer')
-        if (!groupedDeviceMap.has(key)) {
-          groupedDeviceMap.set(key, {
-            ...s,
-            tabCount: 1,
-            allSessionIds: [s.session_id]
+      if (!sessErr && sessData) {
+        let rawSessions = [...sessData]
+        const hasCurrentSess = rawSessions.some(s => s.session_id === sessionId)
+        if (!hasCurrentSess) {
+          rawSessions.unshift({
+            session_id: sessionId,
+            device_id: deviceId,
+            user_role: isAdmin ? 'Admin' : (userRole || 'Viewer'),
+            device_info: getDetailedDeviceInfo(),
+            last_active: new Date().toISOString(),
+            is_blocked: false
           })
-        } else {
-          const existing = groupedDeviceMap.get(key)
-          existing.tabCount += 1
-          existing.allSessionIds.push(s.session_id)
-          if (new Date(s.last_active) > new Date(existing.last_active)) {
-            existing.last_active = s.last_active
-          }
-          if (s.session_id === sessionId) {
-            existing.session_id = sessionId
+        }
+
+        const groupedDeviceMap = new Map()
+        for (const s of rawSessions) {
+          const key = (s.device_id || s.device_info) + '___' + (s.user_role || 'Viewer')
+          if (!groupedDeviceMap.has(key)) {
+            groupedDeviceMap.set(key, {
+              ...s,
+              tabCount: 1,
+              allSessionIds: [s.session_id]
+            })
+          } else {
+            const existing = groupedDeviceMap.get(key)
+            existing.tabCount += 1
+            existing.allSessionIds.push(s.session_id)
+            if (new Date(s.last_active) > new Date(existing.last_active)) {
+              existing.last_active = s.last_active
+            }
+            if (s.session_id === sessionId) {
+              existing.session_id = sessionId
+            }
           }
         }
-      }
 
-      const cleanGroupedSessions = Array.from(groupedDeviceMap.values())
-      setActiveSessions(cleanGroupedSessions)
+        const cleanGroupedSessions = Array.from(groupedDeviceMap.values())
+        setActiveSessions(cleanGroupedSessions)
 
-      const mySess = rawSessions.find(s => s.session_id === sessionId)
-      if (mySess?.is_blocked) {
-        setIsSessionBlocked(true)
-      } else {
-        setIsSessionBlocked(false)
+        const mySess = rawSessions.find(s => s.session_id === sessionId)
+        if (mySess?.is_blocked) {
+          setIsSessionBlocked(true)
+        } else {
+          setIsSessionBlocked(false)
+        }
+      } else if (sessErr) {
+        console.error('[Supabase Error] web_access_sessions:', sessErr)
       }
 
     } catch (err) {
-      console.error('Lỗi tải dữ liệu:', err)
+      console.error('Lỗi tải dữ liệu tổng:', err)
     } finally {
       if (isInitial) setLoading(false)
+      isFetchingRef.current = false
     }
   }
 

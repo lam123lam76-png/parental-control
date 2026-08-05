@@ -186,6 +186,28 @@ function ParentalControlApp() {
   const [themeMode, setThemeMode] = useState(() => safeGetLocalStorage('app_theme') || 'dark')
 
   const [device, setDevice] = useState(null)
+  const [currentTime, setCurrentTime] = useState(Date.now())
+
+  // TỰ ĐỘNG TÍNH TOÁN DYNAMIC IS_ONLINE (THRESHOLD 90 GIÂY HAS HEARTBEAT)
+  const isDeviceOnline = useMemo(() => {
+    if (!device || !device.last_seen) return false
+    if (isDeviceOnline === false) return false
+    try {
+      const lastSeenMs = new Date(device.last_seen).getTime()
+      if (isNaN(lastSeenMs)) return false
+      const diffSec = (currentTime - lastSeenMs) / 1000
+      return diffSec < 90 // Trong vòng 90 giây không thấy heartbeat -> OFFLINE (Chấm đỏ)
+    } catch {
+      return false
+    }
+  }, [device, currentTime])
+
+  // UPDATE CURRENT TIME MỖI 10 GIÂY ĐỂ ĐÁNH GIÁ ONLINE/OFFLINE THỜI GIAN THỰC
+  useEffect(() => {
+    const timer = setInterval(() => setCurrentTime(Date.now()), 10000)
+    return () => clearInterval(timer)
+  }, [])
+
   const [processes, setProcesses] = useState([])
   const [activeWindows, setActiveWindows] = useState([])
   const [screenshots, setScreenshots] = useState([])
@@ -2555,7 +2577,7 @@ function ParentalControlApp() {
                 {/* DEVICE STATUS BADGE */}
                 {isAdmin && (
                   <div className="mt-1 flex items-center gap-2 text-xs">
-                    {device?.is_online ? (
+                    {isDeviceOnline ? (
                       <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 font-bold border border-emerald-500/20 text-[10px] sm:text-[11px]">
                         <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
                         <span> Máy em trai ({DEVICE_NAME}) • {formatTime(device?.last_seen)}</span>
@@ -2693,10 +2715,10 @@ function ParentalControlApp() {
                       <div className={`${cardBgClass} border border-zinc-800 rounded-2xl p-5 shadow-lg flex flex-col justify-between hover:border-indigo-500/40 transition group`}>
                         <div className="flex items-center justify-between mb-3">
                           <span className="text-xs font-bold text-zinc-400 uppercase tracking-wider">Trạng Thái Kết Nối</span>
-                          <span className={`w-3 h-3 rounded-full ${device?.is_online ? 'bg-emerald-400 animate-pulse' : 'bg-red-400'}`}></span>
+                          <span className={`w-3 h-3 rounded-full ${isDeviceOnline ? 'bg-emerald-400 animate-pulse' : 'bg-red-400'}`}></span>
                         </div>
                         <div className="flex items-baseline gap-2">
-                          <StatusDot status={device?.is_online ? "ready" : "blocked"} label={device?.is_online ? "Ready" : "Offline"} />
+                          <StatusDot status={isDeviceOnline ? "ready" : "blocked"} label={isDeviceOnline ? "Ready" : "Offline"} />
                         </div>
                         <div className="mt-3 pt-3 border-t border-zinc-800 text-[11px] text-zinc-400 flex items-center justify-between">
                           <span>{DEVICE_NAME}</span>

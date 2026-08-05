@@ -191,41 +191,73 @@ class WatchdogUpdater:
 
         return {}
 
+    def _update_command_status(self, status: str):
+        """Cập nhật trạng thái lệnh force_update trên system_commands."""
+        if self.supabase:
+            try:
+                self.supabase.table('system_commands') \
+                    .update({'status': status, 'updated_at': datetime.utcnow().isoformat()}) \
+                    .eq('device_name', DEVICE_NAME) \
+                    .eq('command', 'force_update') \
+                    .in_('status', ['pending', 'in_progress']) \
+                    .execute()
+            except Exception as e:
+                print(f"[UPDATE] Failed to update command status to {status}: {e}")
+
+    def _log_system_event(self, event_type: str, message: str):
+        """Ghi nhật ký sự kiện hệ thống vào Supabase system_events."""
+        if self.supabase:
+            try:
+                self.supabase.table('system_events').insert({
+                    'device_name': DEVICE_NAME,
+                    'event_type': event_type,
+                    'message': message,
+                    'created_at': datetime.utcnow().isoformat()
+                }).execute()
+            except Exception as e:
+                print(f"[UPDATE] Failed to log system event ({event_type}): {e}")
+
+    def _is_backup_valid(self) -> bool:
+        """Kiểm tra thư mục backup có hợp lệ và chứa file cốt lõi không."""
+        if not BACKUP_DIR.exists() or not any(BACKUP_DIR.iterdir()):
+            return False
+        has_core = (BACKUP_DIR / 'core_agent.py').exists() or \
+                   (BACKUP_DIR / 'main.py').exists() or \
+                   (BACKUP_DIR / 'ParentalControlAgent.exe').exists()
+        return has_core
     def perform_update(self) -> bool:
-        """Thuc hien qua trinh update"""
+        """Thực hiện quá trình cập nhật phiên bản an toàn."""
+        print("[UPDATE] Bắt đầu quá trình cập nhật...")
+        self._notify("Bắt đầu tải bản cập nhật mới...")
+        self._update_command_status('in_progress')
+
+        # GIAI ĐOẠN A: LẤY THÔNG TIN VERSION VÀ DOWNLOAD ZIP
+        # (Nếu lỗi ở giai đoạn này: KHÔNG stop core agent, KHÔNG đụng đến file local)
         try:
-            print("[UPDATE] Starting update process...")
-            self._notify("Starting agent update...")
-            
-            # 1. Update command status to in_progress
-            if self.supabase:
-                try:
-                    self.supabase.table('system_commands') \
-                        .update({'status': 'in_progress', 'updated_at': datetime.utcnow().isoformat()}) \
-                        .eq('device_name', DEVICE_NAME) \
-                        .eq('command', 'force_update') \
-                        .eq('status', 'pending') \
-                        .execute()
-                except Exception as e:
-                    print(f"[UPDATE] Warning: Failed to update command status: {e}")
-            
-            # 2. Get latest version info
             version_info = self.get_latest_version_info()
             if not version_info or 'file_path' not in version_info:
-                raise Exception("Could not find latest version info or file_path")
-                
+                raise Exception("Không tìm thấy thông tin version hoặc file_path hợp lệ")
+
             file_path = version_info['file_path']
-            
-            # 3. Download zip tu storage
-            print(f"[UPDATE] Downloading {file_path}...")
+            print(f"[UPDATE] Đang tải bản zip {file_path}...")
             zip_bytes = self.supabase.storage.from_('agent-updates').download(file_path)
-            
-            # 4. Backup hien tai
-            print("[UPDATE] Creating backup...")
+            if not zip_bytes:
+                raise Exception("Tải file zip từ Storage trả về rỗng")
+        except Exception as e:
+            msg = f"Tải bản cập nhật thất bại: {e}"
+            print(f"[UPDATE] [ERR] {msg}")
+            self._notify(msg)
+            self._log_system_event("update_download_failed", msg)
+            self._update_command_status('failed')
+            return False  # CORE AGENT VẪN ĐANG CHẠY BÌNH THƯỜNG!
+
+        # GIAI ĐOẠN B: TẠO BACKUP TRƯỚC KHI CAN THIỆP CORE AGENT
+        try:
+            print("[UPDATE] Đang tạo bản sao lưu (backup)...")
             if BACKUP_DIR.exists():
                 shutil.rmtree(BACKUP_DIR, ignore_errors=True)
             BACKUP_DIR.mkdir(parents=True, exist_ok=True)
-            
+
             for item in INSTALL_DIR.iterdir():
                 if item.name == 'backup' or item.name == '__pycache__' or item.suffix == '.db':
                     continue
@@ -233,87 +265,93 @@ class WatchdogUpdater:
                     shutil.copytree(item, BACKUP_DIR / item.name)
                 else:
                     shutil.copy2(item, BACKUP_DIR)
-                    
-            # 5. Stop core
+
+            if not self._is_backup_valid():
+                raise Exception("Sao lưu thất bại: Thư mục backup không hợp lệ hoặc thiếu file cốt lõi")
+        except Exception as e:
+            msg = f"Tạo backup thất bại: {e}. Hủy cập nhật để bảo vệ hệ thống."
+            print(f"[UPDATE] [ERR] {msg}")
+            self._notify(msg)
+            self._log_system_event("update_backup_failed", msg)
+            self._update_command_status('failed')
+            return False  # CORE AGENT VẪN ĐANG CHẠY BÌNH THƯỜNG!
+
+        # GIAI ĐOẠN C: DỪNG CORE AGENT -> GIẢI NÉN ĐỀ FILE -> KHỞI ĐỘNG LẠI CORE
+        try:
             self.stop_core_agent()
-            
-            # 6. Extract zip vao temp va copy de len INSTALL_DIR
-            print("[UPDATE] Extracting and installing new files...")
+
+            print("[UPDATE] Đang giải nén và ghi đè phiên bản mới...")
             with tempfile.TemporaryDirectory() as temp_dir:
                 zip_path = Path(temp_dir) / 'update.zip'
                 with open(zip_path, 'wb') as f:
                     f.write(zip_bytes)
-                    
+
                 extract_dir = Path(temp_dir) / 'extracted'
                 with zipfile.ZipFile(zip_path, 'r') as zip_ref:
                     zip_ref.extractall(extract_dir)
-                    
-                # Check if zip contains a single root directory
+
                 source_dir = extract_dir
                 items = list(extract_dir.iterdir())
                 if len(items) == 1 and items[0].is_dir():
                     source_dir = items[0]
 
-                # Copy files
                 for root, _, files in os.walk(source_dir):
                     rel_path = os.path.relpath(root, source_dir)
                     dest_dir = INSTALL_DIR if rel_path == '.' else INSTALL_DIR / rel_path
                     dest_dir.mkdir(parents=True, exist_ok=True)
-                    
+
                     for file in files:
                         src_file = Path(root) / file
                         dst_file = dest_dir / file
                         try:
                             shutil.copy2(src_file, dst_file)
                         except Exception as e:
-                            print(f"[UPDATE] Error copying {file}: {e}")
-                        
-            # 7. Restart core
-            print("[UPDATE] Restarting core agent...")
+                            print(f"[UPDATE] Lỗi copy {file}: {e}")
+
+            print("[UPDATE] Khởi động lại Core Agent...")
             self.start_core_agent()
-            
-            # 8. Verify
-            print("[UPDATE] Waiting 15s to verify health...")
+
+            # GIAI ĐOẠN D: VERIFY HEALTH (HEALTH CHECK SẢN PHẨM MỚI)
+            print("[UPDATE] Đang đợi 15s để kiểm tra sức khỏe Core Agent mới...")
             time.sleep(15)
             if self.is_core_healthy():
-                print("[UPDATE] Update successful, core is healthy.")
-                self._notify("Update completed successfully.")
-                if self.supabase:
-                    try:
-                        self.supabase.table('system_commands') \
-                            .update({'status': 'completed', 'updated_at': datetime.utcnow().isoformat()}) \
-                            .eq('device_name', DEVICE_NAME) \
-                            .eq('command', 'force_update') \
-                            .eq('status', 'in_progress') \
-                            .execute()
-                    except Exception:
-                        pass
+                print("[UPDATE] Cập nhật thành công! Core Agent mới đang chạy ổn định.")
+                self._notify("Cập nhật Agent thành công!")
+                self._log_system_event("update_success", "Agent updated successfully.")
+                self._update_command_status('completed')
                 return True
             else:
-                print("[UPDATE] Core crashed after update. Rolling back...")
-                self.rollback()
-                return False
-                
+                raise Exception("Core Agent mới bị crash sau 15s kiểm tra sức khỏe")
+
         except Exception as e:
-            msg = f"Update failed: {e}"
-            print(f"[UPDATE] {msg}")
+            msg = f"Cài đặt phiên bản mới thất bại: {e}. Tiến hành Rollback an toàn..."
+            print(f"[UPDATE] [ERR] {msg}")
             self._notify(msg)
+            self._log_system_event("update_failed", msg)
             self.rollback()
             return False
 
     def rollback(self) -> bool:
-        """Khoi phuc tu backup"""
+        """Khôi phục hệ thống về bản backup an toàn trước đó."""
         try:
-            print("[ROLLBACK] Starting rollback...")
-            self._notify("Starting rollback to previous version...")
-            
-            self.stop_core_agent()
-            
-            if not BACKUP_DIR.exists() or not any(BACKUP_DIR.iterdir()):
-                print("[ROLLBACK] No backup found!")
+            print("[ROLLBACK] Bắt đầu quá trình khôi phục (Rollback)...")
+            self._notify("Tiến hành khôi phục lại phiên bản an toàn trước đó...")
+
+            # 1. KIỂM TRA VALIDATE BACKUP TRƯỚC KHI XÓA BẢN HIỆN TẠI
+            if not self._is_backup_valid():
+                msg = "[CRITICAL] Không thể Rollback: Thư mục backup không hợp lệ hoặc thiếu file cốt lõi!"
+                print(f"[ROLLBACK] [ERR] {msg}")
+                self._notify(msg)
+                self._log_system_event("rollback_impossible", msg)
+                self._update_command_status('failed')
+                # Thử khởi động lại bản hiện tại nếu chưa chạy
+                self.start_core_agent()
                 return False
-                
-            # Xoa file hien tai va copy lai tu backup
+
+            # 2. DỪNG CORE AGENT
+            self.stop_core_agent()
+
+            # 3. XÓA FILE TRONG INSTALL_DIR (BẢO VỆ .db, backup, __pycache__)
             for item in INSTALL_DIR.iterdir():
                 if item.name == 'backup' or item.name == '__pycache__' or item.suffix == '.db':
                     continue
@@ -321,21 +359,43 @@ class WatchdogUpdater:
                     shutil.rmtree(item, ignore_errors=True)
                 else:
                     item.unlink(missing_ok=True)
-                    
+
+            # 4. RESTORE TỪ BACKUP SANG INSTALL_DIR
             for item in BACKUP_DIR.iterdir():
                 if item.is_dir():
                     shutil.copytree(item, INSTALL_DIR / item.name)
                 else:
                     shutil.copy2(item, INSTALL_DIR)
-                    
-            print("[ROLLBACK] Restarting core agent after rollback...")
-            self.start_core_agent()
-            self._notify("Rollback completed.")
-            return True
-        except Exception as e:
-            print(f"[ROLLBACK] Error during rollback: {e}")
-            return False
 
+            # 5. KHỞI ĐỘNG LẠI CORE AGENT VÀ HEALTH-CHECK
+            print("[ROLLBACK] Đang khởi động lại Core Agent từ bản sao lưu...")
+            self.start_core_agent()
+
+            print("[ROLLBACK] Đang đợi 15s kiểm tra sức khỏe Core Agent sau khi khôi phục...")
+            time.sleep(15)
+
+            if self.is_core_healthy():
+                msg = "Khôi phục (Rollback) phiên bản cũ thành công. Hệ thống đã hoạt động ổn định trở lại."
+                print(f"[ROLLBACK] {msg}")
+                self._notify(msg)
+                self._log_system_event("rollback_success", msg)
+                self._update_command_status('failed')
+                return True
+            else:
+                msg = "[CRITICAL] Rollback thất bại: Core Agent phiên bản cũ cũng bị crash sau khi restore!"
+                print(f"[ROLLBACK] [ERR] {msg}")
+                self._notify(msg)
+                self._log_system_event("rollback_failed", msg)
+                self._update_command_status('failed')
+                return False
+
+        except Exception as e:
+            msg = f"[CRITICAL] Lỗi ngoại lệ trong quá trình Rollback: {e}"
+            print(f"[ROLLBACK] [ERR] {msg}")
+            self._notify(msg)
+            self._log_system_event("rollback_failed", msg)
+            self._update_command_status('failed')
+            return False
     def record_crash(self):
         """Ghi nhan su co va rollback neu can"""
         try:

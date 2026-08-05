@@ -1,13 +1,9 @@
 """
 main.py — Entry Point (Local-First Architecture v2.0)
 
-Vai tro: Diem khoi dong cua he thong.
-Chi quyet dinh chay core_agent truc tiep hoac thong qua watchdog.
-
-Cac che do khoi dong:
-1. Mac dinh: Chay core_agent.main() truc tiep (don gian, de debug)
-2. --watchdog: Chay watchdog_updater.py lam supervisor
-   (watchdog se spawn va giam sat core_agent.py)
+Vai trò: Điểm khởi động chính của hệ thống.
+- Mặc định Production: Khởi động Watchdog Supervisor để quản lý Core Agent & xử lý Force Update tự động.
+- Chế độ Debug (--core-only / --core): Chạy trực tiếp Core Agent dành cho Lập trình viên debug.
 """
 import sys
 import os
@@ -26,24 +22,23 @@ if sys.stderr is None:
 
 
 def main():
-    """Entry point chinh."""
-    if "--watchdog" in sys.argv:
-        # Che do Watchdog: Chay supervisor process
-        print("[MAIN] Khoi dong che do Watchdog...")
+    """Entry point chính."""
+    # Nếu có flag --core-only hoặc --core: Chạy trực tiếp Core Agent (chế độ Debug)
+    if "--core-only" in sys.argv or "--core" in sys.argv:
+        print("[MAIN] Chạy trực tiếp core_agent (Chế độ Debug / Core-only)...")
+        from core_agent import main as core_main
+        core_main()
+    else:
+        # Mặc định Production: Chạy Watchdog Supervisor quản lý Core Agent & Auto Update
+        print("[MAIN] Khởi động chế độ Watchdog Supervisor (Mặc định Production)...")
         try:
             from watchdog_updater import WatchdogUpdater
             watchdog = WatchdogUpdater()
             watchdog.run()
-        except ImportError as e:
-            print(f"[ERR] Khong tim thay watchdog_updater: {e}")
-            print("[MAIN] Fallback sang core_agent...")
+        except Exception as e:
+            print(f"[ERR] Không thể chạy Watchdog ({e}). Fallback trực tiếp sang core_agent...")
             from core_agent import main as core_main
             core_main()
-    else:
-        # Che do mac dinh: Chay core agent truc tiep
-        print("[MAIN] Khoi dong core_agent truc tiep...")
-        from core_agent import main as core_main
-        core_main()
 
 
 if __name__ == "__main__":

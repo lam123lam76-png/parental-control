@@ -63,7 +63,7 @@ class WatchdogUpdater:
                 script_path = Path(CORE_SCRIPT).absolute()
                 
             if getattr(sys, 'frozen', False):
-                cmd = [sys.executable, "--core"]
+                cmd = [sys.executable, "--core-only"]
                 cwd_dir = os.path.dirname(sys.executable)
             else:
                 cmd = [sys.executable, str(script_path)]
@@ -156,19 +156,39 @@ class WatchdogUpdater:
         return False
 
     def get_latest_version_info(self) -> dict:
-        """Lay thong tin version moi nhat"""
+        """Lấy thông tin phiên bản mới nhất từ agent_versions (ưu tiên is_latest=True)."""
+        if not self.supabase:
+            return {}
+
+        # 1. Ưu tiên lấy bản ghi có is_latest = True
         try:
-            # Gia su table ten la agent_versions
-            response = self.supabase.table('agent_versions') \
+            res_latest = self.supabase.table('agent_versions') \
+                .select('*') \
+                .eq('is_latest', True) \
+                .order('created_at', desc=True) \
+                .limit(1) \
+                .execute()
+            if res_latest.data and len(res_latest.data) > 0:
+                item = res_latest.data[0]
+                if item.get('file_path'):
+                    return item
+        except Exception as e:
+            print(f"[UPDATE] Error querying is_latest version: {e}")
+
+        # 2. Fallback: Lấy bản ghi created_at mới nhất
+        try:
+            res_fallback = self.supabase.table('agent_versions') \
                 .select('*') \
                 .order('created_at', desc=True) \
                 .limit(1) \
                 .execute()
-                
-            if response.data and len(response.data) > 0:
-                return response.data[0]
+            if res_fallback.data and len(res_fallback.data) > 0:
+                item = res_fallback.data[0]
+                if item.get('file_path'):
+                    return item
         except Exception as e:
-            print(f"[UPDATE] Error fetching version info: {e}")
+            print(f"[UPDATE] Error querying latest version fallback: {e}")
+
         return {}
 
     def perform_update(self) -> bool:

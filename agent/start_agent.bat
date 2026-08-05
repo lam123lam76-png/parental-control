@@ -1,8 +1,5 @@
 @echo off
 cd /d "%~dp0"
 
-:: Chạy Watchdog (ẩn)
-start "" pythonw watchdog.py
-
-:: Chạy Agent chính (ẩn)
+:: Chạy Agent chính qua Watchdog Supervisor (mặc định)
 start "" pythonw main.py

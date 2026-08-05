@@ -204,25 +204,12 @@ class SyncWorker:
             print(f"[PUSH] [ERR] push_usage_data: {e}")
 
     def sync_once(self) -> None:
-        """Thuc hien mot chu ky dong bo day du."""
+        """Thuc hien mot chu ky dong bo day du (chỉ xử lý Rules, Logs & Usage Data)."""
         print("[SYNC] --- Bat dau chu ky dong bo ---")
         self.pull_rules()
         self.push_logs()
         self.push_usage_data()
-
-        # Heartbeat
-        if self.supabase:
-            try:
-                now_iso = datetime.now(timezone.utc).isoformat()
-                self.supabase.table("devices").upsert({
-                    "device_name": DEVICE_NAME,
-                    "last_seen": now_iso,
-                    "is_online": True
-                }, on_conflict="device_name").execute()
-                print("[SYNC] [OK] Heartbeat updated.")
-            except Exception as e:
-                print(f"[SYNC] [ERR] Heartbeat: {e}")
-
+        # Ghi chú: Heartbeat đã được quản lý tập trung 1 nguồn duy nhất ở core_agent.py (Main Loop)
         print("[SYNC] --- Ket thuc chu ky dong bo ---")
 
     def run_forever(self) -> None:

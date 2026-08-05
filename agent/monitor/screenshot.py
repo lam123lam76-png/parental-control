@@ -160,7 +160,7 @@ def queue_screenshot(supabase, db, force: bool = False) -> None:
 
         filename = make_screenshot_filename()
 
-        # 1. Upload binary file WEBP lên Supabase Storage & Cập nhật Heartbeat tức thì
+        # 1. Upload binary file WEBP lên Supabase Storage
         if supabase:
             try:
                 supabase.storage.from_("screenshots").upload(
@@ -169,14 +169,7 @@ def queue_screenshot(supabase, db, force: bool = False) -> None:
                     file_options={"content-type": "image/webp", "upsert": "true"}
                 )
                 print(f"[SCREENSHOT] Đã upload Storage WebP: {filename}")
-
-                # Cập nhật ngay last_seen để Web App giữ màu xanh
-                now_iso = datetime.now(timezone.utc).isoformat()
-                supabase.table("devices").upsert({
-                    "device_name": DEVICE_NAME,
-                    "last_seen": now_iso,
-                    "is_online": True
-                }, on_conflict="device_name").execute()
+                # Ghi chú: Heartbeat đã được quản lý tập trung 1 nguồn duy nhất ở core_agent.py (Main Loop)
             except Exception as se:
                 log_debug(f"[ERR] Supabase storage WebP upload failed: {se}")
 

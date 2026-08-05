@@ -1,0 +1,20 @@
+# Core
+psutil==5.9.8
+mss==9.0.1
+Pillow==10.3.0
+requests==2.32.3
+python-dotenv==1.0.1
+
+# Windows specific
+pywin32==306
+wmi==1.5.1
+
+# Database & Realtime
+supabase==2.5.1
+
+# Telegram
+python-telegram-bot==21.4
+
+# Utils
+schedule==1.2.2
+pystray==0.19.5

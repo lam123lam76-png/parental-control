@@ -1,0 +1,653 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hướng Dẫn Cài Đặt & Sử Dụng — Parental Control System</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #4f46e5;
+            --primary-hover: #4338ca;
+            --primary-light: #eeeffe;
+            --secondary: #0ea5e9;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+            --dark: #0f172a;
+            --slate-800: #1e293b;
+            --slate-700: #334155;
+            --slate-600: #475569;
+            --slate-400: #94a3b8;
+            --slate-100: #f1f5f9;
+            --slate-50: #f8fafc;
+            --card-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.01);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            background-color: var(--slate-50);
+            color: var(--slate-700);
+            line-height: 1.65;
+            padding-bottom: 60px;
+        }
+
+        /* Header Banner */
+        .header {
+            background: linear-gradient(135deg, #1e1b4b 0%, #312e81 40%, #4338ca 100%);
+            color: white;
+            padding: 60px 20px 80px;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .header::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle, rgba(255,255,255,0.05) 0%, transparent 60%);
+            pointer-events: none;
+        }
+
+        .header-content {
+            max-width: 800px;
+            margin: 0 auto;
+            position: relative;
+            z-index: 1;
+        }
+
+        .badge {
+            display: inline-block;
+            background: rgba(255, 255, 255, 0.15);
+            backdrop-filter: blur(10px);
+            padding: 6px 16px;
+            border-radius: 50px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
+            margin-bottom: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            font-weight: 800;
+            margin-bottom: 15px;
+            line-height: 1.2;
+        }
+
+        .header p {
+            font-size: 1.15rem;
+            color: rgba(255, 255, 255, 0.85);
+            max-width: 650px;
+            margin: 0 auto;
+        }
+
+        /* Main Container */
+        .container {
+            max-width: 960px;
+            margin: -40px auto 0;
+            padding: 0 20px;
+            position: relative;
+            z-index: 2;
+        }
+
+        /* Navigation Bar */
+        .nav-card {
+            background: white;
+            border-radius: 16px;
+            padding: 15px 25px;
+            box-shadow: var(--card-shadow);
+            display: flex;
+            justify-content: space-around;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-bottom: 30px;
+            border: 1px solid var(--slate-100);
+        }
+
+        .nav-card a {
+            color: var(--slate-600);
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 0.95rem;
+            padding: 8px 16px;
+            border-radius: 8px;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .nav-card a:hover {
+            color: var(--primary);
+            background: var(--primary-light);
+        }
+
+        /* Section Cards */
+        .section-card {
+            background: white;
+            border-radius: 20px;
+            padding: 40px;
+            margin-bottom: 30px;
+            box-shadow: var(--card-shadow);
+            border: 1px solid var(--slate-100);
+        }
+
+        .section-title {
+            font-size: 1.6rem;
+            font-weight: 800;
+            color: var(--dark);
+            margin-bottom: 25px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            border-bottom: 2px solid var(--slate-100);
+            padding-bottom: 15px;
+        }
+
+        .section-title .icon {
+            font-size: 1.8rem;
+        }
+
+        /* Feature Grid */
+        .grid-3 {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-top: 20px;
+        }
+
+        .feature-box {
+            background: var(--slate-50);
+            padding: 24px;
+            border-radius: 14px;
+            border: 1px solid var(--slate-100);
+            transition: transform 0.2s ease;
+        }
+
+        .feature-box:hover {
+            transform: translateY(-3px);
+        }
+
+        .feature-icon {
+            width: 48px;
+            height: 48px;
+            background: var(--primary-light);
+            color: var(--primary);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            margin-bottom: 15px;
+        }
+
+        .feature-box h4 {
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: var(--dark);
+            margin-bottom: 8px;
+        }
+
+        .feature-box p {
+            font-size: 0.95rem;
+            color: var(--slate-600);
+        }
+
+        /* Step Timeline */
+        .step-card {
+            background: var(--slate-50);
+            border: 1px solid var(--slate-100);
+            border-radius: 16px;
+            padding: 30px;
+            margin-bottom: 25px;
+            position: relative;
+        }
+
+        .step-header {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+
+        .step-number {
+            width: 36px;
+            height: 36px;
+            background: var(--primary);
+            color: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 800;
+            font-size: 1.1rem;
+            flex-shrink: 0;
+        }
+
+        .step-header h3 {
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: var(--dark);
+        }
+
+        .step-body p {
+            margin-bottom: 12px;
+            font-size: 1rem;
+        }
+
+        .step-body ol, .step-body ul {
+            padding-left: 20px;
+            margin-bottom: 15px;
+        }
+
+        .step-body li {
+            margin-bottom: 8px;
+        }
+
+        /* Code & Highlight Tags */
+        .path-badge {
+            background: #e0e7ff;
+            color: #3730a3;
+            font-family: monospace;
+            padding: 3px 8px;
+            border-radius: 6px;
+            font-size: 0.9rem;
+            font-weight: 600;
+        }
+
+        .cmd-badge {
+            background: #0f172a;
+            color: #38bdf8;
+            font-family: monospace;
+            padding: 4px 10px;
+            border-radius: 6px;
+            font-size: 0.9rem;
+            display: inline-block;
+        }
+
+        /* Alert Boxes */
+        .alert {
+            border-radius: 12px;
+            padding: 20px;
+            margin: 20px 0;
+            display: flex;
+            gap: 15px;
+            align-items: flex-start;
+        }
+
+        .alert-icon {
+            font-size: 1.5rem;
+            flex-shrink: 0;
+            margin-top: 2px;
+        }
+
+        .alert-content h5 {
+            font-size: 1rem;
+            font-weight: 700;
+            margin-bottom: 4px;
+        }
+
+        .alert-content p {
+            font-size: 0.95rem;
+            margin-bottom: 0;
+        }
+
+        .alert-danger {
+            background: #fef2f2;
+            border: 1px solid #fecaca;
+            color: #991b1b;
+        }
+
+        .alert-warning {
+            background: #fffbeb;
+            border: 1px solid #fef3c7;
+            color: #92400e;
+        }
+
+        .alert-info {
+            background: #f0f9ff;
+            border: 1px solid #bae6fd;
+            color: #075985;
+        }
+
+        .alert-success {
+            background: #ecfdf5;
+            border: 1px solid #a7f3d0;
+            color: #065f46;
+        }
+
+        /* Web Dashboard Guide Cards */
+        .dashboard-feature {
+            display: flex;
+            gap: 20px;
+            padding: 20px;
+            border-radius: 12px;
+            border: 1px solid var(--slate-100);
+            background: white;
+            margin-bottom: 15px;
+        }
+
+        .df-icon {
+            width: 44px;
+            height: 44px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.3rem;
+            flex-shrink: 0;
+        }
+
+        .df-purple { background: #f3e8ff; color: #9333ea; }
+        .df-blue { background: #e0f2fe; color: #0284c7; }
+        .df-green { background: #d1fae5; color: #059669; }
+        .df-red { background: #ffe4e6; color: #e11d48; }
+
+        .df-content h4 {
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: var(--dark);
+            margin-bottom: 6px;
+        }
+
+        /* UI Mockup Buttons */
+        .btn-ui {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 14px;
+            border-radius: 8px;
+            font-size: 0.85rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            color: white;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .btn-danger { background: #ef4444; }
+        .btn-warning { background: #f59e0b; }
+        .btn-primary { background: #3b82f6; }
+
+        /* FAQ Accordion */
+        .faq-item {
+            background: var(--slate-50);
+            border-radius: 12px;
+            padding: 20px 25px;
+            margin-bottom: 15px;
+            border: 1px solid var(--slate-100);
+        }
+
+        .faq-item h4 {
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: var(--dark);
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .faq-item p {
+            color: var(--slate-600);
+            font-size: 0.98rem;
+        }
+
+        /* Footer */
+        .footer {
+            text-align: center;
+            color: var(--slate-400);
+            font-size: 0.9rem;
+            margin-top: 40px;
+            padding-top: 20px;
+            border-top: 1px solid var(--slate-200);
+        }
+
+        @media (max-width: 640px) {
+            .header h1 { font-size: 1.8rem; }
+            .section-card { padding: 25px 20px; }
+            .dashboard-feature { flex-direction: column; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- HEADER BANNER -->
+    <header class="header">
+        <div class="header-content">
+            <span class="badge">🛡️ Tài Liệu Hướng Dẫn Official</span>
+            <h1>Parental Control System</h1>
+            <p>Hệ thống giám sát & quản lý máy tính an toàn, thông minh dành cho phụ huynh và gia đình.</p>
+        </div>
+    </header>
+
+    <div class="container">
+
+        <!-- QUICK NAV -->
+        <nav class="nav-card">
+            <a href="#overview">📌 Tổng Quan</a>
+            <a href="#install">💻 Cài Đặt Máy Con</a>
+            <a href="#dashboard">🌐 Trang Web Quản Lý</a>
+            <a href="#faq">❓ Hỏi & Đáp (FAQ)</a>
+        </nav>
+
+        <!-- 1. TỔNG QUAN HỆ THỐNG -->
+        <section id="overview" class="section-card">
+            <div class="section-title">
+                <span class="icon">📌</span>
+                <h2>1. Tổng Quan Hệ Thống</h2>
+            </div>
+            <p><strong>Parental Control System</strong> là giải pháp bảo vệ con em khỏi các nguy cơ trực tuyến và giúp phụ huynh dễ dàng quản lý thời gian sử dụng máy tính hiệu quả. Phần mềm hoạt động vô cùng nhẹ nhàng, tự động và bảo mật.</p>
+
+            <div class="grid-3">
+                <div class="feature-box">
+                    <div class="feature-icon">⏱️</div>
+                    <h4>Giới Hạn Thời Gian</h4>
+                    <p>Cấu hình tổng số giờ chơi mỗi ngày hoặc chọn khung giờ được phép sử dụng máy.</p>
+                </div>
+                <div class="feature-box">
+                    <div class="feature-icon">🚫</div>
+                    <h4>Chặn App & Web Xấu</h4>
+                    <p>Tự động đóng ngay lập tức các game cấm hoặc trang web độc hại khi con cố tình mở.</p>
+                </div>
+                <div class="feature-box">
+                    <div class="feature-icon">📸</div>
+                    <h4>Chụp Ảnh & Báo Cáo</h4>
+                    <p>Chụp ảnh màn hình định kỳ và tổng hợp danh sách ứng dụng đã dùng đưa lên Web.</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- 2. HƯỚNG DẪN CÀI ĐẶT TRÊN MÁY ĐÍCH -->
+        <section id="install" class="section-card">
+            <div class="section-title">
+                <span class="icon">💻</span>
+                <h2>2. Cài Đặt Trên Máy Của Con / Em</h2>
+            </div>
+            <p>Thực hiện các bước sau trên máy tính mà bạn muốn quản lý (chỉ cần làm 1 lần duy nhất):</p>
+
+            <br>
+
+            <!-- BƯỚC 1 -->
+            <div class="step-card">
+                <div class="step-header">
+                    <div class="step-number">1</div>
+                    <h3>Thêm Ngoại Lệ Cho Windows Defender (Tự Động Hoặc Thủ Công)</h3>
+                </div>
+                <div class="step-body">
+                    <p>Do phần mềm chạy ngầm, trình diệt virus Windows Defender có thể quét nhầm và tự xóa file. Bạn có thể thực hiện theo 2 cách cực kỳ dễ dàng:</p>
+
+                    <div class="alert alert-success" style="background: #e0f2fe; border: 1px solid #bae6fd;">
+                        <span class="alert-icon">⚡</span>
+                        <div class="alert-content">
+                            <h5 style="color: #0369a1;">Cách 1: Tự Động Hoàn Toàn (Khuyên Dùng)</h5>
+                            <p style="color: #0c4a6e;">Khi bạn chạy file <strong>Install_Parental_Control.bat</strong> (ở Bước 3) dưới quyền <i>Run as Administrator</i>, script sẽ <strong>tự động tạo thư mục và tự động thêm vào Ngoại Lệ (Exclusion)</strong> của Windows Defender cho bạn mà không cần làm gì thêm!</p>
+                        </div>
+                    </div>
+
+                    <p><strong>Cách 2: Tự thêm thủ công (Nếu muốn chuẩn bị trước):</strong></p>
+                    <ol>
+                        <li>Mở ứng dụng <strong>Windows Security</strong> từ menu Start.</li>
+                        <li>Chọn mục <strong>Virus & threat protection</strong> (Bảo vệ khỏi mối đe dọa).</li>
+                        <li>Ở phần <i>Virus & threat protection settings</i>, bấm vào <strong>Manage settings</strong>.</li>
+                        <li>Cuộn xuống mục <i>Exclusions</i>, bấm <strong>Add or remove exclusions</strong>.</li>
+                        <li>Bấm nút <strong>+ Add an exclusion</strong> → Chọn <strong>Folder</strong>.</li>
+                        <li>Dán hoặc chọn đường dẫn thư mục cài đặt chính thức: <br><span class="path-badge">C:\ProgramData\ParentalControl</span></li>
+                    </ol>
+
+                    <div class="alert alert-warning">
+                        <span class="alert-icon">💡</span>
+                        <div class="alert-content">
+                            <h5>Giải thích lỗi "Không tìm thấy thư mục":</h5>
+                            <p>Nếu bạn thêm thủ công trước khi cài đặt mà Windows báo không tìm thấy thư mục <code>C:\ProgramData\ParentalControl</code>, đó là vì thư mục này chưa được tạo. Bạn chỉ cần chạy file <strong>Install_Parental_Control.bat</strong> (Bước 3), thư mục sẽ tự động được tạo và cấu hình ngoại lệ ngay lập tức!</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- BƯỚC 2 -->
+            <div class="step-card">
+                <div class="step-header">
+                    <div class="step-number">2</div>
+                    <h3>Chép File Và Giải Nén Bộ Cài Đặt</h3>
+                </div>
+                <div class="step-body">
+                    <ol>
+                        <li>Chép file bộ cài đặt <span class="path-badge">ParentalControl_Setup.zip</span> vào máy tính của con.</li>
+                        <li>Nhấn chuột phải vào file ZIP → Chọn <strong>Extract All...</strong> (Giải nén tất cả) để xả nén file ra thư mục.</li>
+                    </ol>
+                </div>
+            </div>
+
+            <!-- BƯỚC 3 -->
+            <div class="step-card">
+                <div class="step-header">
+                    <div class="step-number">3</div>
+                    <h3>Kích Hoạt Cài Đặt Tự Động (Run as Administrator)</h3>
+                </div>
+                <div class="step-body">
+                    <ol>
+                        <li>Mở thư mục vừa giải nén, tìm file có tên: <span class="path-badge">Install_Parental_Control.bat</span></li>
+                        <li><strong>Nhấn chuột phải</strong> vào file đó → Chọn dòng <strong>Run as administrator</strong> (Chạy dưới quyền quản trị viên).</li>
+                        <li>Nếu màn hình hiện hộp thoại hỏi "Do you want to allow this app...", bấm <strong>Yes</strong>.</li>
+                        <li>Một cửa sổ đen sẽ hiện lên tự động cài đặt trong 5-10 giây và báo <i>"CAI DAT HOAN TAT THANH CONG!"</i>.</li>
+                    </ol>
+
+                    <div class="alert alert-success">
+                        <span class="alert-icon">🎉</span>
+                        <div class="alert-content">
+                            <h5>Hoàn tất cài đặt!</h5>
+                            <p>Phần mềm đã bắt đầu chạy ngầm hoàn toàn vĩnh viễn và tự động khởi động cùng Windows. Bạn có thể xóa file zip cài đặt ban đầu đi.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 3. HƯỚNG DẪN SỬ DỤNG TRANG WEB QUẢN LÝ -->
+        <section id="dashboard" class="section-card">
+            <div class="section-title">
+                <span class="icon">🌐</span>
+                <h2>3. Hướng Dẫn Sử Dụng Trang Web Quản Lý</h2>
+            </div>
+            <p>Bạn có thể dùng điện thoại hoặc máy tính cá nhân mở đường dẫn Web Management Dashboard để theo dõi và điều khiển từ xa bất kỳ lúc nào.</p>
+
+            <br>
+
+            <div class="dashboard-feature">
+                <div class="df-icon df-purple">📸</div>
+                <div class="df-content">
+                    <h4>1. Xem Báo Cáo & Ảnh Màn Hình</h4>
+                    <p>Vào tab <strong>Lịch Sử & Báo Cáo</strong> để xem các ảnh chụp màn hình máy tính con em theo mốc thời gian, xem danh sách các ứng dụng/game đang mở và thời gian đã sử dụng trong ngày.</p>
+                </div>
+            </div>
+
+            <div class="dashboard-feature">
+                <div class="df-icon df-blue">⏱️</div>
+                <div class="df-content">
+                    <h4>2. Cài Đặt Giới Hạn Thời Gian Sử Dụng</h4>
+                    <p>Vào tab <strong>Cấu Hình Thời Gian</strong>:</p>
+                    <ul>
+                        <li><strong>Theo thời lượng:</strong> Nhập số giờ tối đa/ngày (Ví dụ: 2 giờ/ngày). Khi hết 2 giờ sử dụng, máy sẽ tự động khóa màn hình.</li>
+                        <li><strong>Theo khung giờ:</strong> Chọn giờ bắt đầu và giờ kết thúc (Ví dụ: Chỉ cho dùng từ 19:00 đến 21:00). Ngoài giờ này máy sẽ bị khóa.</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="dashboard-feature">
+                <div class="df-icon df-green">🚫</div>
+                <div class="df-content">
+                    <h4>3. Thêm Quy Tắc Chặn Ứng Dụng & Trang Web</h4>
+                    <p>Vào tab <strong>Quy Tắc Chặn</strong>:</p>
+                    <ul>
+                        <li><strong>Chặn Game/App:</strong> Nhập tên file (Ví dụ: <code>garena.exe</code>, <code>roblox.exe</code>) → Chọn <strong>Cấm hoàn toàn</strong>.</li>
+                        <li><strong>Chặn Website:</strong> Nhập tên trang web (Ví dụ: <code>facebook.com</code>, <code>youtube.com</code>) → Chọn <strong>Cấm hoàn toàn</strong>. Khi con truy cập web này, trình duyệt sẽ tự động bị đóng ngay.</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="dashboard-feature">
+                <div class="df-icon df-red">⚡</div>
+                <div class="df-content">
+                    <h4>4. Nút Điều Khiển Khẩn Cấp</h4>
+                    <p>Trên trang chủ luôn có các nút bấm điều khiển tức thì:</p>
+                    <div style="margin-top: 10px; display: flex; gap: 10px; flex-wrap: wrap;">
+                        <span class="btn-ui btn-danger">🔒 Khóa Máy Khẩn Cấp</span>
+                        <span class="btn-ui btn-warning">⏸️ Tạm Dừng Giám Sát</span>
+                        <span class="btn-ui btn-primary">📸 Chụp Ảnh Ngay</span>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 4. CÁC CÂU HỎI THƯỜNG GẶP (FAQ) -->
+        <section id="faq" class="section-card">
+            <div class="section-title">
+                <span class="icon">❓</span>
+                <h2>4. Các Câu Hỏi Thường Gặp (FAQ)</h2>
+            </div>
+
+            <div class="faq-item">
+                <h4><span>❓</span> Làm sao để biết phần mềm trên máy con có đang chạy hay không?</h4>
+                <p>Trên trang Web Quản lý, góc trên màn hình sẽ có đèn trạng thái thiết bị. Nếu hiển thị <strong style="color: #10b981;">🟢 Online</strong> nghĩa là máy tính đang bật và phần mềm đang hoạt động bình thường.</p>
+            </div>
+
+            <div class="faq-item">
+                <h4><span>❓</span> Nếu máy tính con bị mất mạng Internet thì phần mềm có khóa máy được không?</h4>
+                <p><strong>CÓ, HOÀN TOÀN ĐƯỢC.</strong> Hệ thống được thiết kế theo công nghệ <i>Local-First</i>. Mọi dữ liệu về giờ giấc và quy tắc chặn được lưu trực tiếp trên máy con. Ngay cả khi con rút dây mạng hoặc tắt Wi-Fi, máy vẫn tự động tính giờ và khóa màn hình khi hết giờ.</p>
+            </div>
+
+            <div class="faq-item">
+                <h4><span>❓</span> Nếu con bấm Ctrl + Alt + Delete hoặc mở Task Manager thì có tắt được phần mềm không?</h4>
+                <p><strong>KHÔNG THỂ.</strong> Khi màn hình bị khóa, phần mềm đã tự động vô hiệu hóa Task Manager và các phím tắt hệ thống. Đồng thời tiến trình chạy dưới quyền tối cao của Windows (SYSTEM) nên không thể bị tắt bằng tay.</p>
+            </div>
+
+            <div class="faq-item">
+                <h4><span>❓</span> Mật khẩu mở khóa trực tiếp trên màn hình máy con là gì?</h4>
+                <p>Khi máy bị khóa, nếu phụ huynh muốn mở khóa trực tiếp tại máy mà không cần mở Web, chỉ cần nhập mật khẩu quản lý ban đầu (Đã được thiết lập mặc định trong cấu hình hệ thống) vào ô nhập mật khẩu trên màn hình khóa.</p>
+            </div>
+        </section>
+
+        <!-- FOOTER -->
+        <footer class="footer">
+            <p>© 2026 Parental Control System. Tài liệu hướng dẫn sử dụng an toàn dành cho gia đình.</p>
+        </footer>
+
+    </div>
+
+</body>
+</html>

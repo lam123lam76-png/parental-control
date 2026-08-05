@@ -44,7 +44,7 @@ from monitor.screenshot import take_screenshot, make_screenshot_filename
 from monitor.active_window import get_active_window_info
 from monitor.time_checker import is_within_allowed_time
 from monitor.blocker import start_blocker
-from monitor.network_checker import is_internet_available
+from monitor.network_checker import is_internet_available, check_network
 from monitor.command_listener import process_pending_commands
 from monitor.schedule_checker import check_current_schedule
 from monitor.chat_client import check_unread_messages
@@ -319,14 +319,19 @@ def main():
                         time.sleep(SEND_INTERVAL)
                         continue
 
-                    # 1. KIEM TRA INTERNET
-                    if not is_internet_available():
+                    # 1. KIEM TRA MANG MUC 2 (LATENCY RTT + SUPABASE HOST CONNECT)
+                    net_info = check_network(timeout=3.0)
+                    if not net_info["online"]:
                         print("[NET] Khong co internet!")
                         unlocked = start_blocker(supabase)
                         if unlocked:
                             print("[NET] Da mo khoa bang mat khau")
                         time.sleep(SEND_INTERVAL)
                         continue
+
+                    if net_info["latency_ms"] > 3000 or not net_info["supabase_ok"]:
+                        print(f"[NET] [WARN] Mang kem: latency={net_info['latency_ms']}ms supabase_ok={net_info['supabase_ok']}. Uu tien Local-First.")
+                        log_debug(f"[NET] High latency or Supabase host unreachable: {net_info}")
 
                     # 2. KIEM TRA LICH HOC TAP
                     is_study, study_title = check_current_schedule(supabase)

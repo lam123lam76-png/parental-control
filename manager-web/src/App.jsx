@@ -2282,9 +2282,10 @@ function ParentalControlApp() {
               </div>
               <button
                 onClick={() => setShowFloatingWidget(false)}
-                className="w-6 h-6 rounded-full hover:bg-zinc-900 text-zinc-400 hover:text-white flex items-center justify-center text-xs"
+                className="w-6 h-6 rounded-full hover:bg-zinc-800 text-zinc-400 hover:text-white flex items-center justify-center text-xs font-bold transition"
+                title="Đóng cửa sổ ghim"
               >
-                
+                ✕
               </button>
             </div>
 
@@ -2516,10 +2517,11 @@ function ParentalControlApp() {
           </div>
         ) : (
           <button
-            onClick={() => setShowFloatingWidget(true)}
-            className="px-4 py-3 bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-full shadow-2xl flex items-center gap-2 text-xs transition transform hover:scale-105 border border-blue-400/30"
+            onClick={() => setShowFloatingWidget(prev => !prev)}
+            className="px-4 py-3 bg-zinc-100 hover:bg-white text-black font-bold rounded-full shadow-2xl flex items-center gap-2 text-xs transition transform hover:scale-105 border border-zinc-300 z-40"
+            title="Bật/Tắt cửa sổ ghim To Do, Chat & Online"
           >
-            <span></span>
+            <span>📌</span>
             <span>Mở To Do, Chat & Online Ghim</span>
           </button>
         )}

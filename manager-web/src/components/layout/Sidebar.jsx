@@ -48,7 +48,7 @@ export function Sidebar({
   }
 
   return (
-    <aside className="hidden lg:flex w-64 bg-black border-r border-zinc-800 p-4 flex-col justify-between shrink-0 sticky top-0 h-screen z-30">
+    <aside className="hidden lg:flex w-64 bg-black border-r border-zinc-800 p-4 flex-col justify-between shrink-0 sticky top-0 h-screen overflow-y-auto z-30">
       <div className="space-y-6">
         {/* BRAND HEADER — text only, no logo box */}
         <div className="pb-4 border-b border-zinc-800">

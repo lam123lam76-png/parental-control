@@ -780,9 +780,12 @@ function ParentalControlApp() {
 
       // Tải danh sách session thiết bị đang truy cập & Lọc bỏ session rác quá 35s
       const cutoff35s = new Date(Date.now() - 35000).toISOString()
-      try {
-        await supabase.from('web_access_sessions').delete().lt('last_active', cutoff35s)
-      } catch (e) {}
+      // Chỉ thực hiện dọn dẹp session rác khi mở trang lần đầu để tránh lãng phí IOPS Supabase
+      if (isInitial) {
+        try {
+          await supabase.from('web_access_sessions').delete().lt('last_active', cutoff35s)
+        } catch (e) {}
+      }
 
       const { data: sessData, error: sessErr } = await supabase
         .from('web_access_sessions')

@@ -299,9 +299,6 @@ def main():
             send_heartbeat(supabase)
 
             try:
-                # 0. LANG NGHE LENH KHAN CAP
-                process_pending_commands(supabase)
-
                 # 0.1 KIEM TRA TIN NHAN CHAT TU ADMIN
                 check_unread_messages(supabase)
 
@@ -379,7 +376,7 @@ def main():
 
                 # 5. GHI PROCESS (vao pending_logs)
                 processes = get_running_processes(limit=30)
-                for p in processes[:10]:  # Chi ghi top 10 de giam spam
+                for p in processes[:5]:  # Chi ghi top 5 tien trinh de giam spam SQLite
                     db.add_pending_log("process", {
                         "device_name": DEVICE_NAME,
                         "process_name": p["name"],
@@ -425,16 +422,7 @@ def main():
                 # 10. THU THAP LICH SU DUYET WEB
                 get_browser_history(supabase)
 
-                # 11. CAP NHAT HEARTBEAT MOI CHU KY (THỜI GIAN THỰC UNINTERRUPTED ONLINE)
-                try:
-                    now_iso = datetime.now(timezone.utc).isoformat()
-                    supabase.table("devices").upsert({
-                        "device_name": DEVICE_NAME,
-                        "last_seen": now_iso,
-                        "is_online": True
-                    }, on_conflict="device_name").execute()
-                except Exception as hbe:
-                    log_debug(f"[ERR] Main loop heartbeat failed: {hbe}")
+
 
             except Exception as e:
                 # Bat moi loi trong chu ky de Agent KHONG BAO GIO chet

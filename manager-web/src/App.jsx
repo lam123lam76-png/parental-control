@@ -1799,202 +1799,201 @@ function ParentalControlApp() {
     }
   })
 
-  // GỘP THỜI GIAN & LUẬT APP THÀNH MỘT DANH SÁCH THỐNG NHẤT
-  const mergedAppsMap = {}
-
-  appUsage.forEach(u => {
-    if (!u.process_name) return
-    const key = u.process_name.toLowerCase()
-    mergedAppsMap[key] = {
-      process_name: u.process_name,
-      used_minutes: u.used_minutes || 0,
-      category: 'allowed',
-      max_minutes_per_day: 0,
-      rule_id: null
-    }
-  })
-
-  appHistorySource.forEach(item => {
-    if (!item.process_name) return
-    const key = item.process_name.toLowerCase()
-    if (!mergedAppsMap[key]) {
+  // GỘP THỜI GIAN & LUẬT APP THÀNH MỘT DANH SÁCH THỐNG NHẤT (DÙNG useMemo TỐI ƯU PERFORMANCE)
+  const mergedAppsList = useMemo(() => {
+    const mergedAppsMap = {}
+    appUsage.forEach(u => {
+      if (!u.process_name) return
+      const key = u.process_name.toLowerCase()
       mergedAppsMap[key] = {
-        process_name: item.process_name,
-        used_minutes: 1,
+        process_name: u.process_name,
+        used_minutes: u.used_minutes || 0,
         category: 'allowed',
         max_minutes_per_day: 0,
         rule_id: null
       }
-    }
-  })
+    })
 
-  appRules.forEach(r => {
-    if (!r.process_name) return
-    const key = r.process_name.toLowerCase()
-    if (mergedAppsMap[key]) {
-      mergedAppsMap[key].category = r.category
-      mergedAppsMap[key].max_minutes_per_day = r.max_minutes_per_day
-      mergedAppsMap[key].rule_id = r.id
-    } else {
-      mergedAppsMap[key] = {
-        process_name: r.process_name,
-        used_minutes: 0,
-        category: r.category,
-        max_minutes_per_day: r.max_minutes_per_day,
-        rule_id: r.id
+    appHistorySource.forEach(item => {
+      if (!item.process_name) return
+      const key = item.process_name.toLowerCase()
+      if (!mergedAppsMap[key]) {
+        mergedAppsMap[key] = {
+          process_name: item.process_name,
+          used_minutes: 1,
+          category: 'allowed',
+          max_minutes_per_day: 0,
+          rule_id: null
+        }
       }
-    }
-  })
+    })
 
-  processes.forEach(p => {
-    if (!p.process_name) return
-    const key = p.process_name.toLowerCase()
-    if (!mergedAppsMap[key]) {
-      mergedAppsMap[key] = {
-        process_name: p.process_name,
-        used_minutes: 0,
-        category: 'allowed',
-        max_minutes_per_day: 0,
-        rule_id: null
+    appRules.forEach(r => {
+      if (!r.process_name) return
+      const key = r.process_name.toLowerCase()
+      if (mergedAppsMap[key]) {
+        mergedAppsMap[key].category = r.category
+        mergedAppsMap[key].max_minutes_per_day = r.max_minutes_per_day
+        mergedAppsMap[key].rule_id = r.id
+      } else {
+        mergedAppsMap[key] = {
+          process_name: r.process_name,
+          used_minutes: 0,
+          category: r.category,
+          max_minutes_per_day: r.max_minutes_per_day,
+          rule_id: r.id
+        }
       }
-    }
-  })
+    })
 
-  // Lọc danh sách app: Ẩn app không sử dụng trong ngày (dùng 0 phút)
-  const mergedAppsList = Object.values(mergedAppsMap).filter(app => {
-    if (hideUnusedApps) {
-      return app.used_minutes > 0
-    }
-    return true
-  })
+    processes.forEach(p => {
+      if (!p.process_name) return
+      const key = p.process_name.toLowerCase()
+      if (!mergedAppsMap[key]) {
+        mergedAppsMap[key] = {
+          process_name: p.process_name,
+          used_minutes: 0,
+          category: 'allowed',
+          max_minutes_per_day: 0,
+          rule_id: null
+        }
+      }
+    })
+
+    return Object.values(mergedAppsMap).filter(app => {
+      if (hideUnusedApps) return app.used_minutes > 0
+      return true
+    })
+  }, [appUsage, appHistorySource, appRules, processes, hideUnusedApps])
 
   // GỘP THỜI GIAN & LUẬT WEB THÀNH MỘT DANH SÁCH THỐNG NHẤT
-  const mergedWebsMap = {}
-
-  webUsage.forEach(u => {
-    if (!u.domain) return
-    const key = u.domain.toLowerCase()
-    mergedWebsMap[key] = {
-      domain: u.domain,
-      used_minutes: u.used_minutes || 0,
-      category: 'allowed',
-      max_minutes_per_day: 0,
-      rule_id: null
-    }
-  })
-
-  webHistorySource.forEach(item => {
-    if (!item.url) return
-    const domain = item.url.replace(/^(?:https?:\/\/)?(?:www\.)?/i, '').split('/')[0]
-    if (!domain) return
-    const key = domain.toLowerCase()
-    if (!mergedWebsMap[key]) {
+  const mergedWebsList = useMemo(() => {
+    const mergedWebsMap = {}
+    webUsage.forEach(u => {
+      if (!u.domain) return
+      const key = u.domain.toLowerCase()
       mergedWebsMap[key] = {
-        domain: domain,
-        used_minutes: 1,
+        domain: u.domain,
+        used_minutes: u.used_minutes || 0,
         category: 'allowed',
         max_minutes_per_day: 0,
         rule_id: null
       }
-    }
-  })
+    })
 
-  webRules.forEach(r => {
-    if (!r.domain) return
-    const key = r.domain.toLowerCase()
-    if (mergedWebsMap[key]) {
-      mergedWebsMap[key].category = r.category
-      mergedWebsMap[key].max_minutes_per_day = r.max_minutes_per_day
-      mergedWebsMap[key].rule_id = r.id
-    } else {
-      mergedWebsMap[key] = {
-        domain: r.domain,
-        used_minutes: 0,
-        category: r.category,
-        max_minutes_per_day: r.max_minutes_per_day,
-        rule_id: r.id
+    webHistorySource.forEach(item => {
+      if (!item.url) return
+      const domain = item.url.replace(/^(?:https?:\/\/)?(?:www\.)?/i, '').split('/')[0]
+      if (!domain) return
+      const key = domain.toLowerCase()
+      if (!mergedWebsMap[key]) {
+        mergedWebsMap[key] = {
+          domain: domain,
+          used_minutes: 1,
+          category: 'allowed',
+          max_minutes_per_day: 0,
+          rule_id: null
+        }
       }
-    }
-  })
+    })
 
+    webRules.forEach(r => {
+      if (!r.domain) return
+      const key = r.domain.toLowerCase()
+      if (mergedWebsMap[key]) {
+        mergedWebsMap[key].category = r.category
+        mergedWebsMap[key].max_minutes_per_day = r.max_minutes_per_day
+        mergedWebsMap[key].rule_id = r.id
+      } else {
+        mergedWebsMap[key] = {
+          domain: r.domain,
+          used_minutes: 0,
+          category: r.category,
+          max_minutes_per_day: r.max_minutes_per_day,
+          rule_id: r.id
+        }
+      }
+    })
 
-  // Lọc danh sách web: Ẩn web không sử dụng trong ngày (dùng 0 phút)
-  const mergedWebsList = Object.values(mergedWebsMap).filter(web => {
-    if (hideUnusedApps) {
-      return web.used_minutes > 0
-    }
-    return true
-  })
+    return Object.values(mergedWebsMap).filter(web => {
+      if (hideUnusedApps) return web.used_minutes > 0
+      return true
+    })
+  }, [webUsage, webHistorySource, webRules, hideUnusedApps])
 
-  // FILTERED BROWSER HISTORY LOGS (Dùng dữ liệu đã gộp)
-  const filteredBrowserHistory = webHistorySource.filter(item => {
-    if (!historySearch.trim()) return true
-    const s = historySearch.toLowerCase()
-    return (item.title || '').toLowerCase().includes(s) || (item.url || '').toLowerCase().includes(s) || (item.browser_name || '').toLowerCase().includes(s)
-  })
+  // FILTERED & GROUPED BROWSER HISTORY LOGS
+  const { mergedBrowserHistory, groupedBrowserHistory } = useMemo(() => {
+    const filteredBrowserHistory = webHistorySource.filter(item => {
+      if (!historySearch.trim()) return true
+      const s = historySearch.toLowerCase()
+      return (item.title || '').toLowerCase().includes(s) || (item.url || '').toLowerCase().includes(s) || (item.browser_name || '').toLowerCase().includes(s)
+    })
 
-  // Áp dụng gộp tiến trình liên tục cho Web
-  const mergedBrowserHistory = mergeConsecutiveEntries(filteredBrowserHistory)
+    const merged = mergeConsecutiveEntries(filteredBrowserHistory)
+    const grouped = {}
+    merged.forEach(item => {
+      const dateLabel = formatDateHeader(item.visit_time || item.startTime)
+      if (!grouped[dateLabel]) grouped[dateLabel] = []
+      grouped[dateLabel].push(item)
+    })
+    return { mergedBrowserHistory: merged, groupedBrowserHistory: grouped }
+  }, [webHistorySource, historySearch])
 
-  const groupedBrowserHistory = {}
-  mergedBrowserHistory.forEach(item => {
-    const dateLabel = formatDateHeader(item.visit_time || item.startTime)
-    if (!groupedBrowserHistory[dateLabel]) groupedBrowserHistory[dateLabel] = []
-    groupedBrowserHistory[dateLabel].push(item)
-  })
+  // FILTERED & GROUPED APP USAGE LOGS
+  const { mergedAppHistory, groupedAppHistory } = useMemo(() => {
+    const filteredAppHistory = appHistorySource.filter(item => {
+      if (!appHistorySearch.trim()) return true
+      const s = appHistorySearch.toLowerCase()
+      return (item.title || '').toLowerCase().includes(s) || (item.process_name || '').toLowerCase().includes(s)
+    })
 
-  // FILTERED APP USAGE LOGS
-  const filteredAppHistory = appHistorySource.filter(item => {
-    if (!appHistorySearch.trim()) return true
-    const s = appHistorySearch.toLowerCase()
-    return (item.title || '').toLowerCase().includes(s) || (item.process_name || '').toLowerCase().includes(s)
-  })
-
-  // Áp dụng gộp tiến trình liên tục cho App
-  const mergedAppHistory = mergeConsecutiveEntries(filteredAppHistory)
-
-  const groupedAppHistory = {}
-  mergedAppHistory.forEach(item => {
-    const dateLabel = formatDateHeader(item.created_at || item.startTime)
-    if (!groupedAppHistory[dateLabel]) groupedAppHistory[dateLabel] = []
-    groupedAppHistory[dateLabel].push(item)
-  })
+    const merged = mergeConsecutiveEntries(filteredAppHistory)
+    const grouped = {}
+    merged.forEach(item => {
+      const dateLabel = formatDateHeader(item.created_at || item.startTime)
+      if (!grouped[dateLabel]) grouped[dateLabel] = []
+      grouped[dateLabel].push(item)
+    })
+    return { mergedAppHistory: merged, groupedAppHistory: grouped }
+  }, [appHistorySource, appHistorySearch])
 
   // Tạo cấu trúc Log File (gom nhóm cả Web và App)
-  const logFileEntries = []
-  
-  mergedBrowserHistory.forEach(item => {
-    logFileEntries.push({
-      type: 'WEB',
-      timestamp: new Date(item.visit_time || item.startTime).getTime(),
-      displayTime: formatClockTime(item.visit_time || item.startTime),
-      title: item.title || item.url,
-      domain: item.url ? item.url.replace(/^(?:https?:\/\/)?(?:www\.)?/i, '').split('/')[0] : '',
-      count: item.count,
-      dateLabel: formatDateHeader(item.visit_time || item.startTime)
+  const groupedLogFile = useMemo(() => {
+    const logFileEntries = []
+    
+    mergedBrowserHistory.forEach(item => {
+      logFileEntries.push({
+        type: 'WEB',
+        timestamp: new Date(item.visit_time || item.startTime).getTime(),
+        displayTime: formatClockTime(item.visit_time || item.startTime),
+        title: item.title || item.url,
+        domain: item.url ? item.url.replace(/^(?:https?:\/\/)?(?:www\.)?/i, '').split('/')[0] : '',
+        count: item.count,
+        dateLabel: formatDateHeader(item.visit_time || item.startTime)
+      })
     })
-  })
 
-  mergedAppHistory.forEach(item => {
-    logFileEntries.push({
-      type: 'APP',
-      timestamp: new Date(item.created_at || item.startTime).getTime(),
-      displayTime: formatClockTime(item.created_at || item.startTime),
-      title: item.title || item.process_name,
-      domain: item.process_name,
-      count: item.count,
-      dateLabel: formatDateHeader(item.created_at || item.startTime)
+    mergedAppHistory.forEach(item => {
+      logFileEntries.push({
+        type: 'APP',
+        timestamp: new Date(item.created_at || item.startTime).getTime(),
+        displayTime: formatClockTime(item.created_at || item.startTime),
+        title: item.title || item.process_name,
+        domain: item.process_name,
+        count: item.count,
+        dateLabel: formatDateHeader(item.created_at || item.startTime)
+      })
     })
-  })
 
-  // Sắp xếp theo thời gian mới nhất trước
-  logFileEntries.sort((a, b) => b.timestamp - a.timestamp)
-  
-  const groupedLogFile = {}
-  logFileEntries.forEach(log => {
-    if (!groupedLogFile[log.dateLabel]) groupedLogFile[log.dateLabel] = []
-    groupedLogFile[log.dateLabel].push(log)
-  })
+    logFileEntries.sort((a, b) => b.timestamp - a.timestamp)
+    
+    const grouped = {}
+    logFileEntries.forEach(log => {
+      if (!grouped[log.dateLabel]) grouped[log.dateLabel] = []
+      grouped[log.dateLabel].push(log)
+    })
+    return grouped
+  }, [mergedBrowserHistory, mergedAppHistory])
 
   // TAB MENU ITEMS (ĐỔI TÊN TAB THÀNH " Quá trình sử dụng" VÀ GỘP LỊCH SỬ DUYỆT WEB VÀO TRONG)
   const rawTabList = [
@@ -2024,13 +2023,16 @@ function ParentalControlApp() {
     return perm !== 'none'
   })
 
-  // Sắp xếp Ảnh chụp màn hình theo Ngày
-  const groupedScreenshots = {}
-  screenshots.forEach(item => {
-    const groupKey = formatDateGroup(item.created_at)
-    if (!groupedScreenshots[groupKey]) groupedScreenshots[groupKey] = []
-    groupedScreenshots[groupKey].push(item)
-  })
+  // Sắp xếp Ảnh chụp màn hình theo Ngày (Dùng useMemo tối ưu)
+  const groupedScreenshots = useMemo(() => {
+    const grouped = {}
+    screenshots.forEach(item => {
+      const groupKey = formatDateGroup(item.created_at)
+      if (!grouped[groupKey]) grouped[groupKey] = []
+      grouped[groupKey].push(item)
+    })
+    return grouped
+  }, [screenshots])
 
   // MÀN HÌNH NẾU BỊ CHẶN TRUY CẬP
   if (isSessionBlocked) {

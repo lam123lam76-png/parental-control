@@ -87,11 +87,13 @@ def has_significant_change(current_img: Image.Image) -> bool:
 
 def take_screenshot(force_upload: bool = False) -> tuple[bytes, bool]:
     """
-    Chụp toàn bộ tất cả màn hình (hỗ trợ đa màn hình mss), nén chuẩn WEBP (quality=80).
+    Chụp toàn bộ tất cả màn hình (mss), nén WEBP (quality=80), tự động đóng RAM buffer & PIL Image.
     
     Returns:
         tuple[bytes, bool]: (image_bytes, should_upload)
     """
+    img = None
+    buffer = None
     try:
         with mss() as sct:
             monitor = sct.monitors[0]
@@ -116,15 +118,27 @@ def take_screenshot(force_upload: bool = False) -> tuple[bytes, bool]:
             # Kiểm tra thay đổi bằng Image Diff (Thread-Safe)
             should_upload = force_upload or has_significant_change(img)
 
-            # Đóng gói thành byte WEBP quality=80 (Tiết kiệm 50% dung lượng so với JPEG)
+            # Đóng gói thành byte WEBP quality=80
             buffer = io.BytesIO()
             img.save(buffer, format="WEBP", quality=80)
-            buffer.seek(0)
+            res_bytes = buffer.getvalue()
 
-            return buffer.getvalue(), should_upload
+            return res_bytes, should_upload
     except Exception as e:
         log_debug(f"[ERR] mss take_screenshot exception: {e}")
         raise e
+    finally:
+        # Giải phóng bộ nhớ RAM PIL Image & BytesIO Buffer
+        if img:
+            try:
+                img.close()
+            except Exception:
+                pass
+        if buffer:
+            try:
+                buffer.close()
+            except Exception:
+                pass
 
 
 def make_screenshot_filename() -> str:

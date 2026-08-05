@@ -12,6 +12,9 @@ from monitor.screenshot import queue_screenshot
 from monitor.time_checker import is_within_allowed_time
 from monitor.blocker import start_blocker
 
+# CHỐNG SPAM THỰC THI LẠI LỆNH KHI MẠNG LỖI UPDATE STATUS
+_processed_command_ids = set()
+
 
 def process_pending_commands(supabase):
     """
@@ -31,8 +34,17 @@ def process_pending_commands(supabase):
 
         db = LocalDB()
 
+        global _processed_command_ids
+
         for cmd in commands:
             cmd_id = cmd["id"]
+            if cmd_id in _processed_command_ids:
+                # Đã thực thi lệnh này rồi, bỏ qua để tránh spam nếu update status DB gặp sự cố mạng
+                continue
+            _processed_command_ids.add(cmd_id)
+            if len(_processed_command_ids) > 1000:
+                _processed_command_ids.clear()
+
             cmd_type = cmd["command"]
             print(f"[CMD] Nhận lệnh từ Web: {cmd_type}")
 

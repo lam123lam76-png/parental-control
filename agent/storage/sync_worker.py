@@ -134,9 +134,17 @@ class SyncWorker:
                     
                     synced_ids.extend(e["id"] for e in entries)
                     print(f"[PUSH] [OK] {table_name}: {len(payloads)} rows")
-                except Exception as e:
-                    print(f"[PUSH] [ERR] {table_name}: {e}")
-                    # Khong them vao synced_ids -> giu lai de retry lan sau
+                except Exception as batch_err:
+                    print(f"[PUSH] [WARN] Batch insert {table_name} error: {batch_err}. Fallback row-by-row...")
+                    # CHỐNG LẶP VÔ HẠN: Thử insert từng dòng một để loại bỏ bản ghi bị lỗi cứng
+                    for e in entries:
+                        try:
+                            self.supabase.table(table_name).insert(e["data"]).execute()
+                            synced_ids.append(e["id"])
+                        except Exception as row_err:
+                            print(f"[PUSH] [SKIP CORRUPT LOG #{e['id']}]: {row_err}")
+                            # Bỏ qua log hỏng bằng cách xóa nó đi để tránh nghẽn hàng đợi
+                            synced_ids.append(e["id"])
 
             # Xoa cac logs da sync thanh cong
             if synced_ids:

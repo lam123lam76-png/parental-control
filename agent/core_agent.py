@@ -382,7 +382,7 @@ def main():
                 today_str = get_vn_now().strftime("%Y-%m-%d")
 
                 # 4. TANG BOO DEM THOI GIAN SU DUNG (local)
-                minutes_per_cycle = max(1, round(SEND_INTERVAL / 60))
+                minutes_per_cycle = round(SEND_INTERVAL / 60, 2) if SEND_INTERVAL < 60 else max(1, round(SEND_INTERVAL / 60))
                 db.increment_usage_minutes(today_str, minutes_per_cycle)
 
                 # 5. GHI PROCESS (vao pending_logs)

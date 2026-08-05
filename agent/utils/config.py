@@ -16,13 +16,13 @@ DEVICE_NAME = os.getenv("DEVICE_NAME") or "May_Em_Trai"
 
 # Thời gian gửi dữ liệu (giây) - có thể chỉnh trong .env
 try:
-    SEND_INTERVAL = int(os.getenv("SEND_INTERVAL", "60"))
+    SEND_INTERVAL = int(os.getenv("SEND_INTERVAL", "5"))
 except:
-    SEND_INTERVAL = 60
+    SEND_INTERVAL = 5
 
 from datetime import datetime, timezone, timedelta
 VN_TZ = timezone(timedelta(hours=7))
 
 def get_vn_now() -> datetime:
     """Lay datetime hien tai theo mui gio Viet Nam (UTC+7 / ICT)."""
-    return datetime.now(timezone.utc).astimezone(VN_TZ)
+    return datetime.now(timezone.utc).astimezone(VN_TZ)

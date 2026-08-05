@@ -262,7 +262,7 @@ function ParentalControlApp() {
 
       const diffSec = (currentTime - latestMs) / 1000
       // Đang có tương tác trong vòng 120s (chấp nhận lệch múi giờ -300s đến 120s) -> ONLINE (Chấm xanh)
-      return diffSec < 120 && diffSec > -300
+      return diffSec < 35 && diffSec > -300
     } catch {
       return false
     }

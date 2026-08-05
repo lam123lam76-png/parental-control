@@ -199,38 +199,7 @@ function ParentalControlApp() {
   const [processes, setProcesses] = useState([])
   const [activeWindows, setActiveWindows] = useState([])
 
-  // TỰ ĐỘNG TÍNH TOÁN DYNAMIC IS_ONLINE (ĐA NGUỒN: HEARTBEAT, SCREENSHOTS & WINDOW LOGS)
-  const isDeviceOnline = useMemo(() => {
-    try {
-      let latestMs = 0
 
-      // 1. Kiểm tra timestamp từ thiết bị (devices.last_seen)
-      if (device?.last_seen) {
-        const t = new Date(device.last_seen).getTime()
-        if (!isNaN(t) && t > latestMs) latestMs = t
-      }
-
-      // 2. Kiểm tra timestamp ảnh chụp màn hình gần nhất (screenshot_logs.created_at)
-      if (screenshots && screenshots.length > 0 && screenshots[0]?.created_at) {
-        const t = new Date(screenshots[0].created_at).getTime()
-        if (!isNaN(t) && t > latestMs) latestMs = t
-      }
-
-      // 3. Kiểm tra timestamp cửa sổ hoạt động gần nhất (active_window_logs.created_at)
-      if (activeWindows && activeWindows.length > 0 && activeWindows[0]?.created_at) {
-        const t = new Date(activeWindows[0].created_at).getTime()
-        if (!isNaN(t) && t > latestMs) latestMs = t
-      }
-
-      if (latestMs === 0) return false
-
-      const diffSec = (currentTime - latestMs) / 1000
-      // Đang có tương tác trong vòng 120s (chấp nhận lệch múi giờ -300s đến 120s) -> ONLINE (Chấm xanh)
-      return diffSec < 120 && diffSec > -300
-    } catch {
-      return false
-    }
-  }, [device, screenshots, activeWindows, currentTime])
   const [screenshots, setScreenshots] = useState([])
   const [browserHistory, setBrowserHistory] = useState([])
   const [historySearch, setHistorySearch] = useState('')
@@ -265,6 +234,39 @@ function ParentalControlApp() {
   const [editingTaskTitle, setEditingTaskTitle] = useState('')
   const [editingTaskType, setEditingTaskType] = useState('custom')
   const [deletedSheetTaskIds, setDeletedSheetTaskIds] = useState([])
+
+  // TỰ ĐỘNG TÍNH TOÁN DYNAMIC IS_ONLINE (ĐA NGUỒN: HEARTBEAT, SCREENSHOTS & WINDOW LOGS)
+  const isDeviceOnline = useMemo(() => {
+    try {
+      let latestMs = 0
+
+      // 1. Kiểm tra timestamp từ thiết bị (devices.last_seen)
+      if (device?.last_seen) {
+        const t = new Date(device.last_seen).getTime()
+        if (!isNaN(t) && t > latestMs) latestMs = t
+      }
+
+      // 2. Kiểm tra timestamp ảnh chụp màn hình gần nhất (screenshot_logs.created_at)
+      if (screenshots && screenshots.length > 0 && screenshots[0]?.created_at) {
+        const t = new Date(screenshots[0].created_at).getTime()
+        if (!isNaN(t) && t > latestMs) latestMs = t
+      }
+
+      // 3. Kiểm tra timestamp cửa sổ hoạt động gần nhất (active_window_logs.created_at)
+      if (activeWindows && activeWindows.length > 0 && activeWindows[0]?.created_at) {
+        const t = new Date(activeWindows[0].created_at).getTime()
+        if (!isNaN(t) && t > latestMs) latestMs = t
+      }
+
+      if (latestMs === 0) return false
+
+      const diffSec = (currentTime - latestMs) / 1000
+      // Đang có tương tác trong vòng 120s (chấp nhận lệch múi giờ -300s đến 120s) -> ONLINE (Chấm xanh)
+      return diffSec < 120 && diffSec > -300
+    } catch {
+      return false
+    }
+  }, [device, screenshots, activeWindows, currentTime])
 
   // States cho Google Sheet Calendar Data Table & Widget Refactor
   const [allSheetEntries, setAllSheetEntries] = useState([])

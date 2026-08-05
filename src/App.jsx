@@ -191,7 +191,7 @@ function ParentalControlApp() {
   // TỰ ĐỘNG TÍNH TOÁN DYNAMIC IS_ONLINE (THRESHOLD 90 GIÂY HAS HEARTBEAT)
   const isDeviceOnline = useMemo(() => {
     if (!device || !device.last_seen) return false
-    if (isDeviceOnline === false) return false
+    if (device.is_online === false) return false
     try {
       const lastSeenMs = new Date(device.last_seen).getTime()
       if (isNaN(lastSeenMs)) return false

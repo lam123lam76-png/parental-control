@@ -1,6 +1,8 @@
 """
-network_checker.py v3 — Đo Latency RTT chính xác (Median perf_counter, Supabase Host, Quality Rating).
+network_checker.py v4 — Đo Latency HTTP thực tế tới Supabase (DNS + TCP + TLS + HTTP Response).
 """
+import urllib.request
+import urllib.error
 import socket
 import time
 import statistics
@@ -8,63 +10,60 @@ from urllib.parse import urlparse
 from utils.config import SUPABASE_URL
 from utils.logger import log_debug
 
-FALLBACK_TEST_HOSTS = [("8.8.8.8", 53), ("1.1.1.1", 53)]
+FALLBACK_DNS = [("8.8.8.8", 53), ("1.1.1.1", 53)]
 
-def _extract_supabase_host() -> str:
-    """Rút gọn domain từ SUPABASE_URL (ví dụ: whymvwuzjaffltkjkfoj.supabase.co)."""
-    try:
-        if not SUPABASE_URL:
-            return ""
-        parsed = urlparse(SUPABASE_URL)
-        return parsed.netloc or parsed.path.split("/")[0]
-    except Exception:
-        return ""
-
-def measure_latency_ms(host: str, port: int = 443, samples: int = 3, timeout: float = 2.0) -> int:
+def measure_http_latency_ms(url: str = SUPABASE_URL, samples: int = 3, timeout: float = 2.5) -> int:
     """
-    Đo latency RTT chính xác bằng TCP Connect:
-    - Resolve DNS 1 lần trước khi đo để khử nhiễu DNS lookup
-    - Đo n mẫu (mặc định 3 samples) dùng time.perf_counter()
+    Đo HTTP Latency thực tế (DNS -> TCP -> TLS -> HTTP Response) tới Supabase:
+    - Sử dụng urllib.request (chuẩn Python standard library) gửi HEAD / GET request nhẹ.
+    - Đo n mẫu (mặc định 3 samples) dùng time.perf_counter().
     - Trả về giá trị Median (trung vị ms), hoặc -1 nếu thất bại hoàn toàn.
     """
-    if not host:
+    if not url:
         return -1
 
-    try:
-        # Resolve DNS 1 lần trước
-        ip = socket.gethostbyname(host)
-    except Exception as de:
-        log_debug(f"[NET] DNS resolve failed for {host}: {de}")
-        return -1
-
+    target_url = url.rstrip('/') + '/'
     sample_latencies = []
+
     for _ in range(samples):
-        sock = None
         try:
+            req = urllib.request.Request(target_url, method='HEAD')
+            req.add_header('User-Agent', 'ParentalControlAgent/2.0')
+            
             t_start = time.perf_counter()
-            sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            sock.settimeout(timeout)
-            sock.connect((ip, port))
+            with urllib.request.urlopen(req, timeout=timeout) as response:
+                _ = response.read(1)
             t_elapsed = (time.perf_counter() - t_start) * 1000
             sample_latencies.append(round(t_elapsed))
-        except Exception:
+        except urllib.error.HTTPError as he:
+            # Nếu nhận HTTP Status Code (401/403/404), nghĩa là host Supabase & TLS VẮN ĐANG HOẠT ĐỘNG TỐT!
+            t_elapsed = (time.perf_counter() - t_start) * 1000
+            sample_latencies.append(round(t_elapsed))
+        except Exception as e:
+            # Timeout / SSL Error / Connection Refused
             pass
-        finally:
-            if sock:
-                try:
-                    sock.close()
-                except Exception:
-                    pass
 
     if not sample_latencies:
         return -1
 
-    # Trả về trung vị (median) để lọc nhiễu các điểm đột biến (outliers)
     return int(statistics.median(sample_latencies))
+
+def _check_raw_internet(timeout: float = 2.0) -> bool:
+    """Kiểm tra xem máy có kết nối Internet thô qua TCP socket DNS không."""
+    for host, port in FALLBACK_DNS:
+        try:
+            sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            sock.settimeout(timeout)
+            sock.connect((host, port))
+            sock.close()
+            return True
+        except Exception:
+            continue
+    return False
 
 def check_network(timeout: float = 3.0) -> dict:
     """
-    Kiểm tra chất lượng kết nối mạng:
+    Kiểm tra chất lượng kết nối mạng HTTP Mức 2:
     Returns:
         dict: {
             "online": bool,
@@ -72,36 +71,19 @@ def check_network(timeout: float = 3.0) -> dict:
             "supabase_ok": bool,
             "quality": "good" | "slow" | "down"
         }
-    Ngưỡng:
-        good: online=True, latency_ms <= 800ms, supabase_ok=True
-        slow: online=True, 800ms < latency_ms <= 3000ms
-        down: online=False, latency_ms > 3000ms hoặc fail (-1)
+    Ngưỡng HTTP:
+        good: online=True, supabase_ok=True, 0 <= latency_ms <= 1000ms
+        slow: online=True, supabase_ok=True, 1001ms <= latency_ms <= 3500ms
+        down: online=False hoặc supabase_ok=False hoặc latency_ms > 3500ms (-1)
     """
-    sp_host = _extract_supabase_host()
-    sp_latency = -1
-    supabase_ok = False
+    raw_online = _check_raw_internet(timeout=2.0)
+    latency_ms = measure_http_latency_ms(url=SUPABASE_URL, samples=3, timeout=min(2.5, timeout))
+    supabase_ok = (latency_ms >= 0)
+    online = raw_online or supabase_ok
 
-    if sp_host:
-        sp_latency = measure_latency_ms(sp_host, port=443, samples=3, timeout=timeout)
-        if sp_latency != -1:
-            supabase_ok = True
-
-    online = supabase_ok
-    latency_ms = sp_latency
-
-    # Nếu không kết nối được Supabase, thử fallback sang DNS public để xác định có Internet hay không
-    if not online:
-        for host, port in FALLBACK_TEST_HOSTS:
-            fb_lat = measure_latency_ms(host, port=port, samples=2, timeout=2.0)
-            if fb_lat != -1:
-                online = True
-                latency_ms = fb_lat
-                break
-
-    # Phân loại chất lượng mạng (quality)
-    if not online or latency_ms == -1 or latency_ms > 3000:
+    if not online or not supabase_ok or latency_ms > 3500 or latency_ms < 0:
         quality = "down"
-    elif latency_ms <= 800 and supabase_ok:
+    elif latency_ms <= 1000:
         quality = "good"
     else:
         quality = "slow"

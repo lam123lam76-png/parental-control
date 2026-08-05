@@ -319,14 +319,16 @@ def main():
                         time.sleep(SEND_INTERVAL)
                         continue
 
-                    # 1. KIEM TRA MANG CHÍNH XÁC MỨC 2 (QUALITY: GOOD / SLOW / DOWN)
+                    # 1. KIEM TRA MANG MUC 2 BẰNG HTTP LATENCY (DNS + TCP + TLS + HTTP)
                     net_info = check_network(timeout=3.0)
                     quality = net_info.get("quality", "down")
                     latency = net_info.get("latency_ms", -1)
                     supabase_ok = net_info.get("supabase_ok", False)
 
+                    print(f"[NET] HTTP latency={latency}ms quality={quality}")
+
                     if quality == "down":
-                        print(f"[NET] Mất mạng hoặc latency quá cao (>3000ms): quality={quality} latency={latency}ms")
+                        print(f"[NET] [DOWN] Mất kết nối hoặc HTTP latency quá cao (>3500ms): latency={latency}ms supabase_ok={supabase_ok}")
                         unlocked = start_blocker(supabase)
                         if unlocked:
                             print("[NET] Đã mở khóa bằng mật khẩu")
@@ -334,10 +336,8 @@ def main():
                         continue
 
                     if quality == "slow":
-                        print(f"[NET] quality=slow latency={latency}ms supabase_ok={supabase_ok}")
-                        log_debug(f"[NET] Warning slow network: {net_info}")
-                    else:
-                        print(f"[NET] quality=good latency={latency}ms supabase_ok={supabase_ok}")
+                        print(f"[NET] [WARN] Mang kem: HTTP latency={latency}ms. Uu tien Local-First.")
+                        log_debug(f"[NET] Warning slow HTTP network: {net_info}")
 
                     # 2. KIEM TRA LICH HOC TAP
                     is_study, study_title = check_current_schedule(supabase)

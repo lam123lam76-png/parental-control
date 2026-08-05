@@ -2021,6 +2021,11 @@ function ParentalControlApp() {
     return grouped
   }, [mergedBrowserHistory, mergedAppHistory])
 
+  // Tổng số lượng bản ghi Log File để hiển thị trên Tab Badge
+  const totalLogFileCount = useMemo(() => {
+    return Object.values(groupedLogFile || {}).reduce((acc, items) => acc + (items?.length || 0), 0)
+  }, [groupedLogFile])
+
   // TAB MENU ITEMS (ĐỔI TÊN TAB THÀNH " Quá trình sử dụng" VÀ GỘP LỊCH SỬ DUYỆT WEB VÀO TRONG)
   const rawTabList = [
     { id: 'overview', label: 'Tổng quan' },
@@ -3522,7 +3527,7 @@ function ParentalControlApp() {
                           usageSubTab === 'log' ? 'bg-green-600 text-white shadow' : 'text-zinc-400 hover:text-white'
                         }`}
                       >
-                         Log File ({logFileEntries.length})
+                         Log File ({totalLogFileCount})
                       </button>
                       <button
                         onClick={() => setUsageSubTab('black_list')}

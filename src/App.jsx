@@ -2801,7 +2801,7 @@ function ParentalControlApp() {
                           </div>
                         </div>
                         <div className="mt-3 pt-3 border-t border-zinc-800 text-[11px] font-mono text-zinc-400">
-                          Hôm nay: <strong className="text-zinc-200">{(tasks ?? []).length} nhiệm vụ từ Sheet</strong>
+                          Hôm nay: <strong className="text-zinc-200">{(sheetTasks ?? []).length} nhiệm vụ từ Sheet</strong>
                         </div>
                       </div>
                     </div>

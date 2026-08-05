@@ -1259,7 +1259,7 @@ function ParentalControlApp() {
         command: 'force_update',
         status: 'pending'
       })
-      alert('<RefreshCw className="w-3.5 h-3.5 text-zinc-400 stroke-[1.5]" /> Đã gửi lệnh Cưỡng chế cập nhật thành công! Agent sẽ tự động cập nhật và khởi động lại ngay.')
+      alert(' Đã gửi lệnh Cưỡng chế cập nhật thành công! Agent sẽ tự động cập nhật và khởi động lại ngay.')
     } catch (e) {
       alert('Lỗi gửi lệnh cập nhật: ' + e.message)
     } finally {
@@ -1715,7 +1715,7 @@ function ParentalControlApp() {
       score = 'Xuất sắc '
       advice = 'AI phát hiện em trai đang thực sự tập trung vào bài tập / ứng dụng học tập (AutoCAD, CAD, Bài tập). Nên duy trì!'
     } else if (playPercent >= 60) {
-      score = 'Cảnh báo <AlertTriangle className="w-4 h-4 text-zinc-200 stroke-[1.5]" />'
+      score = 'Cảnh báo: Phát hiện mở ứng dụng lạ'
       advice = 'AI phát hiện tần suất truy cập nội dung giải trí (YouTube, Game, Đánh pick, Mạng xã hội) đang nhiều hơn bài tập.'
     }
 
@@ -1960,17 +1960,17 @@ function ParentalControlApp() {
   // TAB MENU ITEMS (ĐỔI TÊN TAB THÀNH " Quá trình sử dụng" VÀ GỘP LỊCH SỬ DUYỆT WEB VÀO TRONG)
   const rawTabList = [
     { id: 'overview', label: 'Tổng quan' },
-    { id: 'todo', label: '<FileText className="w-4 h-4 text-zinc-400 stroke-[1.5]" /> To Do Notes' },
+    { id: 'todo', label: ' To Do Notes' },
     { id: 'calendar', label: ' Lịch học (Google Sheet)' },
     { id: 'chat', label: ' Chat 2 chiều' },
-    { id: 'ai_analysis', label: '<Bot className="w-4 h-4 text-zinc-400 stroke-[1.5]" /> AI Phân tích' },
+    { id: 'ai_analysis', label: ' AI Phân tích' },
     { id: 'app_usage', label: ' Quá trình sử dụng' },
   ]
 
   // CHỈ ADMIN MỚI ĐƯỢC XEM TAB  ẢNH CHỤP & CÀI ĐẶT
   if (isAdmin) {
     rawTabList.push({ id: 'screenshots', label: ' Ảnh chụp' })
-    rawTabList.push({ id: 'config', label: '<Settings className="w-3.5 h-3.5 text-zinc-400 stroke-[1.5]" /> Cài đặt Admin' })
+    rawTabList.push({ id: 'config', label: ' Cài đặt Admin' })
   }
 
   // Danh sách các role bao gồm 'Khách (Chưa chọn tư cách)' và tất cả customRoles
@@ -2065,7 +2065,6 @@ function ParentalControlApp() {
             ) : (
               /* DANH SÁCH CHỌN TƯ CÁCH */
               <>
-                <div className="text-4xl mb-1"><User className="w-3.5 h-3.5 text-zinc-400 stroke-[1.5]" /></div>
                 <div>
                   <h2 className="text-xl font-bold">Xác Nhận Tư Cách Truy Cập</h2>
                   <p className="text-xs text-zinc-400 mt-1">Bạn đang truy cập Web App này với tư cách là?</p>
@@ -2077,11 +2076,11 @@ function ParentalControlApp() {
                       key={idx}
                       onClick={() => handleInitiateRoleSelect(roleName)}
                       className={`w-full py-3 font-semibold rounded-2xl text-sm border transition transform hover:scale-[1.02] flex items-center justify-between px-4 ${
-                        userRole === roleName ? 'bg-indigo-600 text-white border-indigo-500' : 'bg-blue-600/10 hover:bg-blue-600/30 text-blue-300 border-indigo-500/20'
+                        userRole === roleName ? 'bg-zinc-100 text-black hover:bg-white border-indigo-500' : 'bg-blue-600/10 hover:bg-blue-600/30 text-blue-300 border-indigo-500/20'
                       }`}
                     >
                       <span>{roleName}</span>
-                      {rolePasswords[roleName] && <span className="text-xs opacity-75"><Lock className="w-4 h-4 text-zinc-400 stroke-[1.5]" /> Có Pass</span>}
+                      {rolePasswords[roleName] && <span>Có Pass</span>}
                     </button>
                   ))}
                 </div>
@@ -2124,7 +2123,7 @@ function ParentalControlApp() {
                     type="button"
                     onClick={() => setBlackListRuleType('web')}
                     className={`py-2.5 rounded-xl border text-xs font-semibold flex items-center justify-center gap-1.5 transition ${
-                      blackListRuleType === 'web' ? 'bg-indigo-600 text-white border-indigo-500' : 'bg-black text-zinc-400 border-zinc-800'
+                      blackListRuleType === 'web' ? 'bg-zinc-100 text-black hover:bg-white border-indigo-500' : 'bg-black text-zinc-400 border-zinc-800'
                     }`}
                   >
                     <span> Trang Web</span>
@@ -2133,7 +2132,7 @@ function ParentalControlApp() {
                     type="button"
                     onClick={() => setBlackListRuleType('app')}
                     className={`py-2.5 rounded-xl border text-xs font-semibold flex items-center justify-center gap-1.5 transition ${
-                      blackListRuleType === 'app' ? 'bg-indigo-600 text-white border-indigo-500' : 'bg-black text-zinc-400 border-zinc-800'
+                      blackListRuleType === 'app' ? 'bg-zinc-100 text-black hover:bg-white border-indigo-500' : 'bg-black text-zinc-400 border-zinc-800'
                     }`}
                   >
                     <span> Ứng Dụng (.exe)</span>
@@ -2218,12 +2217,12 @@ function ParentalControlApp() {
                     floatingTab === 'todo' ? 'bg-amber-500/10 text-zinc-200 border border-amber-500/20' : 'text-zinc-400 hover:bg-zinc-900'
                   }`}
                 >
-                  <FileText className="w-4 h-4 text-zinc-400 stroke-[1.5]" /> To Do Ghim
+                   To Do Ghim
                 </button>
                 <button
                   onClick={() => setFloatingTab('chat')}
                   className={`px-2.5 py-1 rounded-full text-xs font-semibold whitespace-nowrap transition ${
-                    floatingTab === 'chat' ? 'bg-indigo-600 text-white' : 'text-zinc-400 hover:bg-zinc-900'
+                    floatingTab === 'chat' ? 'bg-zinc-100 text-black hover:bg-white' : 'text-zinc-400 hover:bg-zinc-900'
                   }`}
                 >
                    Chat Nhanh
@@ -2383,7 +2382,7 @@ function ParentalControlApp() {
                     chatMessages.map((msg, idx) => (
                       <div key={msg.id || idx} className={`flex ${msg.sender === 'admin' ? 'justify-end' : 'justify-start'}`}>
                         <div className={`max-w-[80%] p-2.5 rounded-2xl text-xs ${
-                          msg.sender === 'admin' ? 'bg-indigo-600 text-white rounded-br-none' : 'bg-zinc-900 text-zinc-200 border border-zinc-800 rounded-bl-none'
+                          msg.sender === 'admin' ? 'bg-zinc-100 text-black hover:bg-white rounded-br-none' : 'bg-zinc-900 text-zinc-200 border border-zinc-800 rounded-bl-none'
                         }`}>
                           <div className="text-[9px] font-bold opacity-75 mb-0.5">{msg.sender === 'admin' ? 'Quản lý' : msg.sender}</div>
                           <div className="break-words">{msg.message}</div>
@@ -2457,7 +2456,7 @@ function ParentalControlApp() {
                           <div>
                             Tư cách: <strong className="text-blue-300">{sess.user_role}</strong>
                             {sess.tabCount > 1 && (
-                              <span className="ml-1.5 px-1.5 py-0.5 rounded bg-purple-500/20 text-purple-300 font-mono font-bold">
+                              <span className="ml-1.5 px-1.5 py-0.5 rounded bg-zinc-400/20 text-zinc-300 font-mono font-bold">
                                 {sess.tabCount} Tabs
                               </span>
                             )}
@@ -2532,7 +2531,7 @@ function ParentalControlApp() {
             {/* BRAND LOGO */}
             <div className="flex items-center gap-3 pb-6 border-b border-zinc-800 mb-6">
               <div className="w-8 h-8 rounded-lg bg-zinc-900 border border-zinc-800 flex items-center justify-center text-zinc-100">
-                <Shield className="w-4 h-4 text-zinc-100 stroke-[1.5]" />
+                
               </div>
               <div>
                 <h1 className="text-xs font-mono font-bold tracking-wider text-zinc-100 uppercase">PARENTAL CONTROL</h1>
@@ -2574,7 +2573,7 @@ function ParentalControlApp() {
                 className="p-1 hover:bg-zinc-900 rounded-lg text-zinc-400 hover:text-white transition"
                 title="Đổi tư cách"
               >
-                <Settings className="w-3.5 h-3.5 text-zinc-400 stroke-[1.5]" />
+                
               </button>
             </div>
 
@@ -2597,7 +2596,7 @@ function ParentalControlApp() {
                 <div className="flex items-center gap-2.5">
                   {/* MOBILE COMPACT LOGO */}
                   <div className="w-7 h-7 rounded-lg bg-zinc-900 flex lg:hidden items-center justify-center text-xs font-black text-white shadow">
-                    <Shield className="w-4 h-4 text-zinc-400 stroke-[1.5]" />
+                    
                   </div>
                   <h2 className="text-base sm:text-lg font-bold text-slate-100 truncate">
                     {tabList.find(t => t.id === activeTab)?.label || 'Tổng Quan'}
@@ -2629,7 +2628,7 @@ function ParentalControlApp() {
                   onClick={() => setShowRoleModal(true)}
                   className="px-2.5 py-1 bg-zinc-900 hover:bg-slate-700 text-amber-300 rounded-lg text-xs font-semibold border border-zinc-800 flex items-center gap-1"
                 >
-                  <span><User className="w-3.5 h-3.5 text-zinc-400 stroke-[1.5]" /></span>
+                  <span></span>
                   <span className="truncate max-w-[80px]">{isAdmin ? 'Admin' : (userRole || 'Chưa chọn')}</span>
                 </button>
               </div>
@@ -2649,7 +2648,7 @@ function ParentalControlApp() {
                 </div>
               ) : (
                 <button onClick={() => setShowLoginModal(true)} className="px-3.5 py-1.5 bg-amber-600/20 text-amber-300 hover:bg-amber-600/30 border border-amber-500/30 rounded-xl text-xs font-bold transition flex items-center gap-1.5 shadow">
-                  <span><KeyRound className="w-4 h-4 text-zinc-400 stroke-[1.5]" /></span>
+                  <span></span>
                   <span>Truy Cập Admin</span>
                 </button>
               )}
@@ -2660,7 +2659,7 @@ function ParentalControlApp() {
           {isPaused && (
             <div className="mx-4 sm:mx-6 mt-3 p-3 rounded-2xl bg-amber-600/20 border border-amber-500/30 text-amber-300 text-xs font-bold flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 animate-pulse">
               <div className="flex items-center gap-2">
-                <span><AlertTriangle className="w-4 h-4 text-zinc-200 stroke-[1.5]" /></span>
+                <span></span>
                 <span>ĐANG TẠM DỪNG KIỂM SOÁT (PAUSED) — Mọi thiết bị đang được tự do.</span>
               </div>
               {isAdmin && (
@@ -2693,7 +2692,7 @@ function ParentalControlApp() {
                     disabled={togglePauseLoading}
                     className="h-11 px-3 bg-amber-600/20 hover:bg-amber-600/30 text-amber-300 border border-amber-500/30 font-bold rounded-xl text-xs transition flex items-center justify-center gap-1.5"
                   >
-                    <span><PauseCircle className="w-4 h-4 text-zinc-200 stroke-[1.5]" /></span>
+                    <span></span>
                     <span className="truncate">{togglePauseLoading ? 'Xử lý...' : 'TẠM DỪNG KIỂM SOÁT'}</span>
                   </button>
                 )}
@@ -2703,7 +2702,7 @@ function ParentalControlApp() {
                   disabled={updateSending}
                   className="h-11 px-3 bg-amber-600 hover:bg-amber-500 text-white font-bold rounded-xl text-xs transition disabled:opacity-50 flex items-center justify-center gap-1.5 shadow"
                 >
-                  <span><RefreshCw className="w-3.5 h-3.5 text-zinc-400 stroke-[1.5]" /></span>
+                  <span></span>
                   <span className="truncate">{updateSending ? '⏳ Nâng cấp...' : 'Cập Nhật Agent'}</span>
                 </button>
 
@@ -2758,12 +2757,12 @@ function ParentalControlApp() {
                       </div>
 
                       {/* CARD 2: AI PHÂN TÍCH */}
-                      <div className={`${cardBgClass} border border-zinc-800 rounded-2xl p-5 shadow-lg flex flex-col justify-between hover:border-purple-500/40 transition group`}>
+                      <div className="bg-zinc-950 border border-zinc-800 rounded-2xl p-5 shadow-lg flex flex-col justify-between hover:border-zinc-700/40 transition group">
                         <div className="flex items-center justify-between mb-2">
                           <span className="text-xs font-bold text-zinc-400 uppercase tracking-wider">Đánh Giá AI</span>
-                          <span className="text-base"><Bot className="w-4 h-4 text-zinc-400 stroke-[1.5]" /></span>
+                          <Bot className="w-4 h-4 text-zinc-400 stroke-[1.5]" />
                         </div>
-                        <div className="text-2xl font-bold text-blue-400 mb-1">{aiReport.score}</div>
+                        <div className="text-2xl font-bold text-zinc-100 mb-1">{aiReport.score}</div>
                         <div className="text-xs text-zinc-400 mb-2">{aiReport.ratio}</div>
                         <div className="mt-2 pt-2 border-t border-zinc-800 text-[11px] text-zinc-400 truncate">
                           Trạng thái: <strong className="text-emerald-400">{aiReport.status || 'Tốt'}</strong>
@@ -2771,52 +2770,38 @@ function ParentalControlApp() {
                       </div>
 
                       {/* CARD 3: CHẾ ĐỘ KIỂM SOÁT */}
-                      <div className={`${cardBgClass} border border-zinc-800 rounded-2xl p-5 shadow-lg flex flex-col justify-between hover:border-amber-500/40 transition group`}>
+                      <div className="bg-zinc-950 border border-zinc-800 rounded-2xl p-5 shadow-lg flex flex-col justify-between hover:border-zinc-700/40 transition group">
                         <div className="flex items-center justify-between mb-3">
                           <span className="text-xs font-bold text-zinc-400 uppercase tracking-wider">Chế Độ Kiểm Soát</span>
-                          <span className="text-base">{isPaused ? <PauseCircle className="w-4 h-4 text-zinc-200 stroke-[1.5]" /> : <Shield className="w-4 h-4 text-zinc-400 stroke-[1.5]" />}</span>
+                          {isPaused ? <PauseCircle className="w-4 h-4 text-amber-400 stroke-[1.5]" /> : <Shield className="w-4 h-4 text-zinc-400 stroke-[1.5]" />}
                         </div>
                         <div className="flex items-center justify-between">
                           <StatusDot status={isPaused ? "paused" : "ready"} label={isPaused ? "Paused" : "Active"} />
-                          {isAdmin && (
-                            <button
-                              onClick={handleTogglePauseControl}
-                              disabled={togglePauseLoading}
-                              className={`px-3 py-1 rounded-xl text-xs font-bold transition ${
-                                isPaused ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : 'bg-amber-600/20 text-amber-300 border border-amber-500/30'
-                              }`}
-                            >
-                              {isPaused ? 'Bật lại' : 'Tạm dừng'}
-                            </button>
-                          )}
-                        </div>
-                        <div className="mt-3 pt-3 border-t border-zinc-800 text-[11px] text-zinc-400">
-                          Mở máy: <strong className={isDeviceAllowed ? 'text-emerald-400' : 'text-red-400'}>{isDeviceAllowed ? 'Cho phép' : 'Đang cấm'}</strong>
                         </div>
                       </div>
 
                       {/* CARD 4: TO DO HOÀN THÀNH */}
-                      <div className={`${cardBgClass} border border-zinc-800 rounded-2xl p-5 shadow-lg flex flex-col justify-between hover:border-emerald-500/40 transition group`}>
+                      <div className="bg-zinc-950 border border-zinc-800 rounded-2xl p-5 shadow-lg flex flex-col justify-between hover:border-zinc-700/40 transition group">
                         <div className="flex items-center justify-between mb-2">
                           <span className="text-xs font-bold text-zinc-400 uppercase tracking-wider">Tiến Độ To Do</span>
-                          <span className="text-base"><FileText className="w-4 h-4 text-zinc-400 stroke-[1.5]" /></span>
+                          <FileText className="w-4 h-4 text-zinc-400 stroke-[1.5]" />
                         </div>
                         <div>
-                          <div className="flex items-center justify-between text-xs mb-1.5 font-bold">
+                          <div className="flex items-center justify-between text-xs mb-1.5 font-bold font-mono">
                             <span className="text-zinc-300">Hoàn thành:</span>
                             <span className="text-emerald-400">
-                              {todoNotes.filter(t => t.is_completed).length} / {todoNotes.length}
+                              {(todoNotes ?? []).filter(t => t?.is_completed).length} / {(todoNotes ?? []).length}
                             </span>
                           </div>
-                          <div className="w-full bg-black rounded-full h-2.5 overflow-hidden border border-zinc-800">
+                          <div className="w-full bg-black rounded-full h-2 overflow-hidden border border-zinc-800">
                             <div
                               className="bg-emerald-500 h-full transition-all"
-                              style={{ width: `${todoNotes.length > 0 ? (todoNotes.filter(t => t.is_completed).length / todoNotes.length) * 100 : 0}%` }}
+                              style={{ width: `${(todoNotes ?? []).length > 0 ? ((todoNotes ?? []).filter(t => t?.is_completed).length / (todoNotes ?? []).length) * 100 : 0}%` }}
                             ></div>
                           </div>
                         </div>
-                        <div className="mt-3 pt-3 border-t border-zinc-800 text-[11px] text-zinc-400">
-                          Hôm nay: <strong className="text-zinc-200">{sheetTasks.length} nhiệm vụ từ Sheet</strong>
+                        <div className="mt-3 pt-3 border-t border-zinc-800 text-[11px] font-mono text-zinc-400">
+                          Hôm nay: <strong className="text-zinc-200">{(tasks ?? []).length} nhiệm vụ từ Sheet</strong>
                         </div>
                       </div>
                     </div>
@@ -2858,16 +2843,16 @@ function ParentalControlApp() {
                             return (
                               <div key={proc.id || idx} className="p-3 bg-zinc-900/50 border border-zinc-800 rounded-xl flex items-center justify-between text-xs">
                                 <div className="flex items-center gap-2.5 min-w-0">
-                                  <span className="w-2.5 h-2.5 rounded-full bg-purple-400 shrink-0"></span>
+                                  <span className="w-2.5 h-2.5 rounded-full bg-zinc-300 shrink-0"></span>
                                   <div className="truncate">
                                     <div className="font-bold text-zinc-200 truncate">{proc.process_name}</div>
                                     <div className="text-[10px] text-zinc-500 font-mono">{formatTime(proc.created_at)}</div>
                                   </div>
                                 </div>
                                 <div className="flex flex-col items-end shrink-0 ml-2">
-                                  <span className="font-mono font-bold text-purple-300">{memMB.toFixed(0)} MB</span>
+                                  <span className="font-mono font-bold text-zinc-300">{memMB.toFixed(0)} MB</span>
                                   <div className="w-16 bg-zinc-900/50 rounded-full h-1.5 overflow-hidden border border-zinc-800 mt-1">
-                                    <div className="bg-purple-500 h-full" style={{ width: `${memPercent}%` }}></div>
+                                    <div className="bg-zinc-400 h-full" style={{ width: `${memPercent}%` }}></div>
                                   </div>
                                 </div>
                               </div>
@@ -2905,9 +2890,9 @@ function ParentalControlApp() {
                                     <td className="p-3 font-mono text-zinc-400">{proc.process_name}</td>
                                     <td className="p-3">
                                       <div className="flex items-center gap-2">
-                                        <span className="font-mono font-bold text-purple-300 w-16">{memMB.toFixed(0)} MB</span>
+                                        <span className="font-mono font-bold text-zinc-300 w-16">{memMB.toFixed(0)} MB</span>
                                         <div className="w-28 bg-black rounded-full h-2 overflow-hidden border border-zinc-800">
-                                          <div className="bg-purple-500 h-full" style={{ width: `${memPercent}%` }}></div>
+                                          <div className="bg-zinc-400 h-full" style={{ width: `${memPercent}%` }}></div>
                                         </div>
                                       </div>
                                     </td>
@@ -2960,7 +2945,7 @@ function ParentalControlApp() {
                     <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 border-b border-zinc-800 pb-5">
                       <div className="space-y-1">
                         <h2 className="text-xl font-bold flex items-center gap-2 text-slate-100">
-                          <span><FileText className="w-4 h-4 text-zinc-400 stroke-[1.5]" /></span> Danh Sách Nhiệm Vụ & Bài Tập Hôm Nay
+                          <span></span> Danh Sách Nhiệm Vụ & Bài Tập Hôm Nay
                         </h2>
                         <p className="text-xs text-zinc-400">
                           Tổng hợp công việc do Admin giao, bài tập tự chọn và thói quen từ Google Sheet ({todayFormatted}).
@@ -3245,7 +3230,7 @@ function ParentalControlApp() {
                           <button
                             onClick={() => setCalendarDateFilter('today')}
                             className={`px-3 py-1.5 rounded-lg font-bold transition ${
-                              calendarDateFilter === 'today' ? 'bg-indigo-600 text-white shadow' : 'text-zinc-400 hover:text-white'
+                              calendarDateFilter === 'today' ? 'bg-zinc-100 text-black hover:bg-white shadow' : 'text-zinc-400 hover:text-white'
                             }`}
                           >
                              Hôm Nay ({allSheetEntries.filter(e => e.isToday).length})
@@ -3253,7 +3238,7 @@ function ParentalControlApp() {
                           <button
                             onClick={() => setCalendarDateFilter('all')}
                             className={`px-3 py-1.5 rounded-lg font-bold transition ${
-                              calendarDateFilter === 'all' ? 'bg-indigo-600 text-white shadow' : 'text-zinc-400 hover:text-white'
+                              calendarDateFilter === 'all' ? 'bg-zinc-100 text-black hover:bg-white shadow' : 'text-zinc-400 hover:text-white'
                             }`}
                           >
                              Tất Cả ({allSheetEntries.length})
@@ -3290,7 +3275,7 @@ function ParentalControlApp() {
                           <button
                             onClick={() => setCalendarPriorityFilter('normal')}
                             className={`px-2.5 py-1 rounded-lg font-bold transition ${
-                              calendarPriorityFilter === 'normal' ? 'bg-indigo-600 text-white' : 'text-blue-400 hover:text-white'
+                              calendarPriorityFilter === 'normal' ? 'bg-zinc-100 text-black hover:bg-white' : 'text-blue-400 hover:text-white'
                             }`}
                           >
                              Bình Thường
@@ -3314,11 +3299,11 @@ function ParentalControlApp() {
                     <div className="overflow-x-auto rounded-2xl border border-zinc-800 shadow">
                       <table className="w-full text-left text-xs">
                         <thead>
-                          <tr className="border-b border-zinc-800 text-zinc-400 font-bold uppercase tracking-wider text-[11px] bg-zinc-900/50">
-                            <th className="p-3.5"> Ngày</th>
-                            <th className="p-3.5">⏰ Buổi / Khung Giờ</th>
-                            <th className="p-3.5"><FileText className="w-4 h-4 text-zinc-400 stroke-[1.5]" /> Nội Dung Công Việc / Bài Tập</th>
-                            <th className="p-3.5">️ Độ Ưu Tiên / Nhãn</th>
+                          <tr className="border-b border-zinc-800 text-zinc-400 font-mono text-[11px] uppercase tracking-wider bg-zinc-900/50">
+                            <th className="p-3.5">Ngày</th>
+                            <th className="p-3.5">Buổi / Khung Giờ</th>
+                            <th className="p-3.5">Nội Dung Công Việc / Bài Tập</th>
+                            <th className="p-3.5">Độ Ưu Tiên / Nhãn</th>
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-800/60 bg-zinc-900/50/50">
@@ -3401,7 +3386,7 @@ function ParentalControlApp() {
                     chatMessages.map((msg, idx) => (
                       <div key={msg.id || idx} className={`flex ${msg.sender === 'admin' ? 'justify-end' : 'justify-start'}`}>
                         <div className={`max-w-xs md:max-w-md p-3.5 rounded-2xl text-sm ${
-                          msg.sender === 'admin' ? 'bg-indigo-600 text-white rounded-br-none' : 'bg-zinc-900 text-zinc-200 border border-zinc-800 rounded-bl-none'
+                          msg.sender === 'admin' ? 'bg-zinc-100 text-black hover:bg-white rounded-br-none' : 'bg-zinc-900 text-zinc-200 border border-zinc-800 rounded-bl-none'
                         }`}>
                           <div className="text-[10px] font-bold opacity-80 mb-1">{msg.sender === 'admin' ? 'Anh/Chị Quản lý' : msg.sender}</div>
                           <div className="leading-relaxed break-words">{msg.message}</div>
@@ -3434,11 +3419,11 @@ function ParentalControlApp() {
 
             {/* TAB: AI Phân Tích */}
             {activeTab === 'ai_analysis' && (
-              <div className={`${cardBgClass} border rounded-2xl p-6 space-y-6`}>
+              <div className="bg-zinc-950 border border-zinc-800 rounded-2xl p-6 space-y-6">
                 <div className="flex items-center gap-3">
-                  <span className="text-3xl"><Bot className="w-4 h-4 text-zinc-400 stroke-[1.5]" /></span>
+                  <Bot className="w-5 h-5 text-zinc-100 stroke-[1.5]" />
                   <div>
-                    <h2 className="text-lg font-bold">Báo Cáo Phân Tích Thói Quên Dùng Máy & Nội Dung Truy Cập</h2>
+                    <h2 className="text-sm font-mono font-bold text-zinc-100 uppercase tracking-wider">Báo Cáo Phân Tích Thói Quen Dùng Máy</h2>
                     <p className="text-xs text-zinc-400">Tự động soi tên cửa sổ, ứng dụng và nội dung web để phân biệt Học tập vs Giải trí</p>
                   </div>
                 </div>
@@ -3501,7 +3486,7 @@ function ParentalControlApp() {
                       <button
                         onClick={() => setUsageSubTab('apps')}
                         className={`px-3.5 py-2 rounded-lg font-semibold transition ${
-                          usageSubTab === 'apps' ? 'bg-indigo-600 text-white shadow' : 'text-zinc-400 hover:text-white'
+                          usageSubTab === 'apps' ? 'bg-zinc-100 text-black hover:bg-white shadow' : 'text-zinc-400 hover:text-white'
                         }`}
                       >
                          App & Quy Tắc
@@ -3509,7 +3494,7 @@ function ParentalControlApp() {
                       <button
                         onClick={() => setUsageSubTab('history')}
                         className={`px-3.5 py-2 rounded-lg font-semibold transition ${
-                          usageSubTab === 'history' ? 'bg-indigo-600 text-white shadow' : 'text-zinc-400 hover:text-white'
+                          usageSubTab === 'history' ? 'bg-zinc-100 text-black hover:bg-white shadow' : 'text-zinc-400 hover:text-white'
                         }`}
                       >
                          Web & Quy Tắc
@@ -3520,7 +3505,7 @@ function ParentalControlApp() {
                           usageSubTab === 'log' ? 'bg-green-600 text-white shadow' : 'text-zinc-400 hover:text-white'
                         }`}
                       >
-                        <FileText className="w-4 h-4 text-zinc-400 stroke-[1.5]" /> Log File ({logFileEntries.length})
+                         Log File ({logFileEntries.length})
                       </button>
                       <button
                         onClick={() => setUsageSubTab('black_list')}
@@ -3533,7 +3518,7 @@ function ParentalControlApp() {
                       <button
                         onClick={() => setUsageSubTab('schedule')}
                         className={`px-3.5 py-2 rounded-lg font-semibold transition ${
-                          usageSubTab === 'schedule' ? 'bg-indigo-600 text-white shadow' : 'text-zinc-400 hover:text-white'
+                          usageSubTab === 'schedule' ? 'bg-zinc-100 text-black hover:bg-white shadow' : 'text-zinc-400 hover:text-white'
                         }`}
                       >
                          Khung Giờ
@@ -3748,13 +3733,13 @@ function ParentalControlApp() {
                   </div>
                 )}
 
-                {/* SUB-TAB 3: <FileText className="w-4 h-4 text-zinc-400 stroke-[1.5]" /> LOG FILE VIEWER */}
+                {/* SUB-TAB 3:  LOG FILE VIEWER */}
                 {usageSubTab === 'log' && (
                   <div className="space-y-4">
                     <div className="flex items-center justify-between">
                       <div>
                         <h3 className="font-bold text-base flex items-center gap-2 text-green-400">
-                          <span><FileText className="w-4 h-4 text-zinc-400 stroke-[1.5]" /></span> System Log Viewer
+                          <span></span> System Log Viewer
                         </h3>
                         <p className="text-xs text-zinc-400 mt-0.5">
                           Chi tiết các sự kiện mở App và truy cập Web theo dạng Console Log.
@@ -3775,7 +3760,7 @@ function ParentalControlApp() {
                               {logs.map((log, idx) => (
                                 <div key={idx} className="flex gap-3 hover:bg-white/5 px-1 py-0.5 rounded transition">
                                   <span className="text-zinc-500 flex-shrink-0 w-16">{log.displayTime}</span>
-                                  <span className={`flex-shrink-0 w-10 font-bold ${log.type === 'WEB' ? 'text-blue-400' : 'text-purple-400'}`}>
+                                  <span className={`flex-shrink-0 w-10 font-bold ${log.type === 'WEB' ? 'text-blue-400' : 'text-zinc-300'}`}>
                                     [{log.type}]
                                   </span>
                                   <span className="text-amber-200/80 font-semibold flex-shrink-0 max-w-[120px] truncate">
@@ -3828,7 +3813,7 @@ function ParentalControlApp() {
                       <button
                         onClick={() => setBlackListSubTab('web')}
                         className={`px-4 py-2 rounded-lg font-semibold transition ${
-                          blackListSubTab === 'web' ? 'bg-indigo-600 text-white' : 'text-zinc-400 hover:text-white'
+                          blackListSubTab === 'web' ? 'bg-zinc-100 text-black hover:bg-white' : 'text-zinc-400 hover:text-white'
                         }`}
                       >
                          Web Black List ({webRules.length})
@@ -3836,7 +3821,7 @@ function ParentalControlApp() {
                       <button
                         onClick={() => setBlackListSubTab('app')}
                         className={`px-4 py-2 rounded-lg font-semibold transition ${
-                          blackListSubTab === 'app' ? 'bg-indigo-600 text-white' : 'text-zinc-400 hover:text-white'
+                          blackListSubTab === 'app' ? 'bg-zinc-100 text-black hover:bg-white' : 'text-zinc-400 hover:text-white'
                         }`}
                       >
                          App Black List ({appRules.length})
@@ -4014,7 +3999,7 @@ function ParentalControlApp() {
                                 : 'bg-zinc-900 hover:bg-slate-700 text-zinc-400 border-zinc-800'
                             }`}
                           >
-                            <span>{isMasterTimeLimitActive ? '<Shield className="w-4 h-4 text-zinc-400 stroke-[1.5]" /> Giới Hạn: ĐANG BẬT' : '<PauseCircle className="w-4 h-4 text-zinc-200 stroke-[1.5]" /> Giới Hạn: ĐÃ TẮT'}</span>
+                            <span>{isMasterTimeLimitActive ? ' Giới Hạn: ĐANG BẬT' : ' Giới Hạn: ĐÃ TẮT'}</span>
                           </button>
                         )}
 
@@ -4024,7 +4009,7 @@ function ParentalControlApp() {
                             <button
                               onClick={() => handleChangeTimeLimitMode('time_frame')}
                               className={`px-3.5 py-1.5 rounded-lg font-bold transition ${
-                                timeLimitMode === 'time_frame' ? 'bg-indigo-600 text-white shadow' : 'text-zinc-400 hover:text-white'
+                                timeLimitMode === 'time_frame' ? 'bg-zinc-100 text-black hover:bg-white shadow' : 'text-zinc-400 hover:text-white'
                               }`}
                             >
                               ⏰ Theo Khung Giờ
@@ -4032,7 +4017,7 @@ function ParentalControlApp() {
                             <button
                               onClick={() => handleChangeTimeLimitMode('max_daily')}
                               className={`px-3.5 py-1.5 rounded-lg font-bold transition ${
-                                timeLimitMode === 'max_daily' ? 'bg-indigo-600 text-white shadow' : 'text-zinc-400 hover:text-white'
+                                timeLimitMode === 'max_daily' ? 'bg-zinc-100 text-black hover:bg-white shadow' : 'text-zinc-400 hover:text-white'
                               }`}
                             >
                               ⏱️ Theo Tổng Giờ/Ngày
@@ -4115,7 +4100,7 @@ function ParentalControlApp() {
                     {/* TRƯỜNG HỢP 2: THỜI GIAN THEO TỔNG TỐI ĐA (max_daily) */}
                     {timeLimitMode === 'max_daily' && (
                       <div className="space-y-4">
-                        <div className="p-3 bg-purple-500/10 border border-purple-500/20 rounded-xl text-xs text-purple-300 flex items-center gap-2">
+                        <div className="p-3 bg-zinc-400/10 border border-zinc-400/20 rounded-xl text-xs text-zinc-300 flex items-center gap-2">
                           <span>ℹ️</span>
                           <span>Chế độ <strong>Tổng Thời Gian Tối Đa</strong>: Em trai được dùng tổng cộng số giờ cài đặt trong ngày. Khi mở máy dùng tích lũy đủ số giờ này, máy sẽ tự khóa.</span>
                         </div>
@@ -4129,14 +4114,14 @@ function ParentalControlApp() {
                               <div key={rule.id} className="p-4 rounded-2xl bg-zinc-900/50 border border-zinc-800 space-y-3 hover:border-zinc-800 transition shadow">
                                 <div className="flex items-center justify-between border-b border-zinc-800 pb-3">
                                   <div className="flex items-center gap-2.5">
-                                    <span className="w-8 h-8 rounded-xl bg-purple-500/10 border border-purple-500/20 text-purple-400 font-bold flex items-center justify-center text-xs">
+                                    <span className="w-8 h-8 rounded-xl bg-zinc-400/10 border border-zinc-400/20 text-zinc-300 font-bold flex items-center justify-center text-xs">
                                       {rule.day_of_week === 6 ? 'CN' : `T${rule.day_of_week + 2}`}
                                     </span>
                                     <span className="font-bold text-sm text-zinc-200">{dayNames[rule.day_of_week]}</span>
                                   </div>
 
                                   <div className="flex items-center gap-3">
-                                    <span className="text-xs font-mono font-bold text-purple-300 bg-purple-500/15 border border-purple-500/30 px-3 py-1 rounded-xl">
+                                    <span className="text-xs font-mono font-bold text-zinc-300 bg-zinc-400/15 border border-zinc-400/30 px-3 py-1 rounded-xl">
                                       ⏱ {hoursVal} giờ/ngày ({totalMinutes} phút)
                                     </span>
 
@@ -4165,7 +4150,7 @@ function ParentalControlApp() {
                                         step="0.5"
                                         value={hoursVal}
                                         onChange={(e) => updateTimeRule(rule.id, 'max_hours', parseFloat(e.target.value))}
-                                        className="flex-grow h-2 bg-zinc-900/50 rounded-lg appearance-none cursor-pointer accent-purple-500"
+                                        className="flex-grow h-2 bg-zinc-900/50 rounded-lg appearance-none cursor-pointer accent-zinc-400"
                                       />
                                       <span className="text-[11px] text-zinc-500 font-mono">24h</span>
                                     </div>
@@ -4179,7 +4164,7 @@ function ParentalControlApp() {
                                         step="0.5"
                                         value={hoursVal}
                                         onChange={(e) => updateTimeRule(rule.id, 'max_hours', parseFloat(e.target.value) || 0)}
-                                        className="w-20 bg-zinc-900 border border-zinc-800 rounded-xl px-3 py-1.5 text-xs text-center font-bold text-purple-300 outline-none focus:border-purple-500"
+                                        className="w-20 bg-zinc-900 border border-zinc-800 rounded-xl px-3 py-1.5 text-xs text-center font-bold text-zinc-300 outline-none focus:border-zinc-400"
                                       />
                                       <span className="text-xs text-zinc-400">giờ</span>
                                     </div>
@@ -4401,7 +4386,7 @@ function ParentalControlApp() {
                   <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 border-b border-zinc-800 pb-5">
                     <div>
                       <h2 className="text-xl font-bold flex items-center gap-2 text-slate-100">
-                        <span><Settings className="w-3.5 h-3.5 text-zinc-400 stroke-[1.5]" /></span> Cài Đặt Admin & Quản Lý Hệ Thống
+                        <span></span> Cài Đặt Admin & Quản Lý Hệ Thống
                       </h2>
                       <p className="text-xs text-zinc-400 mt-1">
                         Cấu hình phân quyền tư cách, quản lý thiết bị kết nối và bảo mật hệ thống.
@@ -4414,7 +4399,7 @@ function ParentalControlApp() {
                     <button
                       onClick={() => setSettingsSubTab('permissions')}
                       className={`px-4 py-2.5 rounded-xl font-bold transition flex items-center gap-2 shrink-0 ${
-                        settingsSubTab === 'permissions' ? 'bg-indigo-600 text-white shadow' : 'text-zinc-400 hover:text-white'
+                        settingsSubTab === 'permissions' ? 'bg-zinc-100 text-black hover:bg-white shadow' : 'text-zinc-400 hover:text-white'
                       }`}
                     >
                       <span></span>
@@ -4424,7 +4409,7 @@ function ParentalControlApp() {
                     <button
                       onClick={() => setSettingsSubTab('devices')}
                       className={`px-4 py-2.5 rounded-xl font-bold transition flex items-center gap-2 shrink-0 ${
-                        settingsSubTab === 'devices' ? 'bg-indigo-600 text-white shadow' : 'text-zinc-400 hover:text-white'
+                        settingsSubTab === 'devices' ? 'bg-zinc-100 text-black hover:bg-white shadow' : 'text-zinc-400 hover:text-white'
                       }`}
                     >
                       <span></span>
@@ -4434,20 +4419,20 @@ function ParentalControlApp() {
                     <button
                       onClick={() => setSettingsSubTab('agent')}
                       className={`px-4 py-2.5 rounded-xl font-bold transition flex items-center gap-2 shrink-0 ${
-                        settingsSubTab === 'agent' ? 'bg-indigo-600 text-white shadow' : 'text-zinc-400 hover:text-white'
+                        settingsSubTab === 'agent' ? 'bg-zinc-100 text-black hover:bg-white shadow' : 'text-zinc-400 hover:text-white'
                       }`}
                     >
-                      <span><Settings className="w-3.5 h-3.5 text-zinc-400 stroke-[1.5]" /></span>
+                      <span></span>
                       <span>Cấu Hình Agent & Theme</span>
                     </button>
 
                     <button
                       onClick={() => setSettingsSubTab('security')}
                       className={`px-4 py-2.5 rounded-xl font-bold transition flex items-center gap-2 shrink-0 ${
-                        settingsSubTab === 'security' ? 'bg-indigo-600 text-white shadow' : 'text-zinc-400 hover:text-white'
+                        settingsSubTab === 'security' ? 'bg-zinc-100 text-black hover:bg-white shadow' : 'text-zinc-400 hover:text-white'
                       }`}
                     >
-                      <span><Lock className="w-4 h-4 text-zinc-400 stroke-[1.5]" /></span>
+                      <span></span>
                       <span>Bảo Mật & Mật Khẩu</span>
                     </button>
                   </div>
@@ -4483,7 +4468,7 @@ function ParentalControlApp() {
                           {displayRoles.map(roleName => (
                             <div key={roleName} className="p-3 bg-zinc-900/50 border border-zinc-800 rounded-xl space-y-2 text-xs">
                               <div className="flex items-center justify-between font-bold">
-                                <span className="text-amber-300"><User className="w-3.5 h-3.5 text-zinc-400 stroke-[1.5]" /> {roleName}</span>
+                                <span>{roleName}</span>
                                 {roleName !== 'Khách (Chưa chọn)' && customRoles.length > 1 && (
                                   <button onClick={() => handleRemoveCustomRole(roleName)} className="text-[10px] text-red-400 hover:text-red-300">
                                     Xóa
@@ -4605,7 +4590,7 @@ function ParentalControlApp() {
                                            ĐIỆN THOẠI
                                         </span>
                                       ) : (
-                                        <span className="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold bg-purple-500/20 text-purple-300 border border-purple-500/30">
+                                        <span className="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold bg-zinc-400/20 text-zinc-300 border border-zinc-400/30">
                                           ️ LAPTOP / PC
                                         </span>
                                       )}
@@ -4619,7 +4604,7 @@ function ParentalControlApp() {
                                         {sess.user_role}
                                       </span>
                                       {sess.tabCount > 1 && (
-                                        <span className="px-2 py-0.5 rounded-lg text-[10px] font-bold bg-purple-500/20 text-purple-300 border border-purple-500/30 font-mono">
+                                        <span className="px-2 py-0.5 rounded-lg text-[10px] font-bold bg-zinc-400/20 text-zinc-300 border border-zinc-400/30 font-mono">
                                           {sess.tabCount} Tabs
                                         </span>
                                       )}
@@ -4663,7 +4648,7 @@ function ParentalControlApp() {
                             type="button"
                             onClick={() => changeTheme('light')}
                             className={`p-3 rounded-xl border text-xs font-bold flex items-center justify-center gap-1.5 transition ${
-                              themeMode === 'light' ? 'bg-indigo-600 text-white border-indigo-500 shadow' : 'bg-white text-slate-900 border-slate-300'
+                              themeMode === 'light' ? 'bg-zinc-100 text-black hover:bg-white border-indigo-500 shadow' : 'bg-white text-slate-900 border-slate-300'
                             }`}
                           >
                             <span>️ Sáng</span>
@@ -4672,7 +4657,7 @@ function ParentalControlApp() {
                             type="button"
                             onClick={() => changeTheme('dark')}
                             className={`p-3 rounded-xl border text-xs font-bold flex items-center justify-center gap-1.5 transition ${
-                              themeMode === 'dark' ? 'bg-indigo-600 text-white border-indigo-500 shadow' : 'bg-zinc-900/50 text-zinc-200 border-zinc-800'
+                              themeMode === 'dark' ? 'bg-zinc-100 text-black hover:bg-white border-indigo-500 shadow' : 'bg-zinc-900/50 text-zinc-200 border-zinc-800'
                             }`}
                           >
                             <span> Tối (Slate)</span>
@@ -4681,7 +4666,7 @@ function ParentalControlApp() {
                             type="button"
                             onClick={() => changeTheme('black')}
                             className={`p-3 rounded-xl border text-xs font-bold flex items-center justify-center gap-1.5 transition ${
-                              themeMode === 'black' ? 'bg-indigo-600 text-white border-indigo-500 shadow' : 'bg-black text-zinc-200 border-zinc-800'
+                              themeMode === 'black' ? 'bg-zinc-100 text-black hover:bg-white border-indigo-500 shadow' : 'bg-black text-zinc-200 border-zinc-800'
                             }`}
                           >
                             <span>⬛ Tối Sâu (Black)</span>
@@ -4716,7 +4701,7 @@ function ParentalControlApp() {
                     <div className="space-y-5">
                       <div className="p-5 rounded-2xl bg-zinc-900/50 border border-zinc-800 space-y-4 shadow-inner">
                         <div className="text-xs font-bold text-emerald-400 flex items-center gap-2">
-                          <span><Lock className="w-4 h-4 text-zinc-400 stroke-[1.5]" /></span> Thay Đổi Mật Khẩu Hệ Thống & PIN Admin
+                          <span></span> Thay Đổi Mật Khẩu Hệ Thống & PIN Admin
                         </div>
 
                         {/* AGENT PASSWORD */}
@@ -4778,7 +4763,7 @@ function ParentalControlApp() {
                 {/* STICKY SAVE BAR AT BOTTOM */}
                 <div className="fixed bottom-16 lg:bottom-6 right-6 z-40 bg-zinc-900/50/95 border border-indigo-500/40 backdrop-blur-xl rounded-2xl p-3 shadow-2xl flex items-center gap-4 animate-in slide-in-from-bottom duration-200">
                   <div className="hidden sm:block text-xs text-zinc-300 font-medium">
-                    <span><Settings className="w-3.5 h-3.5 text-zinc-400 stroke-[1.5]" /> Đã sẵn sàng áp dụng cấu hình Cài Đặt Admin.</span>
+                    <span> Đã sẵn sàng áp dụng cấu hình Cài Đặt Admin.</span>
                   </div>
                   <button
                     onClick={handleSaveConfig}
@@ -4806,7 +4791,7 @@ function ParentalControlApp() {
                     target="_blank"
                     className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-xl text-xs transition shadow flex items-center gap-1.5"
                   >
-                    <span><FileText className="w-4 h-4 text-zinc-400 stroke-[1.5]" /></span>
+                    <span></span>
                     <span>Mở File Hướng Dẫn HTML Gốc</span>
                   </a>
                 </div>
@@ -4831,22 +4816,22 @@ function ParentalControlApp() {
                 {/* KHUNG CÁC CÁCH TẠM DỪNG KIỂM SOÁT */}
                 <div className="p-5 rounded-xl bg-zinc-900/50 border border-zinc-800 space-y-3">
                   <h3 className="font-bold text-sm text-zinc-200 flex items-center gap-2">
-                    <span><PauseCircle className="w-4 h-4 text-zinc-200 stroke-[1.5]" /></span> 2. CÁCH TẠM DỪNG KIỂM SOÁT (2 CÁCH)
+                    <span></span> 2. CÁCH TẠM DỪNG KIỂM SOÁT (2 CÁCH)
                   </h3>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
                     <div className="p-3.5 rounded-xl bg-zinc-900/50 border border-zinc-800 space-y-2">
-                      <div className="font-bold text-amber-300 text-sm"> Cách 1: Tạm Dừng Từ Xa Qua Web App (Khuyên Dùng)</div>
+                      <div className="font-bold text-zinc-200 text-sm">Cách 1: Tạm Dừng Từ Xa Qua Web App (Khuyên Dùng)</div>
                       <p className="text-zinc-400 leading-relaxed">
-                        Trên thanh Header chính của trang Web này, bấm nút <strong className="text-amber-300"><PauseCircle className="w-4 h-4 text-zinc-200 stroke-[1.5]" /> Tạm Dừng Kiểm Soát</strong>.
+                        Trên thanh Header chính của trang Web này, bấm nút <strong className="text-zinc-100">Tạm Dừng Kiểm Soát</strong>.
                         Agent trên máy em trai sẽ tự động tạm dừng tất cả các hiệu ứng cấm web, cấm app, giới hạn giờ và khóa màn hình. 
-                        Khi muốn bật lại, bạn chỉ cần bấm <strong className="text-emerald-400">▶️ Tiếp Tục Kiểm Soát</strong>.
+                        Khi muốn bật lại, bạn chỉ cần bấm <strong className="text-zinc-100">Tiếp Tục Kiểm Soát</strong>.
                       </p>
                     </div>
 
                     <div className="p-3.5 rounded-xl bg-zinc-900/50 border border-zinc-800 space-y-2">
-                      <div className="font-bold text-blue-300 text-sm"><KeyRound className="w-4 h-4 text-zinc-400 stroke-[1.5]" /> Cách 2: Mở Khóa Tạm Thời Tại Chỗ Trên Máy Em Trai</div>
+                      <div className="font-bold text-zinc-200 text-sm">Cách 2: Mở Khóa Tạm Thời Tại Chỗ Trên Máy Em Trai</div>
                       <p className="text-zinc-400 leading-relaxed">
-                        Khi màn hình máy tính em trai bị khóa, bấm nút <strong className="text-white font-mono">[ Mật khẩu dừng Agent ]</strong> trên khung khóa, nhập mật khẩu Agent (mặc định: <code className="text-emerald-300">Truc@1905s0825811915</code>) để mở khóa session sử dụng tạm thời.
+                        Khi màn hình máy tính em trai bị khóa, bấm nút <strong className="text-zinc-100 font-mono">[ Mật khẩu dừng Agent ]</strong> trên khung khóa, nhập mật khẩu Agent để mở khóa session sử dụng tạm thời.
                       </p>
                     </div>
                   </div>
@@ -4906,7 +4891,7 @@ rmdir /s /q "C:\ProgramData\ParentalControl"</pre>
                             : 'bg-zinc-900 hover:bg-slate-700 text-zinc-400 border-zinc-800'
                         }`}
                       >
-                        <span>{isMasterTimeLimitActive ? '<Shield className="w-4 h-4 text-zinc-400 stroke-[1.5]" /> Giới Hạn: ĐANG BẬT' : '<PauseCircle className="w-4 h-4 text-zinc-200 stroke-[1.5]" /> Giới Hạn: ĐÃ TẮT'}</span>
+                        <span>{isMasterTimeLimitActive ? ' Giới Hạn: ĐANG BẬT' : ' Giới Hạn: ĐÃ TẮT'}</span>
                       </button>
                     )}
 
@@ -4916,7 +4901,7 @@ rmdir /s /q "C:\ProgramData\ParentalControl"</pre>
                         <button
                           onClick={() => handleChangeTimeLimitMode('time_frame')}
                           className={`px-3.5 py-1.5 rounded-lg font-bold transition ${
-                            timeLimitMode === 'time_frame' ? 'bg-indigo-600 text-white shadow' : 'text-zinc-400 hover:text-white'
+                            timeLimitMode === 'time_frame' ? 'bg-zinc-100 text-black hover:bg-white shadow' : 'text-zinc-400 hover:text-white'
                           }`}
                         >
                           ⏰ Theo Khung Giờ
@@ -4924,7 +4909,7 @@ rmdir /s /q "C:\ProgramData\ParentalControl"</pre>
                         <button
                           onClick={() => handleChangeTimeLimitMode('max_daily')}
                           className={`px-3.5 py-1.5 rounded-lg font-bold transition ${
-                            timeLimitMode === 'max_daily' ? 'bg-indigo-600 text-white shadow' : 'text-zinc-400 hover:text-white'
+                            timeLimitMode === 'max_daily' ? 'bg-zinc-100 text-black hover:bg-white shadow' : 'text-zinc-400 hover:text-white'
                           }`}
                         >
                           ⏱️ Theo Tổng Giờ/Ngày
@@ -5007,7 +4992,7 @@ rmdir /s /q "C:\ProgramData\ParentalControl"</pre>
                 {/* TRƯỜNG HỢP 2: THỜI GIAN THEO TỔNG TỐI ĐA (max_daily) */}
                 {timeLimitMode === 'max_daily' && (
                   <div className="space-y-4">
-                    <div className="p-3 bg-purple-500/10 border border-purple-500/20 rounded-xl text-xs text-purple-300 flex items-center gap-2">
+                    <div className="p-3 bg-zinc-400/10 border border-zinc-400/20 rounded-xl text-xs text-zinc-300 flex items-center gap-2">
                       <span>ℹ️</span>
                       <span>Chế độ <strong>Tổng Thời Gian Tối Đa</strong>: Em trai được dùng tổng cộng số giờ cài đặt trong ngày. Khi mở máy dùng tích lũy đủ số giờ này, máy sẽ tự khóa.</span>
                     </div>
@@ -5021,14 +5006,14 @@ rmdir /s /q "C:\ProgramData\ParentalControl"</pre>
                           <div key={rule.id} className="p-4 rounded-2xl bg-zinc-900/50 border border-zinc-800 space-y-3 hover:border-zinc-800 transition shadow">
                             <div className="flex items-center justify-between border-b border-zinc-800 pb-3">
                               <div className="flex items-center gap-2.5">
-                                <span className="w-8 h-8 rounded-xl bg-purple-500/10 border border-purple-500/20 text-purple-400 font-bold flex items-center justify-center text-xs">
+                                <span className="w-8 h-8 rounded-xl bg-zinc-400/10 border border-zinc-400/20 text-zinc-300 font-bold flex items-center justify-center text-xs">
                                   {rule.day_of_week === 6 ? 'CN' : `T${rule.day_of_week + 2}`}
                                 </span>
                                 <span className="font-bold text-sm text-zinc-200">{dayNames[rule.day_of_week]}</span>
                               </div>
 
                               <div className="flex items-center gap-3">
-                                <span className="text-xs font-mono font-bold text-purple-300 bg-purple-500/15 border border-purple-500/30 px-3 py-1 rounded-xl">
+                                <span className="text-xs font-mono font-bold text-zinc-300 bg-zinc-400/15 border border-zinc-400/30 px-3 py-1 rounded-xl">
                                   ⏱ {hoursVal} giờ/ngày ({totalMinutes} phút)
                                 </span>
 
@@ -5057,7 +5042,7 @@ rmdir /s /q "C:\ProgramData\ParentalControl"</pre>
                                     step="0.5"
                                     value={hoursVal}
                                     onChange={(e) => updateTimeRule(rule.id, 'max_hours', parseFloat(e.target.value))}
-                                    className="flex-grow h-2 bg-zinc-900/50 rounded-lg appearance-none cursor-pointer accent-purple-500"
+                                    className="flex-grow h-2 bg-zinc-900/50 rounded-lg appearance-none cursor-pointer accent-zinc-400"
                                   />
                                   <span className="text-[11px] text-zinc-500 font-mono">24h</span>
                                 </div>
@@ -5071,7 +5056,7 @@ rmdir /s /q "C:\ProgramData\ParentalControl"</pre>
                                     step="0.5"
                                     value={hoursVal}
                                     onChange={(e) => updateTimeRule(rule.id, 'max_hours', parseFloat(e.target.value) || 0)}
-                                    className="w-20 bg-zinc-900 border border-zinc-800 rounded-xl px-3 py-1.5 text-xs text-center font-bold text-purple-300 outline-none focus:border-purple-500"
+                                    className="w-20 bg-zinc-900 border border-zinc-800 rounded-xl px-3 py-1.5 text-xs text-center font-bold text-zinc-300 outline-none focus:border-zinc-400"
                                   />
                                   <span className="text-xs text-zinc-400">giờ</span>
                                 </div>
@@ -5097,8 +5082,8 @@ rmdir /s /q "C:\ProgramData\ParentalControl"</pre>
       {showDeleteDateModal && (
         <div className="fixed inset-0 bg-black/80 backdrop-blur-md z-50 flex items-center justify-center p-4">
           <div className="bg-zinc-900/50 border border-red-500/40 rounded-3xl p-6 max-w-md w-full space-y-4 shadow-2xl animate-in zoom-in-95 duration-200">
-            <div className="flex items-center gap-3 text-red-400 border-b border-zinc-800 pb-3">
-              <span className="text-3xl"><AlertTriangle className="w-4 h-4 text-zinc-200 stroke-[1.5]" /></span>
+            <div className="flex items-center gap-3 text-rose-400 border-b border-zinc-800 pb-3">
+              <AlertTriangle className="w-5 h-5 text-rose-500 stroke-[1.5]" />
               <div>
                 <h3 className="font-bold text-base text-slate-100">Xác Nhận Xóa Dữ Liệu</h3>
                 <p className="text-xs text-red-400">Hành động này không thể hoàn tác!</p>
@@ -5182,62 +5167,7 @@ rmdir /s /q "C:\ProgramData\ParentalControl"</pre>
       )}
 
       {/* MOBILE BOTTOM NAVIGATION BAR (< lg) */}
-      <div className="fixed bottom-0 left-0 right-0 z-40 bg-black/95 border-t border-zinc-800 fixed bottom-0 left-0 right-0 z-50 backdrop-blur-md backdrop-blur-lg flex items-center justify-around py-2 px-1 lg:hidden shadow-2xl">
-        <button
-          onClick={() => changeActiveTab('overview')}
-          className={`flex flex-col items-center gap-0.5 px-3 py-1 rounded-xl transition min-w-[56px] min-h-[44px] justify-center ${
-            activeTab === 'overview' ? 'text-blue-400 font-bold bg-blue-500/10' : 'text-zinc-400 hover:text-zinc-200'
-          }`}
-        >
-          <span className="text-lg"></span>
-          <span className="text-[10px]">Tổng quan</span>
-        </button>
-
-        <button
-          onClick={() => changeActiveTab('todo')}
-          className={`flex flex-col items-center gap-0.5 px-3 py-1 rounded-xl transition min-w-[56px] min-h-[44px] justify-center ${
-            activeTab === 'todo' ? 'text-blue-400 font-bold bg-blue-500/10' : 'text-zinc-400 hover:text-zinc-200'
-          }`}
-        >
-          <span className="text-lg"><FileText className="w-4 h-4 text-zinc-400 stroke-[1.5]" /></span>
-          <span className="text-[10px]">To Do</span>
-        </button>
-
-        <button
-          onClick={() => changeActiveTab('chat')}
-          className={`flex flex-col items-center gap-0.5 px-3 py-1 rounded-xl transition min-w-[56px] min-h-[44px] justify-center ${
-            activeTab === 'chat' ? 'text-blue-400 font-bold bg-blue-500/10' : 'text-zinc-400 hover:text-zinc-200'
-          }`}
-        >
-          <span className="text-lg"></span>
-          <span className="text-[10px]">Chat</span>
-        </button>
-
-        <button
-          onClick={() => {
-            changeActiveTab('overview')
-            setTimeout(() => {
-              document.getElementById('process-table-section')?.scrollIntoView({ behavior: 'smooth' })
-            }, 100)
-          }}
-          className={`flex flex-col items-center gap-0.5 px-3 py-1 rounded-xl transition min-w-[56px] min-h-[44px] justify-center ${
-            activeTab === 'overview' ? 'text-purple-400 font-bold' : 'text-zinc-400 hover:text-zinc-200'
-          }`}
-        >
-          <span className="text-lg"></span>
-          <span className="text-[10px]">Tiến trình</span>
-        </button>
-
-        <button
-          onClick={() => setShowMobileDrawer(true)}
-          className={`flex flex-col items-center gap-0.5 px-3 py-1 rounded-xl transition min-w-[56px] min-h-[44px] justify-center ${
-            showMobileDrawer ? 'text-zinc-200 font-bold bg-amber-500/10' : 'text-zinc-400 hover:text-zinc-200'
-          }`}
-        >
-          <span className="text-lg"></span>
-          <span className="text-[10px]">Thêm...</span>
-        </button>
-      </div>
+      <MobileNav tabList={tabList} activeTab={activeTab} changeActiveTab={changeActiveTab} />
 
       {/* MOBILE DRAWER MODAL */}
       {showMobileDrawer && (
@@ -5263,7 +5193,7 @@ rmdir /s /q "C:\ProgramData\ParentalControl"</pre>
                   }}
                   className={`p-3.5 rounded-2xl border text-left font-semibold text-xs flex items-center gap-2.5 transition ${
                     activeTab === tab.id
-                      ? 'bg-indigo-600 text-white border-indigo-500 shadow-lg shadow-indigo-600/20'
+                      ? 'bg-zinc-100 text-black hover:bg-white border-indigo-500 shadow-lg shadow-indigo-600/20'
                       : 'bg-zinc-900/50 text-zinc-300 border-zinc-800 hover:bg-zinc-900'
                   }`}
                 >

@@ -10,7 +10,8 @@ import {
   History,
   Settings,
   UserCheck,
-  Lock
+  Lock,
+  MessageSquare
 } from 'lucide-react'
 
 export function Sidebar({
@@ -26,6 +27,7 @@ export function Sidebar({
       case 'overview': return <LayoutDashboard className="w-4 h-4 stroke-[1.5]" />
       case 'usage': return <AppWindow className="w-4 h-4 stroke-[1.5]" />
       case 'schedules': return <Calendar className="w-4 h-4 stroke-[1.5]" />
+      case 'chat': return <MessageSquare className="w-4 h-4 stroke-[1.5]" />
       case 'screenshots': return <Camera className="w-4 h-4 stroke-[1.5]" />
       case 'history': return <History className="w-4 h-4 stroke-[1.5]" />
       case 'black_list': return <Globe className="w-4 h-4 stroke-[1.5]" />
@@ -50,12 +52,12 @@ export function Sidebar({
           </div>
         </div>
 
-        {/* NAVIGATION TABS WITH SAFE OPTIONAL CHAINING */}
+        {/* NAVIGATION TABS WITH PURE STRING LABELS */}
         <nav className="space-y-1">
           {(safeTabList ?? []).map(tab => {
             if (!tab || !tab.id) return null
             const isActive = activeTab === tab.id
-            const labelText = tab?.label ?? 'Tab'
+            const labelText = typeof tab.label === 'string' ? tab.label.replace(/<[^>]*>/g, '').trim() : 'Tab'
             return (
               <button
                 key={tab.id}
@@ -69,7 +71,7 @@ export function Sidebar({
                 <span className={isActive ? 'text-black' : 'text-zinc-500 group-hover:text-zinc-200'}>
                   {getIcon(tab.id)}
                 </span>
-                <span className="truncate">{labelText.includes(' ') ? labelText.substring(labelText.indexOf(' ') + 1) : labelText}</span>
+                <span className="truncate">{labelText}</span>
               </button>
             )
           })}

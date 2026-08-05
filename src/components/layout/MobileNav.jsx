@@ -7,7 +7,8 @@ import {
   Globe,
   Camera,
   History,
-  Settings
+  Settings,
+  MessageSquare
 } from 'lucide-react'
 
 export function MobileNav({ tabList = [], activeTab = 'overview', changeActiveTab }) {
@@ -16,6 +17,7 @@ export function MobileNav({ tabList = [], activeTab = 'overview', changeActiveTa
       case 'overview': return <LayoutDashboard className="w-5 h-5 stroke-[1.5]" />
       case 'usage': return <AppWindow className="w-5 h-5 stroke-[1.5]" />
       case 'schedules': return <Calendar className="w-5 h-5 stroke-[1.5]" />
+      case 'chat': return <MessageSquare className="w-5 h-5 stroke-[1.5]" />
       case 'screenshots': return <Camera className="w-5 h-5 stroke-[1.5]" />
       case 'history': return <History className="w-5 h-5 stroke-[1.5]" />
       case 'black_list': return <Globe className="w-5 h-5 stroke-[1.5]" />
@@ -31,7 +33,7 @@ export function MobileNav({ tabList = [], activeTab = 'overview', changeActiveTa
       {(safeTabList ?? []).slice(0, 5).map(tab => {
         if (!tab || !tab.id) return null
         const isActive = activeTab === tab.id
-        const labelText = tab?.label ?? 'Tab'
+        const labelText = typeof tab.label === 'string' ? tab.label.replace(/<[^>]*>/g, '').trim() : 'Tab'
         return (
           <button
             key={tab.id}
@@ -43,8 +45,8 @@ export function MobileNav({ tabList = [], activeTab = 'overview', changeActiveTa
             }`}
           >
             <span>{getIcon(tab.id)}</span>
-            <span className="text-[10px] font-mono tracking-tight truncate max-w-[50px]">
-              {labelText.includes(' ') ? labelText.substring(labelText.indexOf(' ') + 1) : labelText}
+            <span className="text-[10px] font-mono tracking-tight truncate max-w-[60px]">
+              {labelText}
             </span>
           </button>
         )

@@ -305,26 +305,37 @@ class ScreenBlocker:
             os.system("shutdown /s /t 0")
 
     def check_remote_pause(self):
-        """Kiem tra is_paused tu Supabase moi 10 giay. Neu paused -> tu mo khoa."""
+        """Kiem tra is_paused tu Supabase moi 5 giay. Neu paused -> tu mo khoa. Gui heartbeat duy tri ket noi."""
         try:
             if self.supabase:
+                # Gui Heartbeat lien tuc tu Blocker de giu ket noi ONLINE tren Web Dashboard
+                try:
+                    from storage.sync_worker import send_heartbeat
+                    send_heartbeat(self.supabase)
+                except Exception:
+                    pass
+
                 res = self.supabase.table("app_config")\
                     .select("is_paused")\
                     .eq("device_name", DEVICE_NAME)\
-                    .maybeSingle()\
                     .execute()
-                if res.data and res.data.get("is_paused") is True:
+                
+                paused = False
+                if res.data and len(res.data) > 0:
+                    paused = bool(res.data[0].get("is_paused"))
+
+                if paused:
                     self.remote_unlocked = True
                     self.remote_status.config(
                         text="Admin da mo khoa tu xa!",
                         fg="#22c55e"
                     )
                     self.cleanup_protections()
-                    self.root.after(500, self.root.destroy)
+                    self.root.after(300, self.root.destroy)
                     return
                 else:
                     self.remote_status.config(
-                        text=f"Kiem tra lan cuoi: {datetime.now().strftime('%H:%M:%S')}"
+                        text=f"Dang giu ket noi. Kiem tra: {datetime.now().strftime('%H:%M:%S')}"
                     )
         except Exception as e:
             self.remote_status.config(
@@ -332,7 +343,7 @@ class ScreenBlocker:
             )
 
         try:
-            self.root.after(10000, self.check_remote_pause)
+            self.root.after(5000, self.check_remote_pause)
         except Exception:
             pass
 

@@ -9,7 +9,7 @@ def get_remote_password():
     try:
         if SUPABASE_URL and SUPABASE_KEY:
             supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
-            res = supabase.table("app_config").select("agent_password").eq("device_name", DEVICE_NAME).maybeSingle().execute()
+            res = supabase.table("app_config").select("agent_password").eq("device_name", DEVICE_NAME).execute()
             if res.data and res.data.get("agent_password"):
                 return res.data["agent_password"]
     except Exception as e:

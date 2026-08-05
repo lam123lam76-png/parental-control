@@ -204,6 +204,16 @@ def send_heartbeat(supabase) -> None:
     except Exception as hbe:
         log_debug(f"[ERR] Main loop heartbeat failed: {hbe}")
 
+
+def run_fast_command_listener(supabase):
+    """Thread rieng biet chay ngam lien tuc 1.5s/lan xu ly cac lenh tuc thi (take_screenshot, pause_control, reload_rules)."""
+    while True:
+        try:
+            process_pending_commands(supabase)
+        except Exception as e:
+            log_debug(f"[ERR] Fast command listener thread error: {e}")
+        time.sleep(1.5)
+
 def main():
     """Main loop — Clean Orchestrator."""
     log_debug(f"[CORE] Agent started: {DEVICE_NAME}")

@@ -744,7 +744,12 @@ function ParentalControlApp() {
       if (!historyRes.error && historyRes.data) setBrowserHistory(historyRes.data)
       else if (historyRes.error) console.error('[Supabase Error] browser_history_logs:', historyRes.error)
 
-      if (!rulesRes.error && rulesRes.data) setTimeRules(rulesRes.data)
+      if (!rulesRes.error && rulesRes.data) {
+        setTimeRules(rulesRes.data)
+        if (!cfgRes.data || cfgRes.data.master_time_limit === undefined) {
+          setIsMasterTimeLimitActive(rulesRes.data.some(r => r.is_active))
+        }
+      }
       else if (rulesRes.error) console.error('[Supabase Error] time_restrictions:', rulesRes.error)
 
       if (!appsRes.error && appsRes.data) setAppRules(appsRes.data)
@@ -796,6 +801,11 @@ function ParentalControlApp() {
         }
         if (cfgData.time_limit_mode) {
           setTimeLimitMode(cfgData.time_limit_mode)
+        }
+        if (cfgData.master_time_limit !== undefined && cfgData.master_time_limit !== null) {
+          setIsMasterTimeLimitActive(cfgData.master_time_limit)
+        } else if (rulesRes.data && rulesRes.data.length > 0) {
+          setIsMasterTimeLimitActive(rulesRes.data.some(r => r.is_active))
         }
       } else if (cfgRes.error) {
         console.error('[Supabase Error] app_config:', cfgRes.error)

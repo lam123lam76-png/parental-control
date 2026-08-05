@@ -1266,9 +1266,17 @@ function ParentalControlApp() {
     return `Ngày ${d.getDate()}/${d.getMonth() + 1}/${d.getFullYear()}`
   }
 
-  function getScreenshotUrl(path) {
-    const { data } = supabase.storage.from('screenshots').getPublicUrl(path)
-    return data?.publicUrl
+  function getScreenshotUrl(path, options = {}) {
+    if (!path) return ''
+    const transform = {}
+    if (options.width) transform.width = options.width
+    if (options.height) transform.height = options.height
+    if (options.quality) transform.quality = options.quality
+    if (options.resize) transform.resize = options.resize
+
+    const hasTransform = Object.keys(transform).length > 0
+    const { data } = supabase.storage.from('screenshots').getPublicUrl(path, hasTransform ? { transform } : undefined)
+    return data?.publicUrl || ''
   }
 
   // TÍNH NĂNG CƯỠNG CHẾ CẬP NHẬT AGENT TỪ XA
@@ -4221,10 +4229,10 @@ function ParentalControlApp() {
                       {screenshots.slice(0, 1).map(item => (
                         <div key={`instant-${item.id}`} className="border border-indigo-500/40 rounded-xl overflow-hidden group relative bg-black shadow-xl">
                           <img
-                            src={getScreenshotUrl(item.file_path)}
-                            alt="instant screenshot"
+                            src={getScreenshotUrl(item.file_path, { width: 640, quality: 70 })}
+                            alt="instant screenshot" loading="lazy"
                             className="w-full h-64 object-contain bg-black cursor-pointer"
-                            onClick={() => setSelectedImage(getScreenshotUrl(item.file_path))}
+                            onClick={() => setSelectedImage(getScreenshotUrl(item.file_path, { width: 1600, quality: 85 }))}
                           />
                           <div className="p-3 flex items-center justify-between text-xs bg-zinc-900/50/90 border-t border-zinc-800">
                             <div className="flex items-center gap-2">
@@ -4235,7 +4243,7 @@ function ParentalControlApp() {
                             </div>
                             <div className="flex gap-2">
                               <button
-                                onClick={() => setSelectedImage(getScreenshotUrl(item.file_path))}
+                                onClick={() => setSelectedImage(getScreenshotUrl(item.file_path, { width: 1600, quality: 85 }))}
                                 className="text-blue-400 hover:text-blue-300 font-semibold px-2.5 py-1 rounded bg-blue-500/10 hover:bg-blue-500/20 transition text-xs"
                               >
                                  Phóng To
@@ -4255,10 +4263,10 @@ function ParentalControlApp() {
                       {screenshots.slice(1, 2).map(item => (
                         <div key={`instant-prev-${item.id}`} className="border border-zinc-800 rounded-xl overflow-hidden group relative bg-black opacity-90">
                           <img
-                            src={getScreenshotUrl(item.file_path)}
-                            alt="instant screenshot previous"
+                            src={getScreenshotUrl(item.file_path, { width: 640, quality: 70 })}
+                            alt="instant screenshot previous" loading="lazy"
                             className="w-full h-64 object-contain bg-black cursor-pointer"
-                            onClick={() => setSelectedImage(getScreenshotUrl(item.file_path))}
+                            onClick={() => setSelectedImage(getScreenshotUrl(item.file_path, { width: 1600, quality: 85 }))}
                           />
                           <div className="p-3 flex items-center justify-between text-xs bg-zinc-900/50/90 border-t border-zinc-800">
                             <div className="flex items-center gap-2">
@@ -4268,7 +4276,7 @@ function ParentalControlApp() {
                               </span>
                             </div>
                             <button
-                              onClick={() => setSelectedImage(getScreenshotUrl(item.file_path))}
+                              onClick={() => setSelectedImage(getScreenshotUrl(item.file_path, { width: 1600, quality: 85 }))}
                               className="text-blue-400 hover:text-blue-300 font-semibold px-2.5 py-1 rounded bg-blue-500/10 transition text-xs"
                             >
                                Phóng To
@@ -4320,10 +4328,10 @@ function ParentalControlApp() {
                                 />
 
                                 <img
-                                  src={getScreenshotUrl(item.file_path)}
-                                  alt="screenshot"
+                                  src={getScreenshotUrl(item.file_path, { width: 640, quality: 70 })}
+                                  alt="screenshot" loading="lazy"
                                   className="w-full h-40 object-cover cursor-pointer"
-                                  onClick={() => setSelectedImage(getScreenshotUrl(item.file_path))}
+                                  onClick={() => setSelectedImage(getScreenshotUrl(item.file_path, { width: 1600, quality: 85 }))}
                                 />
 
                                 <div className="p-2 flex items-center justify-between text-xs text-zinc-400 bg-zinc-900/50">

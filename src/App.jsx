@@ -2526,66 +2526,14 @@ function ParentalControlApp() {
       <div className="min-h-screen bg-black text-zinc-100 font-sans flex flex-col lg:flex-row antialiased selection:bg-zinc-800 selection:text-white pb-20 lg:pb-0 overflow-x-hidden w-full max-w-full">
         
         {/* LEFT SIDEBAR NAVIGATION (DESKTOP ONLY lg:flex) */}
-        <aside className="hidden lg:flex lg:w-60 bg-black border-r border-zinc-800 p-5 flex-col justify-between shrink-0 sticky top-0 h-screen z-30 backdrop-blur-md">
-          <div>
-            {/* BRAND LOGO */}
-            <div className="flex items-center gap-3 pb-6 border-b border-zinc-800 mb-6">
-              <div className="w-8 h-8 rounded-lg bg-zinc-900 border border-zinc-800 flex items-center justify-center text-zinc-100">
-                
-              </div>
-              <div>
-                <h1 className="text-xs font-mono font-bold tracking-wider text-zinc-100 uppercase">PARENTAL CONTROL</h1>
-                <p className="text-[10px] font-mono text-zinc-500">Geist SaaS Console</p>
-              </div>
-            </div>
-
-            {/* NAV TABS */}
-            <nav className="space-y-1.5">
-              {tabList.map(tab => {
-                const isActive = activeTab === tab.id
-                return (
-                  <button
-                    key={tab.id}
-                    onClick={() => changeActiveTab(tab.id)}
-                    className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-xs font-semibold transition group ${
-                      isActive
-                        ? 'bg-zinc-100 text-black font-semibold shadow-sm'
-                        : 'text-zinc-400 hover:bg-zinc-900/60 hover:text-zinc-200'
-                    }`}
-                  >
-                    <span className="text-base">{tab.label.split(' ')[0]}</span>
-                    <span className="truncate">{tab.label.substring(tab.label.indexOf(' ') + 1)}</span>
-                  </button>
-                )
-              })}
-            </nav>
-          </div>
-
-          {/* SIDEBAR FOOTER (USER ROLE & WIDGET TOGGLE) */}
-          <div className="pt-6 border-t border-zinc-800 space-y-3">
-            <div className="p-3 rounded-xl bg-zinc-900/50 border border-zinc-800 flex items-center justify-between text-xs">
-              <div className="flex items-center gap-2 truncate">
-                <span className="w-2 h-2 rounded-full bg-amber-400"></span>
-                <span className="truncate text-zinc-300 font-medium">{isAdmin ? 'Admin' : (userRole || 'Chưa chọn')}</span>
-              </div>
-              <button
-                onClick={() => setShowRoleModal(true)}
-                className="p-1 hover:bg-zinc-900 rounded-lg text-zinc-400 hover:text-white transition"
-                title="Đổi tư cách"
-              >
-                
-              </button>
-            </div>
-
-            <button
-              onClick={() => setShowFloatingWidget(!showFloatingWidget)}
-              className="w-full py-2.5 px-3 rounded-xl bg-zinc-900/60 hover:bg-zinc-900 border border-zinc-800/50 text-zinc-300 font-semibold text-xs transition flex items-center justify-center gap-2"
-            >
-              <span></span>
-              <span>{showFloatingWidget ? 'Thu Gọn Widget Ghim' : 'Mở To Do, Chat & Online'}</span>
-            </button>
-          </div>
-        </aside>
+        <Sidebar
+        tabList={tabList}
+        activeTab={activeTab}
+        changeActiveTab={changeActiveTab}
+        isAdmin={isAdmin}
+        userRole={userRole}
+        setShowRoleModal={setShowRoleModal}
+      />
 
         {/* MAIN CONTENT AREA */}
         <div className="flex-1 flex flex-col min-w-0 overflow-y-auto">

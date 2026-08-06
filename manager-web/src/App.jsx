@@ -229,6 +229,7 @@ function ParentalControlApp() {
   const [storageEndDate, setStorageEndDate] = useState(() => new Date().toISOString().split('T')[0])
   const [isCleaningStorage, setIsCleaningStorage] = useState(false)
   const [storageMessage, setStorageMessage] = useState(null)
+  const [agentVersions, setAgentVersions] = useState([])
   const [cmdSending, setCmdSending] = useState(false)
   const [updateSending, setUpdateSending] = useState(false)
 
@@ -750,7 +751,8 @@ function ParentalControlApp() {
         supabase.from('schedules').select('*').eq('device_name', DEVICE_NAME).order('start_time', { ascending: true }),
         supabase.from('chat_messages').select('*').eq('device_name', DEVICE_NAME).order('created_at', { ascending: true }),
         supabase.from('todo_notes').select('*').eq('device_name', DEVICE_NAME).order('created_at', { ascending: false }),
-        supabase.from('app_config').select('*').eq('device_name', DEVICE_NAME).maybeSingle()
+        supabase.from('app_config').select('*').eq('device_name', DEVICE_NAME).maybeSingle(),
+        supabase.from('agent_versions').select('*').order('created_at', { ascending: false }).limit(20)
       ])
 
       // 4. XỬ LÝ LỖI SUPABASE ĐÚNG: Chỉ set state khi KHÔNG có lỗi và data hợp lệ (không gán rỗng [] làm xóa trắng UI)
@@ -791,6 +793,9 @@ function ParentalControlApp() {
 
       if (!todosRes.error && todosRes.data) setTodoNotes(todosRes.data)
       else if (todosRes.error) console.error('[Supabase Error] todo_notes:', todosRes.error)
+
+      const versionsRes = PromiseResults[14]
+      if (versionsRes && !versionsRes.error && versionsRes.data) setAgentVersions(versionsRes.data)
 
       if (!chatRes.error && chatRes.data) {
         const dbChats = chatRes.data
@@ -4614,6 +4619,16 @@ function ParentalControlApp() {
                     </button>
 
                     <button
+                      onClick={() => setSettingsSubTab('updates')}
+                      className={`px-4 py-2.5 rounded-xl font-bold transition flex items-center gap-2 shrink-0 ${
+                        settingsSubTab === 'updates' ? 'bg-zinc-100 text-black hover:bg-white shadow' : 'text-zinc-400 hover:text-white'
+                      }`}
+                    >
+                      <span>🚀</span>
+                      <span>Cập Nhật Agent ({agentVersions.find(v => v.is_latest)?.version || 'v2.0'})</span>
+                    </button>
+
+                    <button
                       onClick={() => setSettingsSubTab('agent')}
                       className={`px-4 py-2.5 rounded-xl font-bold transition flex items-center gap-2 shrink-0 ${
                         settingsSubTab === 'agent' ? 'bg-zinc-100 text-black hover:bg-white shadow' : 'text-zinc-400 hover:text-white'
@@ -4830,6 +4845,111 @@ function ParentalControlApp() {
                             })}
                           </tbody>
                         </table>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* SUB-TAB 5: AGENT UPDATE & VERSION CONTROL */}
+                  {settingsSubTab === 'updates' && (
+                    <div className="space-y-6">
+                      <div className="p-5 rounded-2xl bg-zinc-900/50 border border-zinc-800 space-y-4 shadow-lg">
+                        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-zinc-800 pb-4">
+                          <div>
+                            <h3 className="font-bold text-base text-emerald-400 flex items-center gap-2">
+                              <span>🚀</span> Kiểm Tra & Cập Nhật Agent Từ Xa
+                            </h3>
+                            <p className="text-xs text-zinc-400 mt-1">
+                              Quản lý phiên bản phần mềm Agent chạy ngầm trên máy em trai ({DEVICE_NAME}).
+                            </p>
+                          </div>
+                          <button
+                            onClick={triggerForceAgentUpdate}
+                            disabled={updateSending}
+                            className="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-xl text-xs transition shadow-lg shadow-emerald-600/20 flex items-center gap-2 disabled:opacity-50"
+                          >
+                            <span>⚡</span>
+                            <span>{updateSending ? 'Đang Gửi Lệnh Cập Nhật...' : 'Cưỡng Chế Cập Nhật Ngay (Force Update)'}</span>
+                          </button>
+                        </div>
+
+                        {/* THÔNG TIN BẢN MỚI NHẤT & TRẠNG THÁI MÁY */}
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                          <div className="p-4 bg-zinc-950/60 border border-zinc-800 rounded-xl space-y-1">
+                            <div className="text-[11px] text-zinc-400 font-medium">Bản Mới Nhất Trên Cloud:</div>
+                            <div className="text-base font-bold text-emerald-400 font-mono">
+                              {agentVersions.find(v => v.is_latest)?.version || 'v2.0 Local-First'}
+                            </div>
+                            <div className="text-[10px] text-zinc-500">Tệp: {agentVersions.find(v => v.is_latest)?.file_path || 'agent_update.zip'}</div>
+                          </div>
+
+                          <div className="p-4 bg-zinc-950/60 border border-zinc-800 rounded-xl space-y-1">
+                            <div className="text-[11px] text-zinc-400 font-medium">Thiết Bị Đang Kiểm Soát:</div>
+                            <div className="text-base font-bold text-blue-400">{DEVICE_NAME}</div>
+                            <div className="text-[10px] text-zinc-500 flex items-center gap-1">
+                              <span className={`w-1.5 h-1.5 rounded-full ${isDeviceOnline ? 'bg-emerald-400 animate-pulse' : 'bg-red-400'}`}></span>
+                              <span>{isDeviceOnline ? 'Đang Online' : 'Đang Offline'}</span>
+                            </div>
+                          </div>
+
+                          <div className="p-4 bg-zinc-950/60 border border-zinc-800 rounded-xl space-y-1">
+                            <div className="text-[11px] text-zinc-400 font-medium">Cơ Chế Auto Update:</div>
+                            <div className="text-xs font-bold text-amber-300">Tự Động 100% (No User Interaction)</div>
+                            <div className="text-[10px] text-zinc-500">Watchdog ngầm tự tải & giải nén</div>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* BẢNG LỊCH SỬ PHÁT HÀNH PHIÊN BẢN AGENT */}
+                      <div className="space-y-3">
+                        <div className="flex items-center justify-between text-xs px-1">
+                          <span className="font-bold text-zinc-200 uppercase tracking-wider">Lịch Sử Các Bản Cập Nhật ({agentVersions.length})</span>
+                          <span className="text-zinc-400">Dữ liệu từ Supabase Agent Versions Catalog</span>
+                        </div>
+
+                        <div className="overflow-x-auto rounded-2xl border border-zinc-800 shadow">
+                          <table className="w-full text-left text-xs">
+                            <thead>
+                              <tr className="border-b border-zinc-800 text-zinc-400 font-bold uppercase tracking-wider text-[11px] bg-zinc-900/50">
+                                <th className="p-3.5">Mã Phiên Bản (Version)</th>
+                                <th className="p-3.5">Tệp Gói Cập Nhật (.zip)</th>
+                                <th className="p-3.5">Trạng Thái Release</th>
+                                <th className="p-3.5 text-right">Ngày Phát Hành (GMT+7)</th>
+                              </tr>
+                            </thead>
+                            <tbody className="divide-y divide-slate-800/60 bg-zinc-900/40">
+                              {agentVersions.length === 0 ? (
+                                <tr>
+                                  <td colSpan="4" className="p-4 text-center text-zinc-500">Chưa có thông tin phiên bản nào trong kho.</td>
+                                </tr>
+                              ) : (
+                                agentVersions.map((ver, idx) => (
+                                  <tr key={ver.id || idx} className="hover:bg-zinc-900/60 transition">
+                                    <td className="p-3.5 font-bold font-mono text-emerald-400">
+                                      {ver.version}
+                                    </td>
+                                    <td className="p-3.5 font-mono text-zinc-300">
+                                      {ver.file_path}
+                                    </td>
+                                    <td className="p-3.5">
+                                      {ver.is_latest ? (
+                                        <span className="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                                          🌟 BẢN MỚI NHẤT (CURRENT)
+                                        </span>
+                                      ) : (
+                                        <span className="px-2.5 py-0.5 rounded-full text-[10px] font-medium bg-zinc-800 text-zinc-400 border border-zinc-700">
+                                          Bản Cũ
+                                        </span>
+                                      )}
+                                    </td>
+                                    <td className="p-3.5 text-right font-mono text-zinc-400">
+                                      {formatTime(ver.created_at)}
+                                    </td>
+                                  </tr>
+                                ))
+                              )}
+                            </tbody>
+                          </table>
+                        </div>
                       </div>
                     </div>
                   )}

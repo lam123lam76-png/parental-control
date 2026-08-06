@@ -1238,8 +1238,94 @@ function ParentalControlApp() {
   function handleAdminLogout() {
     setIsAdmin(false)
     safeRemoveLocalStorage('admin_auth_expiry')
-    if (activeTab === 'config' || activeTab === 'screenshots') changeActiveTab('overview')
+    if (activeTab === 'config' || activeTab === 'screenshots' || activeTab === 'storage') changeActiveTab('overview')
     syncWebSession(userRole || 'Viewer')
+  }
+
+  // Xóa dữ liệu theo khoảng ngày và loại dữ liệu (Storage Management)
+  async function handleDeleteStorageByRange() {
+    if (!isAdmin) return
+    if (!window.confirm(`Bạn có chắc chắn muốn xóa dữ liệu loại "${storageLogType}" từ ngày ${storageStartDate} đến ${storageEndDate}? Hành động này KHÔNG thể hoàn tác!`)) {
+      return
+    }
+    setIsCleaningStorage(true)
+    setStorageMessage('Đang thực hiện xóa dữ liệu...')
+    try {
+      const startIso = new Date(storageStartDate + 'T00:00:00.000Z').toISOString()
+      const endIso = new Date(storageEndDate + 'T23:59:59.999Z').toISOString()
+
+      const tablesToDelete = storageLogType === 'all' 
+        ? ['browser_history_logs', 'active_window_logs', 'process_logs', 'system_events', 'screenshot_logs', 'system_commands']
+        : [storageLogType]
+
+      for (const tbl of tablesToDelete) {
+        let dateCol = 'created_at'
+        if (tbl === 'browser_history_logs') dateCol = 'visit_time'
+        if (tbl === 'app_usage_logs' || tbl === 'web_usage_logs') dateCol = 'usage_date'
+
+        if (tbl === 'screenshot_logs' || storageLogType === 'all') {
+          try {
+            const { data: files } = await supabase.from('screenshot_logs')
+              .select('file_path')
+              .eq('device_name', DEVICE_NAME)
+              .gte(dateCol, startIso)
+              .lte(dateCol, endIso)
+            
+            if (files && files.length > 0) {
+              const paths = files.map(f => f.file_path).filter(Boolean)
+              if (paths.length > 0) {
+                await supabase.storage.from('screenshots').remove(paths)
+              }
+            }
+          } catch (e) {
+            console.warn('Lỗi xóa storage files:', e)
+          }
+        }
+
+        const res = await supabase.from(tbl)
+          .delete()
+          .eq('device_name', DEVICE_NAME)
+          .gte(dateCol, startIso)
+          .lte(dateCol, endIso)
+        
+        if (res.error) console.error(`Lỗi xóa ${tbl}:`, res.error)
+      }
+
+      setStorageMessage(`✅ Đã xóa thành công dữ liệu loại "${storageLogType}" từ ${storageStartDate} đến ${storageEndDate}!`)
+      loadData(false)
+    } catch (err) {
+      setStorageMessage(`❌ Lỗi khi xóa dữ liệu: ${err.message}`)
+    } finally {
+      setIsCleaningStorage(false)
+    }
+  }
+
+  // Dọn rác triệt để (Deep Storage Vacuum)
+  async function handleDeepStorageVacuum() {
+    if (!isAdmin) return
+    if (!window.confirm('Bạn có chắc muốn thực hiện "Dọn Rác Triệt Để"? Hệ thống sẽ tự dọn các bản ghi cũ quá hạn và file rác không còn sử dụng trên Supabase!')) {
+      return
+    }
+    setIsCleaningStorage(true)
+    setStorageMessage('Đang thực hiện dọn rác triệt để trên Supabase...')
+    try {
+      const rpcRes = await supabase.rpc('clean_old_logs')
+      if (rpcRes.error) {
+        console.warn('Lỗi gọi RPC clean_old_logs, chuyển sang xóa thủ công:', rpcRes.error)
+        const cutoff7d = new Date(Date.now() - 7 * 86400000).toISOString()
+        await supabase.from('system_commands').delete().eq('device_name', DEVICE_NAME).in('status', ['completed', 'failed']).lt('created_at', cutoff7d)
+        const cutoff30d = new Date(Date.now() - 30 * 86400000).toISOString()
+        await supabase.from('active_window_logs').delete().eq('device_name', DEVICE_NAME).lt('created_at', cutoff30d)
+        await supabase.from('process_logs').delete().eq('device_name', DEVICE_NAME).lt('created_at', cutoff30d)
+      }
+
+      setStorageMessage('✅ Đã thực hiện Dọn Rác Triệt Để và giải phóng bộ nhớ Supabase thành công!')
+      loadData(false)
+    } catch (err) {
+      setStorageMessage(`❌ Lỗi dọn rác: ${err.message}`)
+    } finally {
+      setIsCleaningStorage(false)
+    }
   }
 
   function formatTime(iso) {

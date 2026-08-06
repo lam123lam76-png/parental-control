@@ -246,24 +246,38 @@ function ParentalControlApp() {
   const [editingTaskType, setEditingTaskType] = useState('custom')
   const [deletedSheetTaskIds, setDeletedSheetTaskIds] = useState([])
 
-  // TỰ ĐỘNG TÍNH TOÁN DYNAMIC IS_ONLINE (ĐA NGUỒN: HEARTBEAT, SCREENSHOTS & WINDOW LOGS)
+  // CƠ CHẾ 2-WAY PING-PONG HEARTBEAT (GỬI PONG ACK PHẢN HỒI TỰ ĐỘNG)
+  useEffect(() => {
+    if (device?.ping_id && device?.last_ping_time) {
+      const pingMs = new Date(device.last_ping_time).getTime()
+      const pongMs = device.last_pong_time ? new Date(device.last_pong_time).getTime() : 0
+      if (!isNaN(pingMs) && pingMs > pongMs + 2000) {
+        supabase.from('devices').update({
+          last_pong_time: new Date().toISOString()
+        }).eq('device_name', DEVICE_NAME).then(() => {}).catch(() => {})
+      }
+    }
+  }, [device?.ping_id, device?.last_ping_time])
+
+  // TỰ ĐỘNG TÍNH TOÁN DYNAMIC IS_ONLINE (ĐA NGUỒN: 2-WAY HEARTBEAT PING-PONG, SCREENSHOTS & WINDOW LOGS)
   const isDeviceOnline = useMemo(() => {
     try {
       let latestMs = 0
 
-      // 1. Kiểm tra timestamp từ thiết bị (devices.last_seen)
-      if (device?.last_seen) {
-        const t = new Date(device.last_seen).getTime()
+      // 1. Kiểm tra timestamp từ thiết bị (devices.last_ping_time hoặc last_seen)
+      const rawPing = device?.last_ping_time || device?.last_seen
+      if (rawPing) {
+        const t = new Date(rawPing).getTime()
         if (!isNaN(t) && t > latestMs) latestMs = t
       }
 
-      // 2. Kiểm tra timestamp ảnh chụp màn hình gần nhất (screenshot_logs.created_at)
+      // 2. Kiểm tra timestamp ảnh chụp màn hình gần nhất
       if (screenshots && screenshots.length > 0 && screenshots[0]?.created_at) {
         const t = new Date(screenshots[0].created_at).getTime()
         if (!isNaN(t) && t > latestMs) latestMs = t
       }
 
-      // 3. Kiểm tra timestamp cửa sổ hoạt động gần nhất (active_window_logs.created_at)
+      // 3. Kiểm tra timestamp cửa sổ hoạt động gần nhất
       if (activeWindows && activeWindows.length > 0 && activeWindows[0]?.created_at) {
         const t = new Date(activeWindows[0].created_at).getTime()
         if (!isNaN(t) && t > latestMs) latestMs = t
@@ -272,8 +286,8 @@ function ParentalControlApp() {
       if (latestMs === 0) return false
 
       const diffSec = (currentTime - latestMs) / 1000
-      // Đang có tương tác trong vòng 120s (chấp nhận lệch múi giờ -300s đến 120s) -> ONLINE (Chấm xanh)
-      return diffSec < 35 && diffSec > -300
+      // Nhận được tín hiệu Ping/Heartbeat trong vòng <= 15 giây -> ONLINE (Chấm xanh)
+      return diffSec <= 15 && diffSec > -300
     } catch {
       return false
     }

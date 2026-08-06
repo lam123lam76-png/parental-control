@@ -17,6 +17,7 @@ import traceback
 import threading
 from datetime import datetime, timezone
 from pathlib import Path
+import uuid
 
 # Safe stdout/stderr for PyInstaller windowed mode
 if sys.stdout is None:
@@ -206,9 +207,12 @@ class PresenceDaemon:
             return False
         try:
             now_iso = datetime.now(timezone.utc).isoformat()
+            ping_id = f"ping_{uuid.uuid4().hex[:8]}"
             self.supabase.table("devices").upsert({
                 "device_name": DEVICE_NAME,
                 "last_seen": now_iso,
+                "last_ping_time": now_iso,
+                "ping_id": ping_id,
                 "is_online": True,
                 "updated_at": now_iso
             }, on_conflict="device_name").execute()

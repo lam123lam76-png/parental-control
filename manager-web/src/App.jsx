@@ -1332,32 +1332,26 @@ function ParentalControlApp() {
     if (!iso) return '—'
     const d = new Date(iso)
     if (isNaN(d.getTime())) return '—'
-    const dateStr = d.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' })
-    const timeStr = d.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit', second: '2-digit' })
+    const dateStr = d.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric', timeZone: 'Asia/Ho_Chi_Minh' })
+    const timeStr = d.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false, timeZone: 'Asia/Ho_Chi_Minh' })
     return `${timeStr} - ${dateStr}`
   }
 
   function formatClockTime(iso) {
     if (!iso) return '—'
     const d = new Date(iso)
-    const h = String(d.getHours()).padStart(2, '0')
-    const m = String(d.getMinutes()).padStart(2, '0')
-    return `${h}:${m}`
+    if (isNaN(d.getTime())) return '—'
+    return d.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit', hour12: false, timeZone: 'Asia/Ho_Chi_Minh' })
   }
 
   function getScreenshotDisplayTime(item) {
     if (!item) return '—'
-    
     if (item.created_at) {
       const d = new Date(item.created_at)
       if (!isNaN(d.getTime())) {
-        const h = String(d.getHours()).padStart(2, '0')
-        const m = String(d.getMinutes()).padStart(2, '0')
-        const s = String(d.getSeconds()).padStart(2, '0')
-        return `${h}:${m}:${s}`
+        return d.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false, timeZone: 'Asia/Ho_Chi_Minh' })
       }
     }
-    
     if (item.file_path) {
       const match = item.file_path.match(/(\d{4})[-_]?(\d{2})[-_]?(\d{2})[-_T]?(\d{2})[-_:]?(\d{2})[-_:]?(\d{2})/)
       if (match) {
@@ -1370,10 +1364,7 @@ function ParentalControlApp() {
         if (ts < 10000000000) ts *= 1000
         const d = new Date(ts)
         if (!isNaN(d.getTime())) {
-          const h = String(d.getHours()).padStart(2, '0')
-          const m = String(d.getMinutes()).padStart(2, '0')
-          const s = String(d.getSeconds()).padStart(2, '0')
-          return `${h}:${m}:${s}`
+          return d.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false, timeZone: 'Asia/Ho_Chi_Minh' })
         }
       }
     }
@@ -1383,17 +1374,22 @@ function ParentalControlApp() {
   function formatDateHeader(iso) {
     if (!iso) return 'Hôm nay'
     const d = new Date(iso)
-    const today = new Date()
-    if (d.toDateString() === today.toDateString()) {
-      return `Hôm nay - ${d.toLocaleDateString('vi-VN', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}`
+    if (isNaN(d.getTime())) return 'Hôm nay'
+    const vnNow = new Date()
+    const isToday = d.toLocaleDateString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh' }) === vnNow.toLocaleDateString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh' })
+    const formatted = d.toLocaleDateString('vi-VN', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric', timeZone: 'Asia/Ho_Chi_Minh' })
+    if (isToday) {
+      return `Hôm nay - ${formatted}`
     }
-    return d.toLocaleDateString('vi-VN', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })
+    return formatted
   }
 
   function formatDateGroup(iso) {
     if (!iso) return 'Khác'
     const d = new Date(iso)
-    return `Ngày ${d.getDate()}/${d.getMonth() + 1}/${d.getFullYear()}`
+    if (isNaN(d.getTime())) return 'Khác'
+    const dateStr = d.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric', timeZone: 'Asia/Ho_Chi_Minh' })
+    return `Ngày ${dateStr}`
   }
 
   function getScreenshotUrl(path, options = {}) {

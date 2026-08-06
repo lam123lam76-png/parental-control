@@ -1,40 +1,34 @@
 'use client';
-import React from 'react'
+import React from 'react';
+import { cn } from '../../lib/utils';
+
+const statusConfig = {
+  online:   { dot: 'bg-green-500', ping: 'bg-green-500 animate-ping', text: 'text-green-400', bg: 'bg-green-500/10', border: 'border-green-500/20', label: 'Online', pingable: true },
+  ready:    { dot: 'bg-green-500', ping: 'bg-green-500 animate-ping', text: 'text-green-400', bg: 'bg-green-500/10', border: 'border-green-500/20', label: 'Ready', pingable: true },
+  paused:   { dot: 'bg-yellow-500', ping: 'bg-yellow-500 animate-ping', text: 'text-yellow-400', bg: 'bg-yellow-500/10', border: 'border-yellow-500/20', label: 'Paused', pingable: true },
+  warning:  { dot: 'bg-yellow-500', ping: 'bg-yellow-500 animate-ping', text: 'text-yellow-400', bg: 'bg-yellow-500/10', border: 'border-yellow-500/20', label: 'Warning', pingable: true },
+  limited:  { dot: 'bg-yellow-500', ping: 'bg-yellow-500 animate-ping', text: 'text-yellow-400', bg: 'bg-yellow-500/10', border: 'border-yellow-500/20', label: 'Limited', pingable: true },
+  offline:  { dot: 'bg-red-500', ping: 'hidden', text: 'text-red-400', bg: 'bg-red-500/10', border: 'border-red-500/20', label: 'Offline', pingable: false },
+  blocked:  { dot: 'bg-red-500', ping: 'hidden', text: 'text-red-400', bg: 'bg-red-500/10', border: 'border-red-500/20', label: 'Blocked', pingable: false },
+  forbidden:{ dot: 'bg-red-500', ping: 'hidden', text: 'text-red-400', bg: 'bg-red-500/10', border: 'border-red-500/20', label: 'Forbidden', pingable: false },
+  danger:   { dot: 'bg-red-500', ping: 'hidden', text: 'text-red-400', bg: 'bg-red-500/10', border: 'border-red-500/20', label: 'Danger', pingable: false },
+};
 
 export function StatusBadge({ status = 'ready', label, className = '' }) {
-  let dotColor = 'bg-emerald-500'
-  let textColor = 'text-emerald-400'
-  let badgeBg = 'bg-emerald-500/10'
-  let borderStyle = 'border-emerald-500/20'
-  let defaultLabel = 'Ready'
-  let isPingable = true
-
-  if (status === 'paused' || status === 'warning' || status === 'limited') {
-    dotColor = 'bg-amber-500'
-    textColor = 'text-amber-400'
-    badgeBg = 'bg-amber-500/10'
-    borderStyle = 'border-amber-500/20'
-    defaultLabel = 'Paused'
-  } else if (status === 'blocked' || status === 'danger' || status === 'offline' || status === 'forbidden') {
-    dotColor = 'bg-rose-500'
-    textColor = 'text-rose-400'
-    badgeBg = 'bg-rose-500/10'
-    borderStyle = 'border-rose-500/20'
-    defaultLabel = 'Blocked'
-    isPingable = false
-  }
+  const config = statusConfig[status] || statusConfig.ready;
+  const displayLabel = label || config.label;
 
   return (
-    <div className={`inline-flex items-center gap-2 px-2.5 py-1 rounded-full border ${badgeBg} ${borderStyle} font-mono text-xs ${className}`}>
-      <span className="relative flex h-2 w-2">
-        {isPingable && (
-          <span className={`status-ping absolute inline-flex h-full w-full rounded-full ${dotColor} opacity-75`}></span>
+    <div className={cn('inline-flex items-center gap-2 px-2.5 py-1 rounded-full border font-mono text-xs', config.bg, config.border, className)}>
+      <span className={cn('relative flex h-2 w-2', config.dot)}>
+        {config.pingable && (
+          <span className={cn('absolute inline-flex h-full w-full rounded-full opacity-75', config.ping)}></span>
         )}
-        <span className={`relative inline-flex rounded-full h-2 w-2 ${dotColor}`}></span>
+        <span className={cn('relative inline-flex rounded-full h-2 w-2', config.dot)}></span>
       </span>
-      <span className={`font-mono text-xs font-medium ${textColor}`}>
-        {label || defaultLabel}
+      <span className={cn('font-mono text-xs font-medium', config.text)}>
+        {displayLabel}
       </span>
     </div>
-  )
+  );
 }

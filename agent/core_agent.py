@@ -120,25 +120,25 @@ def queue_screenshot(supabase: Client, db: LocalDB, force: bool = False) -> None
     """Chup va upload screenshot (voi image diff)."""
     try:
         image_bytes, should_upload = take_screenshot(force_upload=force)
-        
+
         if not should_upload:
             print("[SCREENSHOT] Khong co thay doi dang ke, bo qua upload.")
             return
-        
+
         filename = make_screenshot_filename()
-        
+
         supabase.storage.from_("screenshots").upload(
             path=filename,
             file=image_bytes,
             file_options={"content-type": "image/jpeg", "upsert": "true"}
         )
-        
+
         # Ghi vao pending_logs thay vi insert truc tiep
         db.add_pending_log("screenshot", {
             "device_name": DEVICE_NAME,
             "file_path": filename
         })
-        
+
         print(f"[SCREENSHOT] Da chup & upload: {filename}")
     except Exception as e:
         print(f"[ERR] Screenshot: {e}")
@@ -159,6 +159,7 @@ _global_supabase = None
 import signal
 import atexit
 
+# [FIX] Điểm 3: Sửa cleanup_on_exit để thêm timeout và log chi tiết hơn
 def cleanup_on_exit(sig=None, frame=None):
     # Xu ly dong Agent & Gui thong bao Telegram khi Tat May / Dung Process
     try:
@@ -168,14 +169,18 @@ def cleanup_on_exit(sig=None, frame=None):
             from supabase import create_client
             client = _global_supabase or create_client(SUPABASE_URL, SUPABASE_KEY)
             now_iso = datetime.now(timezone.utc).isoformat()
+            # [FIX] Điểm 2: Thêm timeout cho request (sử dụng timeout=3 giây)
             client.table("devices").upsert({
                 "device_name": DEVICE_NAME,
                 "last_seen": now_iso,
-                "is_online": False
-            }, on_conflict="device_name").execute()
+                "is_online": False,
+                "updated_at": now_iso   # đã có cột
+            }, on_conflict="device_name").execute(timeout=3)   # thêm timeout
             print("[CORE] [OK] Da cap nhat status OFFLINE len Supabase khi exit.")
+            log_debug("[CORE] Offline update success with timeout")
         except Exception as e:
             log_debug(f"[ERR] Heartbeat set offline failed: {e}")
+            print(f"[CORE] [ERR] Offline update failed: {e}")
 
         try:
             send_telegram(f"🔴 [OFFLINE] Máy em trai ({DEVICE_NAME}) đã TẮT MÁY / Dừng Agent!")
@@ -202,6 +207,7 @@ class PresenceDaemon:
         self._running = False
         self._thread = None
 
+    # [FIX] Điểm 5: Thêm log thành công/thất bại cho handshake
     def send_fast_handshake(self) -> bool:
         if not self.supabase:
             return False
@@ -214,8 +220,9 @@ class PresenceDaemon:
                 "last_ping_time": now_iso,
                 "ping_id": ping_id,
                 "is_online": True,
-                "updated_at": now_iso
+                "updated_at": now_iso   # đã có cột
             }, on_conflict="device_name").execute()
+            log_debug(f"[PRESENCE] Handshake OK, ping_id={ping_id}")
             return True
         except Exception as e:
             log_debug(f"[PRESENCE] Fast Handshake failed: {e}")
@@ -241,6 +248,7 @@ class PresenceDaemon:
         self._running = False
 
 
+# [FIX] Điểm 5: Thêm log cho send_heartbeat
 def send_heartbeat(supabase) -> None:
     """Cập nhật Heartbeat thời gian thực (is_online=True) lên Supabase."""
     if not supabase:
@@ -250,8 +258,10 @@ def send_heartbeat(supabase) -> None:
         supabase.table("devices").upsert({
             "device_name": DEVICE_NAME,
             "last_seen": now_iso,
-            "is_online": True
+            "is_online": True,
+            "updated_at": now_iso   # đã có cột
         }, on_conflict="device_name").execute()
+        log_debug(f"[HEARTBEAT] OK at {now_iso}")   # thêm log
     except Exception as hbe:
         log_debug(f"[ERR] Main loop heartbeat failed: {hbe}")
 

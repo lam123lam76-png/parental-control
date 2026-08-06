@@ -306,41 +306,58 @@ class ScreenBlocker:
 
     def check_remote_pause(self):
         """Kiem tra is_paused tu Supabase moi 5 giay. Neu paused -> tu mo khoa. Gui heartbeat duy tri ket noi."""
-        try:
-            if self.supabase:
-                # Gui Heartbeat lien tuc tu Blocker de giu ket noi ONLINE tren Web Dashboard
+        paused = False
+        query_success = False
+
+        if self.supabase:
+            try:
                 try:
                     from storage.sync_worker import send_heartbeat
                     send_heartbeat(self.supabase)
                 except Exception:
                     pass
 
-                res = self.supabase.table("app_config")\
-                    .select("is_paused")\
-                    .eq("device_name", DEVICE_NAME)\
-                    .execute()
-                
-                paused = False
-                if res.data and len(res.data) > 0:
-                    paused = bool(res.data[0].get("is_paused"))
+                builder = self.supabase.table("app_config").select("is_paused").eq("device_name", DEVICE_NAME)
+                if hasattr(builder, "execute"):
+                    res = builder.execute()
+                    if res is not None and hasattr(res, "data") and isinstance(res.data, list):
+                        if len(res.data) > 0:
+                            paused = bool(res.data[0].get("is_paused", False))
+                            query_success = True
 
-                if paused:
-                    self.remote_unlocked = True
+            except Exception as e:
+                err_text = str(e) if not hasattr(e, "__class__") else f"{e.__class__.__name__}: {e}"
+                if hasattr(self, "remote_status"):
                     self.remote_status.config(
-                        text="Admin da mo khoa tu xa!",
-                        fg="#22c55e"
+                        text=f"Dang thu ket noi lai... ({datetime.now().strftime('%H:%M:%S')})"
                     )
-                    self.cleanup_protections()
-                    self.root.after(300, self.root.destroy)
-                    return
-                else:
-                    self.remote_status.config(
-                        text=f"Dang giu ket noi. Kiem tra: {datetime.now().strftime('%H:%M:%S')}"
-                    )
-        except Exception as e:
-            self.remote_status.config(
-                text=f"Loi kiem tra: {str(e)[:40]}"
-            )
+
+        # Fallback local DB cached rules when cloud query fails on Lock Screen
+        if not query_success:
+            try:
+                from storage.local_db import LocalDB
+                db = LocalDB()
+                cached_config = db.get_cached_rules("app_config")
+                if isinstance(cached_config, dict):
+                    paused = bool(cached_config.get("is_paused", False))
+            except Exception:
+                pass
+
+        if paused:
+            self.remote_unlocked = True
+            if hasattr(self, "remote_status"):
+                self.remote_status.config(
+                    text="Admin da mo khoa tu xa!",
+                    fg="#22c55e"
+                )
+            self.cleanup_protections()
+            self.root.after(300, self.root.destroy)
+            return
+        else:
+            if hasattr(self, "remote_status") and query_success:
+                self.remote_status.config(
+                    text=f"Dang giu ket noi. Kiem tra: {datetime.now().strftime('%H:%M:%S')}"
+                )
 
         try:
             self.root.after(5000, self.check_remote_pause)

@@ -76,7 +76,7 @@ def enforce_web_rules(supabase, active_window_info: dict, processes: list) -> li
     alerts = []
     db = _get_local_db()
     today_str = date.today().isoformat()
-    minutes_per_cycle = max(1, round(SEND_INTERVAL / 60))
+    elapsed_seconds = float(SEND_INTERVAL)
 
     for rule in web_rules:
         target_domain = clean_domain(rule.get("domain", ""))
@@ -116,7 +116,7 @@ def enforce_web_rules(supabase, active_window_info: dict, processes: list) -> li
 
             # 2. TRANG WEB GIOI HAN GIO TRUY CAP
             elif category == "limited" and max_minutes > 0:
-                total_used = db.increment_web_usage(today_str, target_domain, minutes_per_cycle)
+                total_used = db.increment_web_usage(today_str, target_domain, seconds=elapsed_seconds)
                 print(f"[WEB] Gioi han [{target_domain}]: Da dung {total_used}/{max_minutes} phut hom nay.")
 
                 if total_used >= max_minutes:

@@ -218,6 +218,17 @@ function ParentalControlApp() {
   const [appConfig, setAppConfig] = useState(null)
   const [loading, setLoading] = useState(true)
   const [selectedImage, setSelectedImage] = useState(null)
+
+  // Storage Management States
+  const [storageLogType, setStorageLogType] = useState('all')
+  const [storageStartDate, setStorageStartDate] = useState(() => {
+    const d = new Date()
+    d.setDate(d.getDate() - 30)
+    return d.toISOString().split('T')[0]
+  })
+  const [storageEndDate, setStorageEndDate] = useState(() => new Date().toISOString().split('T')[0])
+  const [isCleaningStorage, setIsCleaningStorage] = useState(false)
+  const [storageMessage, setStorageMessage] = useState(null)
   const [cmdSending, setCmdSending] = useState(false)
   const [updateSending, setUpdateSending] = useState(false)
 
@@ -746,9 +757,6 @@ function ParentalControlApp() {
 
       if (!rulesRes.error && rulesRes.data) {
         setTimeRules(rulesRes.data)
-        if (!cfgRes.data || cfgRes.data.master_time_limit === undefined) {
-          setIsMasterTimeLimitActive(rulesRes.data.some(r => r.is_active))
-        }
       }
       else if (rulesRes.error) console.error('[Supabase Error] time_restrictions:', rulesRes.error)
 
@@ -802,10 +810,12 @@ function ParentalControlApp() {
         if (cfgData.time_limit_mode) {
           setTimeLimitMode(cfgData.time_limit_mode)
         }
-        if (cfgData.master_time_limit !== undefined && cfgData.master_time_limit !== null) {
+        if (typeof cfgData.master_time_limit === 'boolean') {
           setIsMasterTimeLimitActive(cfgData.master_time_limit)
         } else if (rulesRes.data && rulesRes.data.length > 0) {
-          setIsMasterTimeLimitActive(rulesRes.data.some(r => r.is_active))
+          setIsMasterTimeLimitActive(rulesRes.data.some(r => r.is_active === true))
+        } else {
+          setIsMasterTimeLimitActive(false)
         }
       } else if (cfgRes.error) {
         console.error('[Supabase Error] app_config:', cfgRes.error)
@@ -986,20 +996,24 @@ function ParentalControlApp() {
     const nextState = !isMasterTimeLimitActive
     setIsMasterTimeLimitActive(nextState)
     try {
-      await supabase.from('app_config').upsert({
+      const configPromise = supabase.from('app_config').upsert({
         device_name: DEVICE_NAME,
         master_time_limit: nextState,
         updated_at: new Date().toISOString()
       }, { onConflict: 'device_name' })
 
-      await Promise.all(
-        timeRules.map(rule =>
-          supabase.from('time_restrictions').update({ is_active: nextState }).eq('id', rule.id)
-        )
-      )
+      const rulesPromise = supabase.from('time_restrictions')
+        .update({ is_active: nextState })
+        .eq('device_name', DEVICE_NAME)
+
+      const [configRes, rulesRes] = await Promise.all([configPromise, rulesPromise])
+      if (configRes.error) throw configRes.error
+      if (rulesRes.error) throw rulesRes.error
+
+      setTimeRules(prevRules => prevRules.map(r => ({ ...r, is_active: nextState })))
       await sendReloadRulesCmd()
-      loadData(false)
     } catch (err) {
+      console.error('Lỗi cập nhật công tắc Master:', err)
       alert('Lỗi cập nhật công tắc Master: ' + err.message)
       setIsMasterTimeLimitActive(!nextState)
     }
@@ -1135,13 +1149,13 @@ function ParentalControlApp() {
     }
   }
 
-  // Task 8: Gộp tiến trình liên tục thành khoảng giờ (HH:MM~HH:MM)
+  // Task 8: Gộp tiến trình & Lịch sử web liên tục thành khoảng giờ (HH:MM~HH:MM)
   function mergeConsecutiveEntries(items) {
     if (!items || items.length === 0) return []
     
     // Sắp xếp theo thời gian tăng dần
     const sorted = [...items].sort((a, b) => 
-      new Date(a.created_at || a.visit_time) - new Date(b.created_at || b.visit_time)
+      new Date(a.created_at || a.visit_time || a.startTime) - new Date(b.created_at || b.visit_time || b.startTime)
     )
     
     const merged = []
@@ -2046,9 +2060,10 @@ function ParentalControlApp() {
     { id: 'app_usage', label: ' Quá trình sử dụng' },
   ]
 
-  // CHỈ ADMIN MỚI ĐƯỢC XEM TAB  ẢNH CHỤP & CÀI ĐẶT
+  // CHỈ ADMIN MỚI ĐƯỢC XEM TAB  ẢNH CHỤP & CÀI ĐẶT & QUẢN LÝ BỘ NHỚ
   if (isAdmin) {
     rawTabList.push({ id: 'screenshots', label: ' Ảnh chụp' })
+    rawTabList.push({ id: 'storage', label: ' Quản lý bộ nhớ' })
     rawTabList.push({ id: 'config', label: ' Cài đặt Admin' })
   }
 
@@ -4804,6 +4819,161 @@ function ParentalControlApp() {
                     <span></span>
                     <span>Lưu Tất Cả Cài Đặt Admin</span>
                   </button>
+                </div>
+              </div>
+            )}
+
+            {/* TAB: QUẢN LÝ BỘ NHỚ (STORAGE MANAGEMENT) */}
+            {activeTab === 'storage' && isAdmin && (
+              <div className={`${cardBgClass} border rounded-2xl p-6 space-y-6 max-w-5xl mx-auto shadow-2xl`}>
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-zinc-800 pb-4">
+                  <div>
+                    <h2 className="font-bold text-xl flex items-center gap-2 text-emerald-400">
+                      <span>💾</span> Quản Lý Bộ Nhớ & Dọn Rác Triệt Để Supabase
+                    </h2>
+                    <p className="text-xs text-zinc-400 mt-1">
+                      Thống kê dung lượng, xóa log theo khoảng ngày, cấu hình tự động dọn rác và tối ưu dung lượng DB.
+                    </p>
+                  </div>
+                  <button
+                    onClick={handleDeepStorageVacuum}
+                    disabled={isCleaningStorage}
+                    className="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-xl text-xs transition shadow-lg shadow-emerald-600/20 flex items-center gap-2 disabled:opacity-50"
+                  >
+                    <span>🧹</span>
+                    <span>{isCleaningStorage ? 'Đang Dọn Rác...' : 'Dọn Rác Triệt Để (Vacuum)'}</span>
+                  </button>
+                </div>
+
+                {storageMessage && (
+                  <div className={`p-4 rounded-xl text-xs font-semibold ${
+                    storageMessage.includes('❌') 
+                      ? 'bg-red-500/10 border border-red-500/20 text-red-400'
+                      : 'bg-emerald-500/10 border border-emerald-500/20 text-emerald-400'
+                  }`}>
+                    {storageMessage}
+                  </div>
+                )}
+
+                {/* THỐNG KÊ DUNG LƯỢNG HIỆN TẠI (ROW COUNTS) */}
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-3">
+                  <div className="p-3.5 bg-zinc-900/50 border border-zinc-800 rounded-xl space-y-1 text-center">
+                    <div className="text-[10px] text-zinc-400 font-medium">Lịch Sử Web</div>
+                    <div className="text-lg font-bold text-blue-400">{browserHistory.length.toLocaleString()}</div>
+                    <div className="text-[9px] text-zinc-500">dòng log</div>
+                  </div>
+                  <div className="p-3.5 bg-zinc-900/50 border border-zinc-800 rounded-xl space-y-1 text-center">
+                    <div className="text-[10px] text-zinc-400 font-medium">Active Window</div>
+                    <div className="text-lg font-bold text-amber-400">{activeWindows.length.toLocaleString()}</div>
+                    <div className="text-[9px] text-zinc-500">dòng log</div>
+                  </div>
+                  <div className="p-3.5 bg-zinc-900/50 border border-zinc-800 rounded-xl space-y-1 text-center">
+                    <div className="text-[10px] text-zinc-400 font-medium">Tiến Trình</div>
+                    <div className="text-lg font-bold text-emerald-400">{processes.length.toLocaleString()}</div>
+                    <div className="text-[9px] text-zinc-500">dòng log</div>
+                  </div>
+                  <div className="p-3.5 bg-zinc-900/50 border border-zinc-800 rounded-xl space-y-1 text-center">
+                    <div className="text-[10px] text-zinc-400 font-medium">Ảnh Chụp</div>
+                    <div className="text-lg font-bold text-purple-400">{screenshots.length.toLocaleString()}</div>
+                    <div className="text-[9px] text-zinc-500">files ảnh</div>
+                  </div>
+                  <div className="p-3.5 bg-zinc-900/50 border border-zinc-800 rounded-xl space-y-1 text-center">
+                    <div className="text-[10px] text-zinc-400 font-medium">Hộp Thao Tác</div>
+                    <div className="text-lg font-bold text-indigo-400">{todoNotes.length.toLocaleString()}</div>
+                    <div className="text-[9px] text-zinc-500">bản ghi</div>
+                  </div>
+                  <div className="p-3.5 bg-zinc-900/50 border border-zinc-800 rounded-xl space-y-1 text-center">
+                    <div className="text-[10px] text-zinc-400 font-medium">Chat & Lệnh</div>
+                    <div className="text-lg font-bold text-cyan-400">{chatMessages.length.toLocaleString()}</div>
+                    <div className="text-[9px] text-zinc-500">tin nhắn</div>
+                  </div>
+                </div>
+
+                {/* KHUNG XÓA DỮ LIỆU THEO KHOẢNG NGÀY VÀ LOẠI DỮ LIỆU */}
+                <div className="p-5 rounded-2xl bg-zinc-900/40 border border-zinc-800 space-y-4">
+                  <div className="flex items-center gap-2 border-b border-zinc-800 pb-3">
+                    <span className="text-lg">🗓️</span>
+                    <h3 className="font-bold text-sm text-zinc-200">Xóa Dữ Liệu Tự Chọn Theo Khoảng Thời Gian</h3>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    {/* Loại dữ liệu */}
+                    <div className="space-y-1.5">
+                      <label className="text-xs text-zinc-400 font-medium">Chọn loại dữ liệu cần xóa:</label>
+                      <select
+                        value={storageLogType}
+                        onChange={e => setStorageLogType(e.target.value)}
+                        className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2 text-xs text-zinc-200 focus:outline-none focus:border-indigo-500"
+                      >
+                        <option value="all">⚡ TẤT CẢ DỮ LIỆU LOG (Tối ưu nhất)</option>
+                        <option value="browser_history_logs">🌐 Lịch sử duyệt Web (browser_history_logs)</option>
+                        <option value="active_window_logs">🖥️ Log Cửa sổ Active (active_window_logs)</option>
+                        <option value="process_logs">⚙️ Log Tiến trình (process_logs)</option>
+                        <option value="screenshot_logs">📸 Log & Files Ảnh Chụp (screenshot_logs)</option>
+                        <option value="system_events">🔔 Log Sự kiện hệ thống (system_events)</option>
+                        <option value="system_commands">📡 Log Lệnh hệ thống (system_commands)</option>
+                      </select>
+                    </div>
+
+                    {/* Từ ngày */}
+                    <div className="space-y-1.5">
+                      <label className="text-xs text-zinc-400 font-medium">Từ ngày (Start Date):</label>
+                      <input
+                        type="date"
+                        value={storageStartDate}
+                        onChange={e => setStorageStartDate(e.target.value)}
+                        className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2 text-xs text-zinc-200 focus:outline-none focus:border-indigo-500"
+                      />
+                    </div>
+
+                    {/* Đến ngày */}
+                    <div className="space-y-1.5">
+                      <label className="text-xs text-zinc-400 font-medium">Đến ngày (End Date):</label>
+                      <input
+                        type="date"
+                        value={storageEndDate}
+                        onChange={e => setStorageEndDate(e.target.value)}
+                        className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2 text-xs text-zinc-200 focus:outline-none focus:border-indigo-500"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="flex justify-end pt-2">
+                    <button
+                      onClick={handleDeleteStorageByRange}
+                      disabled={isCleaningStorage}
+                      className="px-5 py-2.5 bg-red-600 hover:bg-red-500 text-white font-bold rounded-xl text-xs transition shadow-lg shadow-red-600/20 flex items-center gap-2 disabled:opacity-50"
+                    >
+                      <span>🗑️</span>
+                      <span>{isCleaningStorage ? 'Đang Xóa...' : 'Xóa Dữ Liệu Trong Khoảng Ngày Đã Chọn'}</span>
+                    </button>
+                  </div>
+                </div>
+
+                {/* KHUNG CẤU HÌNH TỰ ĐỘNG DỌN DẸP LÊN SUPABASE */}
+                <div className="p-5 rounded-2xl bg-zinc-900/40 border border-zinc-800 space-y-4">
+                  <div className="flex items-center justify-between border-b border-zinc-800 pb-3">
+                    <div className="flex items-center gap-2">
+                      <span className="text-lg">⚙️</span>
+                      <h3 className="font-bold text-sm text-zinc-200">Cấu Hình Tự Động Xóa Dữ Liệu Định Kỳ</h3>
+                    </div>
+                    <span className="text-[11px] px-2.5 py-1 bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 rounded-full font-mono">
+                      Đang bật dọn rác tự động 30 ngày
+                    </span>
+                  </div>
+
+                  <div className="text-xs text-zinc-400 leading-relaxed space-y-2">
+                    <p>
+                      Hệ thống Supabase được tích hợp sẵn hàm dọn dẹp tự động <code className="text-amber-300">clean_old_logs()</code> chạy ngầm. Các bản ghi log tiến trình, lịch sử duyệt web và các lệnh hệ thống cũ hơn 30 ngày sẽ tự động được dọn dẹp để bộ nhớ Supabase Cloud luôn ở trạng thái xanh an toàn.
+                    </p>
+                    <div className="p-3 bg-zinc-950/60 border border-zinc-800/80 rounded-xl flex items-center justify-between">
+                      <span className="text-zinc-300 font-medium">Trạng thái tự động Vacuum dọn rác DB Supabase:</span>
+                      <span className="text-emerald-400 font-bold flex items-center gap-1.5">
+                        <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
+                        ĐÃ BẬT KHUNG DỌN DẸP TỰ ĐỘNG
+                      </span>
+                    </div>
+                  </div>
                 </div>
               </div>
             )}

@@ -62,14 +62,21 @@ def is_within_allowed_time(supabase=None) -> tuple[bool, str]:
         tuple[bool, str]: (allowed, reason)
     """
     try:
+        db = _get_local_db()
+
+        # STEP 1: KIEM TRA MASTER SWITCH TU APP_CONFIG
+        config = db.get_cached_rules("app_config")
+        if isinstance(config, dict):
+            master_active = config.get("master_time_limit", True)
+            if not master_active:
+                return True, "Cong tac tong Gioi han thoi gian dang TAT -> Cho phep su dung"
+
         mode = get_time_limit_mode_local()
         now = get_vn_now()
         current_day = now.weekday()  # 0 = Thu 2 ... 6 = Chu nhat
         current_time = now.time()
 
-
         # Doc rules tu SQLite cache
-        db = _get_local_db()
         rules_data = db.get_cached_rules("time_restrictions")
         
         # Fallback: Neu chua co cache, thu query Supabase
@@ -89,11 +96,14 @@ def is_within_allowed_time(supabase=None) -> tuple[bool, str]:
         if not rules_data:
             return True, "Chua cau hinh gioi han gio -> Cho phep"
         
-        # Loc rules cho ngay hien tai
-        today_rules = [r for r in rules_data if r.get("day_of_week") == current_day]
+        # Loc rules active cho ngay hien tai
+        today_rules = [
+            r for r in rules_data 
+            if r.get("day_of_week") == current_day and r.get("is_active", True) is True
+        ]
         
         if not today_rules:
-            return True, "Khong co rule cho ngay hom nay -> Cho phep"
+            return True, "Quy tac ngay hom nay dang tat (Khong gioi han) -> Cho phep"
 
         if mode == "max_daily":
             # Phuong thuc: Tong thoi gian toi da/ngay

@@ -149,8 +149,8 @@ def enforce_app_rules(supabase, processes: list) -> list:
     db = _get_local_db()
     today_str = date.today().isoformat()
 
-    # Gia dinh moi chu ky chay tuong ung SEND_INTERVAL giay (mac dinh 60s = 1 phut)
-    minutes_per_cycle = max(1, round(SEND_INTERVAL / 60))
+    # Thoi gian moi chu ky chay bang SEND_INTERVAL giay (mac dinh 5s hoac 10s)
+    elapsed_seconds = float(SEND_INTERVAL)
 
     # Loai bo trung lap ten process dang chay trong cung 1 chu ky
     running_names = set(p["name"].lower() for p in processes)
@@ -183,8 +183,8 @@ def enforce_app_rules(supabase, processes: list) -> list:
 
         # ===== 2. UNG DUNG GIOI HAN THOI GIAN =====
         elif category == "limited" and max_minutes > 0:
-            # Cong don thoi gian su dung vao SQLite local
-            total_used = db.increment_app_usage(today_str, name, minutes_per_cycle)
+            # Cong don thoi gian su dung theo giay thuc te vao SQLite local
+            total_used = db.increment_app_usage(today_str, name, seconds=elapsed_seconds)
             print(f"[APP] Gioi han [{name}]: Da dung {total_used}/{max_minutes} phut hom nay.")
 
             if total_used >= max_minutes:

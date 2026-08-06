@@ -190,6 +190,53 @@ try:
 except Exception:
     pass
 
+class PresenceDaemon:
+    """
+    Dedicated Worker chuyên trách duy trì kết nối thời gian thực (Presence / Online State).
+    Đảm bảo cập nhật trạng thái 'Đã kết nối' trên Web Dashboard dưới 3 giây ngay khi khởi động/có mạng.
+    """
+    def __init__(self, supabase_client, interval_sec: float = 3.0):
+        self.supabase = supabase_client
+        self.interval_sec = interval_sec
+        self._running = False
+        self._thread = None
+
+    def send_fast_handshake(self) -> bool:
+        if not self.supabase:
+            return False
+        try:
+            now_iso = datetime.now(timezone.utc).isoformat()
+            self.supabase.table("devices").upsert({
+                "device_name": DEVICE_NAME,
+                "last_seen": now_iso,
+                "is_online": True,
+                "updated_at": now_iso
+            }, on_conflict="device_name").execute()
+            return True
+        except Exception as e:
+            log_debug(f"[PRESENCE] Fast Handshake failed: {e}")
+            return False
+
+    def _loop(self):
+        while self._running:
+            self.send_fast_handshake()
+            time.sleep(self.interval_sec)
+
+    def start(self):
+        self._running = True
+        self.send_fast_handshake()
+        self._thread = threading.Thread(
+            target=self._loop,
+            daemon=True,
+            name="PresenceDaemonWorker"
+        )
+        self._thread.start()
+        log_debug("[PRESENCE] PresenceDaemon Thread started (3s interval)")
+
+    def stop(self):
+        self._running = False
+
+
 def send_heartbeat(supabase) -> None:
     """Cập nhật Heartbeat thời gian thực (is_online=True) lên Supabase."""
     if not supabase:
@@ -229,6 +276,10 @@ def main():
     except Exception as e:
         log_debug(f"[ERR] Supabase init: {e}")
         return
+
+    # --- PRESENCE DAEMON (Online Status <3s) ---
+    presence = PresenceDaemon(supabase_client=supabase, interval_sec=3.0)
+    presence.start()
 
     db = LocalDB()
 
@@ -391,9 +442,9 @@ def main():
                 # ==== GIAM SAT LIEN TUC (chay ca khi paused) ====
                 today_str = get_vn_now().strftime("%Y-%m-%d")
 
-                # 4. TANG BOO DEM THOI GIAN SU DUNG (local)
-                minutes_per_cycle = round(SEND_INTERVAL / 60, 2) if SEND_INTERVAL < 60 else max(1, round(SEND_INTERVAL / 60))
-                db.increment_usage_minutes(today_str, minutes_per_cycle)
+                # 4. TANG BOO DEM THOI GIAN SU DUNG (local theo giay thuc te)
+                elapsed_seconds = float(SEND_INTERVAL)
+                db.increment_usage_minutes(today_str, seconds=elapsed_seconds)
 
                 # 5. GHI PROCESS (vao pending_logs)
                 processes = get_running_processes(limit=30)
@@ -416,7 +467,7 @@ def main():
                 active_info = get_active_window_info()
                 if active_info:
                     p_name = active_info["process_name"]
-                    db.increment_app_usage(today_str, p_name, minutes_per_cycle)
+                    db.increment_app_usage(today_str, p_name, seconds=elapsed_seconds)
                     db.add_pending_log("active_window", {
                         "device_name": DEVICE_NAME,
                         "process_name": p_name,

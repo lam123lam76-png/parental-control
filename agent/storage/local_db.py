@@ -64,6 +64,7 @@ class LocalDB:
                 cursor.execute('''
                     CREATE TABLE IF NOT EXISTS usage_minutes (
                         date TEXT PRIMARY KEY, 
+                        total_seconds REAL DEFAULT 0,
                         total_minutes INTEGER DEFAULT 0
                     )
                 ''')
@@ -71,6 +72,7 @@ class LocalDB:
                     CREATE TABLE IF NOT EXISTS app_usage (
                         date TEXT, 
                         process_name TEXT, 
+                        used_seconds REAL DEFAULT 0,
                         used_minutes INTEGER DEFAULT 0, 
                         PRIMARY KEY(date, process_name)
                     )
@@ -79,6 +81,7 @@ class LocalDB:
                     CREATE TABLE IF NOT EXISTS web_usage (
                         date TEXT, 
                         domain TEXT, 
+                        used_seconds REAL DEFAULT 0,
                         used_minutes INTEGER DEFAULT 0, 
                         PRIMARY KEY(date, domain)
                     )
@@ -98,22 +101,39 @@ class LocalDB:
                         created_at TEXT
                     )
                 ''')
+
+                # Migrations an toàn cho các DB đã tạo từ trước
+                try:
+                    cursor.execute('ALTER TABLE app_usage ADD COLUMN used_seconds REAL DEFAULT 0')
+                except Exception:
+                    pass
+                try:
+                    cursor.execute('ALTER TABLE web_usage ADD COLUMN used_seconds REAL DEFAULT 0')
+                except Exception:
+                    pass
+                try:
+                    cursor.execute('ALTER TABLE usage_minutes ADD COLUMN total_seconds REAL DEFAULT 0')
+                except Exception:
+                    pass
+
                 conn.commit()
             print("[OK] Da tao cac bang DB cuc bo")
         except Exception as e:
             print(f"[ERR] Loi khi tao bang: {e}")
 
-    def increment_usage_minutes(self, date_str: str, minutes: int = 1) -> int:
-        """Tăng số phút sử dụng tổng cho một ngày."""
+    def increment_usage_minutes(self, date_str: str, seconds: float = 5.0) -> int:
+        """Tăng số giây/phút sử dụng tổng cho một ngày."""
         try:
             with self._get_connection() as conn:
                 cursor = conn.cursor()
                 cursor.execute('''
-                    INSERT INTO usage_minutes (date, total_minutes) 
-                    VALUES (?, ?) 
+                    INSERT INTO usage_minutes (date, total_seconds, total_minutes) 
+                    VALUES (?, ?, CAST(? / 60 AS INTEGER)) 
                     ON CONFLICT(date) 
-                    DO UPDATE SET total_minutes = total_minutes + ?
-                ''', (date_str, minutes, minutes))
+                    DO UPDATE SET 
+                        total_seconds = total_seconds + ?,
+                        total_minutes = CAST((total_seconds + ?) / 60 AS INTEGER)
+                ''', (date_str, seconds, seconds, seconds, seconds))
                 conn.commit()
             return self.get_usage_minutes(date_str)
         except Exception as e:
@@ -132,17 +152,19 @@ class LocalDB:
             print(f"[ERR] Loi get_usage_minutes: {e}")
             return 0
 
-    def increment_app_usage(self, date_str: str, process_name: str, minutes: int = 1) -> int:
-        """Tăng thời gian sử dụng ứng dụng."""
+    def increment_app_usage(self, date_str: str, process_name: str, seconds: float = 5.0) -> int:
+        """Tăng thời gian sử dụng ứng dụng theo giây chính xác."""
         try:
             with self._get_connection() as conn:
                 cursor = conn.cursor()
                 cursor.execute('''
-                    INSERT INTO app_usage (date, process_name, used_minutes) 
-                    VALUES (?, ?, ?) 
+                    INSERT INTO app_usage (date, process_name, used_seconds, used_minutes) 
+                    VALUES (?, ?, ?, CAST(? / 60 AS INTEGER)) 
                     ON CONFLICT(date, process_name) 
-                    DO UPDATE SET used_minutes = used_minutes + ?
-                ''', (date_str, process_name, minutes, minutes))
+                    DO UPDATE SET 
+                        used_seconds = used_seconds + ?,
+                        used_minutes = CAST((used_seconds + ?) / 60 AS INTEGER)
+                ''', (date_str, process_name, seconds, seconds, seconds, seconds))
                 conn.commit()
             return self.get_app_usage(date_str, process_name)
         except Exception as e:
@@ -150,7 +172,7 @@ class LocalDB:
             return 0
 
     def get_app_usage(self, date_str: str, process_name: str) -> int:
-        """Lấy thời gian sử dụng ứng dụng."""
+        """Lấy thời gian sử dụng ứng dụng (tính theo phút chẵn)."""
         try:
             with self._get_connection() as conn:
                 cursor = conn.cursor()
@@ -162,17 +184,19 @@ class LocalDB:
             print(f"[ERR] Loi get_app_usage: {e}")
             return 0
 
-    def increment_web_usage(self, date_str: str, domain: str, minutes: int = 1) -> int:
-        """Tăng thời gian sử dụng web."""
+    def increment_web_usage(self, date_str: str, domain: str, seconds: float = 5.0) -> int:
+        """Tăng thời gian sử dụng web theo giây chính xác."""
         try:
             with self._get_connection() as conn:
                 cursor = conn.cursor()
                 cursor.execute('''
-                    INSERT INTO web_usage (date, domain, used_minutes) 
-                    VALUES (?, ?, ?) 
+                    INSERT INTO web_usage (date, domain, used_seconds, used_minutes) 
+                    VALUES (?, ?, ?, CAST(? / 60 AS INTEGER)) 
                     ON CONFLICT(date, domain) 
-                    DO UPDATE SET used_minutes = used_minutes + ?
-                ''', (date_str, domain, minutes, minutes))
+                    DO UPDATE SET 
+                        used_seconds = used_seconds + ?,
+                        used_minutes = CAST((used_seconds + ?) / 60 AS INTEGER)
+                ''', (date_str, domain, seconds, seconds, seconds, seconds))
                 conn.commit()
             return self.get_web_usage(date_str, domain)
         except Exception as e:

@@ -1,3 +1,7 @@
+// manager-web/src/lib/utils.js
+import { clsx } from 'clsx'
+import { twMerge } from 'tailwind-merge'
+
 // Helper parse date string into { day, month, year }
 export function parseSheetDateStr(dateStr) {
   if (!dateStr) return null
@@ -83,7 +87,7 @@ export function parseGoogleSheetData(csvText) {
     // 2. Strict Task Filtering (Skip dòng rỗng, ?h ~?h, tiêu đề gộp 1h-2h, 11h-8h, theo gia đình)
     const skipKeywords = ['1h-2h', '11h-8h', 'theo gia đình', '?h ~?h', 'nội dung công việc']
     const contentLower = cleanContent.toLowerCase()
-    
+
     if (
       !cleanTime ||
       cleanTime === '-' ||
@@ -189,4 +193,16 @@ export function formatClockTime(isoStr) {
   } catch (e) {
     return ''
   }
+}
+
+// ================================================================
+// 🔥 HÀM CN CHO SHADCN/UI (THÊM MỚI)
+// ================================================================
+
+/**
+ * Hàm gộp class names với Tailwind CSS
+ * Sử dụng clsx để xử lý conditional classes và tailwind-merge để tránh xung đột
+ */
+export function cn(...inputs) {
+  return twMerge(clsx(inputs))
 }

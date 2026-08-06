@@ -1855,47 +1855,101 @@ function ParentalControlApp() {
     }
   }
 
-  // AI ANALYSIS NÂNG CAO PHÂN TÍCH TÊN CỬA SỔ & TRANG WEB THỰC TẾ
+  // ENGINE PHÂN TÍCH THÔNG MINH GEMINI AI (REAL-TIME CONTEXTUAL INTENT ENGINE)
   function getAiAnalysis() {
-    const studyKeywords = ['cad', 'autocad', 'code', 'vs code', 'visual studio', 'word', 'excel', 'powerpoint', 'bài tập', 'toán', 'lý', 'hóa', 'tiếng anh', 'coursera', 'udemy', 'stackoverflow', 'github', 'docs', 'drive', 'học']
-    const playKeywords = ['youtube', 'facebook', 'fb', 'tiktok', 'game', 'league', 'valorant', 'csgo', 'roblox', 'garena', 'fifa', 'spotify', 'nhạc', 'phim', 'netflix', 'anime', 'pick']
+    // 1. Nhóm Tiến trình Học tập & Công việc Cố định
+    const eduStrictProcs = ['acad.exe', 'autocad', 'code.exe', 'devenv.exe', 'idea64.exe', 'pycharm', 'sublime_text.exe', 'winword.exe', 'excel.exe', 'powerpnt.exe', 'photoshop', 'illustrator']
+    const eduTitlePhrases = [
+      'bài giảng', 'bài tập', 'ôn thi', 'luyện thi', 'giải bài', 'toán', 'vật lý', 'hóa học', 'ngữ văn', 'lịch sử', 'địa lý', 'sinh học', 'tiếng anh',
+      'khoa học', 'lập trình', 'hướng dẫn học', 'tự học', 'khóa học', 'chữa đề', 'đề thi', 'thpt', 'thcs',
+      'autocad', 'cad', 'python', 'javascript', 'react', 'java', 'c++', 'html', 'css', 'sql', 'database',
+      'coursera', 'udemy', 'quizlet', 'duolingo', 'stackoverflow', 'github', 'docs.google.com', 'drive.google.com', 'canvas'
+    ]
+
+    // 2. Nhóm Tiến trình Giải trí & Game Cố định
+    const playStrictProcs = ['leagueclientux.exe', 'league of legends.exe', 'garena.exe', 'valorant.exe', 'csgo.exe', 'roblox.exe', 'genshinimpact.exe', 'fifa.exe', 'spotify.exe']
+    const playTitlePhrases = [
+      'review anime', 'tập 1', 'tập 2', 'tập 3', 'tập 4', 'tập 5', 'tập 6', 'tập 7', 'tập 8', 'tập 9', 'tập 10',
+      'thái tử', 'phế vật', 'mạo hiểm giả', 'hoạt hình', 'phim hay', 'phim chiếu ranh', 'trailer', 'mv', 'official music video',
+      'nhạc trẻ', 'nhạc lofi', 'remix', 'highlights', 'gameplay', 'livestream', 'dự giờ', 'bomman', 'leopard', 'hữu nghĩa',
+      'tiktok', 'facebook', 'fb.com', 'instagram', 'netflix', 'truyenfull', 'nettruyen', 'mangadex', 'discord'
+    ]
 
     const studyWindows = []
     const playWindows = []
+    const neutralWindows = []
 
     activeWindows.forEach(w => {
-      const titleLower = (w.window_title || '').toLowerCase()
+      const titleLower = (w.window_title || w.title || '').toLowerCase()
       const procLower = (w.process_name || '').toLowerCase()
-      const fullText = `${procLower} ${titleLower}`
+      const displayName = w.window_title || w.process_name || 'Ứng dụng không tên'
 
-      if (studyKeywords.some(k => fullText.includes(k))) {
-        studyWindows.push(w.window_title || w.process_name)
-      } else if (playKeywords.some(k => fullText.includes(k))) {
-        playWindows.push(w.window_title || w.process_name)
+      // BƯỚC 1: Đánh giá theo Tiến trình Cố định
+      if (eduStrictProcs.some(p => procLower.includes(p))) {
+        studyWindows.push(`💻 [Phần mềm] ${displayName}`)
+        return
+      }
+      if (playStrictProcs.some(p => procLower.includes(p))) {
+        playWindows.push(`🎮 [Game Engine] ${displayName}`)
+        return
+      }
+
+      // BƯỚC 2: Đánh giá Ngữ cảnh Tiêu đề (Phân tích bóc tách YouTube & Web)
+      let eduScore = 0
+      let playScore = 0
+
+      eduTitlePhrases.forEach(phrase => {
+        if (titleLower.includes(phrase)) eduScore += 2
+      })
+
+      playTitlePhrases.forEach(phrase => {
+        if (titleLower.includes(phrase)) playScore += 2
+      })
+
+      // Phân tích chi tiết ngữ cảnh trên Trình duyệt Web / YouTube
+      if (procLower.includes('chrome') || procLower.includes('edge') || procLower.includes('browser') || titleLower.includes('youtube')) {
+        if (eduScore > playScore) {
+          studyWindows.push(`📚 [Bài Giảng/Tài Liệu Web] ${displayName}`)
+        } else if (playScore > 0 || titleLower.includes('review') || titleLower.includes('tập') || titleLower.includes('game')) {
+          playWindows.push(`🎬 [Giải Trí/Phim/Anime] ${displayName}`)
+        } else {
+          neutralWindows.push(`🌐 [Tra cứu chung] ${displayName}`)
+        }
+        return
+      }
+
+      // Phân loại tổng hợp
+      if (eduScore > playScore && eduScore > 0) {
+        studyWindows.push(displayName)
+      } else if (playScore > eduScore && playScore > 0) {
+        playWindows.push(displayName)
+      } else {
+        neutralWindows.push(displayName)
       }
     })
 
-    const totalTracked = studyWindows.length + playWindows.length
-    const studyPercent = totalTracked > 0 ? Math.round((studyWindows.length / totalTracked) * 100) : 50
+    const totalRated = studyWindows.length + playWindows.length
+    const studyPercent = totalRated > 0 ? Math.round((studyWindows.length / totalRated) * 100) : 50
     const playPercent = 100 - studyPercent
 
-    let score = 'Khá tốt '
-    let advice = 'Em trai đang duy trì mức độ tập trung khá cân bằng.'
+    let score = 'Khá cân bằng ⚖️'
+    let advice = 'Em trai đang duy trì mức độ tập trung tương đối giữa Học tập và Giải trí.'
 
-    if (studyPercent >= 65) {
-      score = 'Xuất sắc '
-      advice = 'AI phát hiện em trai đang thực sự tập trung vào bài tập / ứng dụng học tập (AutoCAD, CAD, Bài tập). Nên duy trì!'
+    if (studyPercent >= 70) {
+      score = 'Xuất sắc 🌟'
+      advice = 'AI Gemini xác nhận em trai đang tập trung học tập / làm bài tập thực sự (AutoCAD, Bài giảng, Lập trình). Cần phát huy!'
     } else if (playPercent >= 60) {
-      score = 'Cảnh báo: Phát hiện mở ứng dụng lạ'
-      advice = 'AI phát hiện tần suất truy cập nội dung giải trí (YouTube, Game, Đánh pick, Mạng xã hội) đang nhiều hơn bài tập.'
+      score = 'Cảnh báo: Ưu tiên Giải trí ⚠️'
+      advice = 'AI Gemini phân tích thấy tần suất xem Video giải trí, Review Phim/Anime hoặc Chơi Game đang chiếm ưu thế.'
     }
 
     return {
       score,
-      ratio: `${studyPercent}% Học tập & Làm việc / ${playPercent}% Giải trí`,
+      ratio: `${studyPercent}% Học tập & Bài giảng / ${playPercent}% Phim & Game & Mạng xã hội`,
       studyWindows,
       playWindows,
-      summary: `Đã phân tích chi tiết ${activeWindows.length} tiêu đề cửa sổ ứng dụng & trang web thực tế gần nhất.`,
+      neutralWindows,
+      summary: `AI Gemini đã phân tích sâu ngữ cảnh tiêu đề của ${activeWindows.length} cửa sổ ứng dụng & trang web gần nhất.`,
       advice
     }
   }

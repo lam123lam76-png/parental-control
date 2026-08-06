@@ -311,22 +311,11 @@ class ScreenBlocker:
 
         if self.supabase:
             try:
-                try:
-                    from storage.sync_worker import send_heartbeat
-                    send_heartbeat(self.supabase)
-                except Exception:
-                    pass
-
-                builder = self.supabase.table("app_config").select("is_paused").eq("device_name", DEVICE_NAME)
-                if hasattr(builder, "execute"):
-                    res = builder.execute()
-                    if res is not None and hasattr(res, "data") and isinstance(res.data, list):
-                        if len(res.data) > 0:
-                            paused = bool(res.data[0].get("is_paused", False))
-                            query_success = True
-
+                res = self.supabase.table("app_config").select("is_paused").eq("device_name", DEVICE_NAME).execute()
+                if res and hasattr(res, "data") and res.data and len(res.data) > 0:
+                    paused = bool(res.data[0].get("is_paused", False))
+                    query_success = True
             except Exception as e:
-                err_text = str(e) if not hasattr(e, "__class__") else f"{e.__class__.__name__}: {e}"
                 if hasattr(self, "remote_status"):
                     self.remote_status.config(
                         text=f"Dang thu ket noi lai... ({datetime.now().strftime('%H:%M:%S')})"

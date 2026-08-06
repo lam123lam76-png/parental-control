@@ -190,9 +190,9 @@ function ParentalControlApp() {
 
 
 
-  // UPDATE CURRENT TIME MỖI 10 GIÂY ĐỂ ĐÁNH GIÁ ONLINE/OFFLINE THỜI GIAN THỰC
+  // UPDATE CURRENT TIME MỖI 3 GIÂY ĐỂ ĐÁNH GIÁ ONLINE/OFFLINE THỜI GIAN THỰC (5S CHUẨN XÁC)
   useEffect(() => {
-    const timer = setInterval(() => setCurrentTime(Date.now()), 10000)
+    const timer = setInterval(() => setCurrentTime(Date.now()), 3000)
     return () => clearInterval(timer)
   }, [])
 

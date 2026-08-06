@@ -1038,7 +1038,6 @@ function ParentalControlApp() {
     }
   }
 
-
   // Render Thanh Timeline 24h Trực Quan cho Chế độ Theo Khung Giờ
   function render24hTimeline(rule) {
     if (!rule || !rule.is_active) {
@@ -2028,18 +2027,20 @@ function ParentalControlApp() {
       }
     })
 
+    // SỬA LỖI: Cộng dồn số phút từ appHistorySource
     appHistorySource.forEach(item => {
       if (!item.process_name) return
       const key = item.process_name.toLowerCase()
       if (!mergedAppsMap[key]) {
         mergedAppsMap[key] = {
           process_name: item.process_name,
-          used_minutes: 1,
+          used_minutes: 0,
           category: 'allowed',
           max_minutes_per_day: 0,
           rule_id: null
         }
       }
+      mergedAppsMap[key].used_minutes += 1
     })
 
     appRules.forEach(r => {
@@ -2095,6 +2096,7 @@ function ParentalControlApp() {
       }
     })
 
+    // SỬA LỖI: Cộng dồn số phút từ webHistorySource
     webHistorySource.forEach(item => {
       if (!item.url) return
       const domain = item.url.replace(/^(?:https?:\/\/)?(?:www\.)?/i, '').split('/')[0]
@@ -2103,12 +2105,13 @@ function ParentalControlApp() {
       if (!mergedWebsMap[key]) {
         mergedWebsMap[key] = {
           domain: domain,
-          used_minutes: 1,
+          used_minutes: 0,
           category: 'allowed',
           max_minutes_per_day: 0,
           rule_id: null
         }
       }
+      mergedWebsMap[key].used_minutes += 1
     })
 
     webRules.forEach(r => {
@@ -3118,2521 +3121,2170 @@ function ParentalControlApp() {
                     </div>
                   </div>
                 )}
-
-            {/* TAB: TO DO NOTE — REFACTORED UNIFIED DASHBOARD */}
-            {activeTab === 'todo' && (() => {
-              // Gộp tất cả các task từ Supabase và Google Sheet thành danh sách thống nhất
-              const combinedTasks = [
-                ...todoNotes.map(t => ({
-                  id: t.id,
-                  title: t.task_title,
-                  taskType: t.task_type || 'custom',
-                  isCompleted: !!t.is_completed,
-                  isSheet: false,
-                  createdAt: t.created_at
-                })),
-                ...sheetTasks
-                  .filter(st => !deletedSheetTaskIds.includes(st.id))
-                  .map(st => ({
-                    id: st.id,
-                    title: st.title,
-                    taskType: st.isDaily ? 'routine' : 'sheet',
-                    isCompleted: !!completedSheetTasks[st.id],
-                    isSheet: true,
-                    createdAt: null
-                  }))
-              ]
-
-              const totalTasks = combinedTasks.length
-              const completedTasks = combinedTasks.filter(t => t.isCompleted).length
-              const progressPercent = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0
-
-              return (
-                <div className="space-y-6 max-w-4xl mx-auto">
-                  {/* CARD CHÍNH CỦA BẢNG TO DO */}
-                  <div className={`${cardBgClass} border rounded-2xl p-6 space-y-6 shadow-2xl`}>
-
-                    {/* 1. HEADER CHÍNH: TIÊU ĐỀ + TIẾN ĐỘ + NÚT ĐỒNG BỘ GOOGLE SHEET */}
-                    <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 border-b border-zinc-800 pb-5">
-                      <div className="space-y-1">
-                        <h2 className="text-xl font-bold flex items-center gap-2 text-slate-100">
-                          <span></span> Danh Sách Nhiệm Vụ & Bài Tập Hôm Nay
-                        </h2>
-                        <p className="text-xs text-zinc-400">
-                          Tổng hợp công việc do Admin giao, bài tập tự chọn và thói quen từ Google Sheet ({todayFormatted}).
-                        </p>
-                      </div>
-
-                      <div className="flex items-center gap-3 w-full md:w-auto justify-between md:justify-end">
-                        <button
-                          onClick={fetchGoogleSheetTasks}
-                          disabled={isSyncingSheet}
-                          className="px-4 py-2 bg-zinc-900 hover:bg-slate-700 text-blue-300 font-bold rounded-xl text-xs border border-zinc-800 transition flex items-center gap-2 disabled:opacity-50 shadow"
-                        >
-                          <span className={isSyncingSheet ? 'animate-spin' : ''}></span>
-                          <span>{isSyncingSheet ? 'Đang đồng bộ...' : 'Đồng Bộ Google Sheet'}</span>
-                        </button>
-                      </div>
-                    </div>
-
-                    {/* 2. THANH TIẾN ĐỘ HOÀN THÀNH (PROGRESS BAR) */}
-                    <div className="p-4 bg-zinc-900/50 border border-zinc-800 rounded-2xl space-y-2 shadow-inner">
-                      <div className="flex items-center justify-between text-xs font-bold">
-                        <span className="text-zinc-300 flex items-center gap-2">
-                          <span></span>
-                          <span>TIẾN ĐỘ HOÀN THÀNH CÔNG VIỆC</span>
-                        </span>
-                        <span className="text-emerald-400 font-mono text-xs bg-emerald-500/10 px-2.5 py-0.5 rounded-full border border-emerald-500/20">
-                          Đã xong {completedTasks}/{totalTasks} việc ({progressPercent}%)
-                        </span>
-                      </div>
-
-                      <div className="h-3 w-full bg-zinc-900/50 rounded-full overflow-hidden border border-zinc-800 relative">
-                        <div
-                          className="h-full bg-gradient-to-r from-blue-500 via-teal-400 to-emerald-400 rounded-full transition-all duration-500 shadow-lg shadow-emerald-500/30"
-                          style={{ width: `${progressPercent}%` }}
-                        ></div>
-                      </div>
-                    </div>
-
-                    {/* 3. THANH THÊM NHANH NHIỆM VỤ MỚI (QUICK ADD BAR) */}
-                    <form onSubmit={handleQuickAddTodoTask} className="p-4 bg-zinc-900/50 border border-zinc-800 rounded-2xl space-y-3 shadow">
-                      <div className="text-xs font-bold text-blue-400 flex items-center gap-2">
-                        <span></span> Thêm Công Việc / Nhiệm Vụ Mới
-                      </div>
-
-                      <div className="flex flex-col sm:flex-row gap-2.5">
-                        <input
-                          type="text"
-                          placeholder="Nhập tên bài tập hoặc công việc cần làm..."
-                          value={quickAddTitle}
-                          onChange={(e) => setQuickAddTitle(e.target.value)}
-                          className="flex-grow bg-zinc-900 border border-zinc-800 rounded-xl px-4 py-2.5 text-xs text-slate-100 placeholder-slate-500 outline-none focus:border-indigo-500 shadow"
-                        />
-
-                        <select
-                          value={quickAddType}
-                          onChange={(e) => setQuickAddType(e.target.value)}
-                          className="bg-zinc-900 border border-zinc-800 rounded-xl px-3 py-2.5 text-xs font-bold text-blue-300 outline-none focus:border-indigo-500 cursor-pointer shadow"
-                        >
-                          {isAdmin && <option value="admin_assigned"> Admin Giao</option>}
-                          <option value="custom">⭐ Tự Chọn</option>
-                          <option value="routine"> Hằng Ngày / Thói Quen</option>
-                        </select>
-
-                        <button
-                          type="submit"
-                          className="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-xl text-xs transition shadow-lg shadow-blue-600/20 whitespace-nowrap"
-                        >
-                          + Thêm Công Việc
-                        </button>
-                      </div>
-                    </form>
-
-                    {/* 4. DANH SÁCH THỐNG NHẤT TOÀN BỘ NHIỆM VỤ (UNIFIED TASK LIST) */}
-                    <div className="space-y-3">
-                      <div className="flex items-center justify-between text-xs text-zinc-400 px-1">
-                        <span className="font-bold text-zinc-300">DANH SÁCH CÔNG VIỆC CẦN HOÀN THÀNH ({totalTasks})</span>
-                        <span className="text-[11px] text-zinc-500">* Tích vào ô vuông khi đã hoàn thành bài tập</span>
-                      </div>
-
-                      {combinedTasks.length === 0 ? (
-                        /* EMPTY STATE VISUAL */
-                        <div className="p-12 text-center bg-zinc-900/50 border border-zinc-800 rounded-2xl space-y-3 shadow-inner">
-                          <span className="text-5xl block"></span>
-                          <h3 className="font-bold text-base text-zinc-200">Không Có Bài Tập Nào Cần Làm Hôm Nay!</h3>
-                          <p className="text-xs text-zinc-400 max-w-sm mx-auto">
-                            Bạn chưa có công việc nào trong danh sách. Hãy nhập bài tập mới ở thanh trên hoặc bấm nút "Đồng Bộ Google Sheet".
-                          </p>
-                        </div>
-                      ) : (
-                        <div className="space-y-2.5">
-                          {combinedTasks.map((task) => {
-                            const isEditing = editingTaskId === task.id
-
-                            return (
-                              <div
-                                key={task.id}
-                                className={`p-3.5 rounded-2xl border transition flex flex-col sm:flex-row sm:items-center justify-between gap-3 ${
-                                  task.isCompleted
-                                    ? 'bg-black/40 border-slate-900 opacity-60'
-                                    : 'bg-zinc-900/50/90 border-zinc-800 hover:border-zinc-800 shadow-md'
-                                }`}
-                              >
-                                {/* INLINE EDIT MODE */}
-                                {isEditing ? (
-                                  <form onSubmit={handleSaveEditTodoTask} className="w-full flex flex-col sm:flex-row gap-2 items-center">
-                                    <input
-                                      type="text"
-                                      value={editingTaskTitle}
-                                      onChange={(e) => setEditingTaskTitle(e.target.value)}
-                                      className="flex-grow bg-black border border-indigo-500 rounded-xl px-3 py-1.5 text-xs text-white outline-none"
-                                      autoFocus
-                                    />
-
-                                    <select
-                                      value={editingTaskType}
-                                      onChange={(e) => setEditingTaskType(e.target.value)}
-                                      className="bg-black border border-zinc-800 rounded-xl px-2 py-1.5 text-xs font-bold text-blue-300"
-                                    >
-                                      <option value="admin_assigned"> Admin Giao</option>
-                                      <option value="custom">⭐ Tự Chọn</option>
-                                      <option value="routine"> Hằng Ngày</option>
-                                    </select>
-
-                                    <div className="flex gap-2">
-                                      <button type="submit" className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-bold">
-                                        Lưu
-                                      </button>
-                                      <button
-                                        type="button"
-                                        onClick={() => setEditingTaskId(null)}
-                                        className="px-3 py-1.5 bg-zinc-900 text-zinc-400 rounded-xl text-xs font-semibold"
-                                      >
-                                        Hủy
-                                      </button>
-                                    </div>
-                                  </form>
-                                ) : (
-                                  <>
-                                    {/* TASK ITEM CONTENT & CHECKBOX */}
-                                    <div className="flex items-center gap-3 flex-grow min-w-0">
-                                      <input
-                                        type="checkbox"
-                                        checked={task.isCompleted}
-                                        onChange={() => {
-                                          if (task.isSheet) toggleSheetTaskComplete(task.id)
-                                          else toggleTodoComplete(task.id, task.isCompleted)
-                                        }}
-                                        className="w-5 h-5 rounded-lg bg-black border-zinc-800 text-blue-600 cursor-pointer shrink-0"
-                                      />
-
-                                      <div className="space-y-1 min-w-0 flex-grow">
-                                        <div className="flex items-center gap-2 flex-wrap">
-                                          {/* BADGES PHÂN LOẠI */}
-                                          {task.taskType === 'admin_assigned' && (
-                                            <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-rose-500/20 text-rose-300 border border-rose-500/30">
-                                               Admin Giao
-                                            </span>
-                                          )}
-                                          {task.taskType === 'custom' && (
-                                            <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-blue-500/20 text-blue-300 border border-indigo-500/30">
-                                              ⭐ Tự Chọn
-                                            </span>
-                                          )}
-                                          {task.taskType === 'routine' && (
-                                            <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 border border-emerald-500/30">
-                                               Hằng Ngày
-                                            </span>
-                                          )}
-                                          {task.taskType === 'sheet' && (
-                                            <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/10 text-zinc-200 border border-amber-500/20 border border-amber-500/30">
-                                               Google Sheet
-                                            </span>
-                                          )}
-
-                                          <span
-                                            className={`text-xs font-medium leading-relaxed break-words ${
-                                              task.isCompleted ? 'line-through text-zinc-500' : 'text-slate-100 font-semibold'
-                                            }`}
-                                          >
-                                            {task.title}
-                                          </span>
-                                        </div>
-                                      </div>
-                                    </div>
-
-                                    {/* ACTIONS: SỬA & XÓA */}
-                                    <div className="flex items-center gap-2 shrink-0 self-end sm:self-center">
-                                      <button
-                                        onClick={() => handleStartEditTodoTask(task)}
-                                        className="px-2.5 py-1 text-[11px] font-semibold text-zinc-400 hover:text-blue-300 rounded-lg hover:bg-zinc-900 transition"
-                                      >
-                                        ️ Sửa
-                                      </button>
-                                      <button
-                                        onClick={() => handleDeleteUnifiedTask(task)}
-                                        className="px-2.5 py-1 text-[11px] font-semibold text-zinc-500 hover:text-red-400 rounded-lg hover:bg-red-500/10 transition"
-                                      >
-                                        ️ Xóa
-                                      </button>
-                                    </div>
-                                  </>
-                                )}
-                              </div>
-                            )
-                          })}
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              )
-            })()}
-
-            {/* TAB: LỊCH HỌC TẬP & THỜI GIAN BIỂU — REFACTORED CUSTOM DATA TABLE */}
-            {activeTab === 'calendar' && (() => {
-              // Áp dụng bộ lọc nhanh lên allSheetEntries
-              const filteredEntries = allSheetEntries.filter(entry => {
-                // Lọc theo Ngày
-                if (calendarDateFilter === 'today' && !entry.isToday) return false
-
-                // Lọc theo Ưu tiên
-                if (calendarPriorityFilter !== 'all') {
-                  const p = entry.priority.toLowerCase()
-                  if (calendarPriorityFilter === 'important' && !p.includes('quan trọng') && !p.includes('high')) return false
-                  if (calendarPriorityFilter === 'daily' && !p.includes('hằng ngày') && !p.includes('thói quen')) return false
-                  if (calendarPriorityFilter === 'normal' && (p.includes('quan trọng') || p.includes('hằng ngày'))) return false
-                }
-
-                // Lọc theo Từ khóa tìm kiếm
-                if (calendarSearch.trim()) {
-                  const q = calendarSearch.toLowerCase().trim()
-                  const matchTitle = entry.title.toLowerCase().includes(q)
-                  const matchDate = entry.date.toLowerCase().includes(q)
-                  const matchTime = entry.sessionTime.toLowerCase().includes(q)
-                  if (!matchTitle && !matchDate && !matchTime) return false
-                }
-
-                return true
-              })
-
-              return (
-                <div className="space-y-6">
-                  <div className={`${cardBgClass} border rounded-2xl p-6 space-y-6 shadow-2xl`}>
-                    {/* HEADER BAR */}
-                    <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 border-b border-zinc-800 pb-4">
-                      <div>
-                        <h2 className="text-xl font-bold flex items-center gap-2 text-slate-100">
-                          <span></span> Lịch Học Tập & Thời Gian Biểu (Custom Data Table)
-                        </h2>
-                        <p className="text-xs text-zinc-400 mt-1">
-                          Đồng bộ dữ liệu trực tiếp từ Google Sheet sang bảng dữ liệu chuẩn hóa SaaS Dark Mode.
-                        </p>
-                      </div>
-
-                      <div className="flex flex-wrap items-center gap-2">
-                        <button
-                          onClick={fetchGoogleSheetTasks}
-                          disabled={isSyncingSheet}
-                          className="px-4 py-2 bg-zinc-900 hover:bg-slate-700 text-blue-300 font-bold rounded-xl text-xs border border-zinc-800 transition flex items-center gap-2 disabled:opacity-50 shadow"
-                        >
-                          <span className={isSyncingSheet ? 'animate-spin' : ''}></span>
-                          <span>{isSyncingSheet ? 'Đang đồng bộ...' : 'Tải Lại Dữ Liệu'}</span>
-                        </button>
-
-                        <a
-                          href={GOOGLE_SHEET_URL}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-xl text-xs flex items-center gap-2 transition shadow-lg shadow-emerald-600/20"
-                        >
-                          <span></span> Mở Trang Google Sheet Gốc
-                        </a>
-                      </div>
-                    </div>
-
-                    {/* BỘ LỌC NHANH (QUICK FILTERS BAR) */}
-                    <div className="p-4 bg-zinc-900/50 border border-zinc-800 rounded-2xl flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4 shadow-inner">
-                      <div className="flex flex-wrap items-center gap-3 w-full lg:w-auto">
-                        {/* Lọc theo ngày */}
-                        <div className="flex items-center gap-1.5 bg-zinc-900/50 p-1 rounded-xl border border-zinc-800 text-xs">
-                          <span className="px-2 text-zinc-400 font-medium">Lọc Ngày:</span>
-                          <button
-                            onClick={() => setCalendarDateFilter('today')}
-                            className={`px-3 py-1.5 rounded-lg font-bold transition ${
-                              calendarDateFilter === 'today' ? 'bg-zinc-100 text-black hover:bg-white shadow' : 'text-zinc-400 hover:text-white'
-                            }`}
-                          >
-                             Hôm Nay ({allSheetEntries.filter(e => e.isToday).length})
-                          </button>
-                          <button
-                            onClick={() => setCalendarDateFilter('all')}
-                            className={`px-3 py-1.5 rounded-lg font-bold transition ${
-                              calendarDateFilter === 'all' ? 'bg-zinc-100 text-black hover:bg-white shadow' : 'text-zinc-400 hover:text-white'
-                            }`}
-                          >
-                             Tất Cả ({allSheetEntries.length})
-                          </button>
-                        </div>
-
-                        {/* Lọc theo mức độ ưu tiên */}
-                        <div className="flex items-center gap-1.5 bg-zinc-900/50 p-1 rounded-xl border border-zinc-800 text-xs">
-                          <span className="px-2 text-zinc-400 font-medium">Ưu Tiên:</span>
-                          <button
-                            onClick={() => setCalendarPriorityFilter('all')}
-                            className={`px-2.5 py-1 rounded-lg font-bold transition ${
-                              calendarPriorityFilter === 'all' ? 'bg-slate-700 text-white' : 'text-zinc-400 hover:text-white'
-                            }`}
-                          >
-                            Tất cả
-                          </button>
-                          <button
-                            onClick={() => setCalendarPriorityFilter('important')}
-                            className={`px-2.5 py-1 rounded-lg font-bold transition ${
-                              calendarPriorityFilter === 'important' ? 'bg-rose-600 text-white' : 'text-rose-400 hover:text-white'
-                            }`}
-                          >
-                             Quan Trọng
-                          </button>
-                          <button
-                            onClick={() => setCalendarPriorityFilter('daily')}
-                            className={`px-2.5 py-1 rounded-lg font-bold transition ${
-                              calendarPriorityFilter === 'daily' ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : 'text-emerald-400 hover:text-white'
-                            }`}
-                          >
-                             Hằng Ngày
-                          </button>
-                          <button
-                            onClick={() => setCalendarPriorityFilter('normal')}
-                            className={`px-2.5 py-1 rounded-lg font-bold transition ${
-                              calendarPriorityFilter === 'normal' ? 'bg-zinc-100 text-black hover:bg-white' : 'text-blue-400 hover:text-white'
-                            }`}
-                          >
-                             Bình Thường
-                          </button>
-                        </div>
-                      </div>
-
-                      {/* Ô Tìm Kiếm Từ Khóa */}
-                      <div className="w-full lg:w-64">
-                        <input
-                          type="text"
-                          placeholder=" Tìm bài tập / khung giờ..."
-                          value={calendarSearch}
-                          onChange={(e) => setCalendarSearch(e.target.value)}
-                          className="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-3.5 py-2 text-xs text-slate-100 placeholder-slate-500 outline-none focus:border-indigo-500"
-                        />
-                      </div>
-                    </div>
-
-                    {/* RENDER CUSTOM DATA TABLE */}
-                    <div className="overflow-x-auto rounded-2xl border border-zinc-800 shadow">
-                      <table className="w-full text-left text-xs">
-                        <thead>
-                          <tr className="border-b border-zinc-800 text-zinc-400 font-mono text-[11px] uppercase tracking-wider bg-zinc-900/50">
-                            <th className="p-3.5">Ngày</th>
-                            <th className="p-3.5">Buổi / Khung Giờ</th>
-                            <th className="p-3.5">Nội Dung Công Việc / Bài Tập</th>
-                            <th className="p-3.5">Độ Ưu Tiên / Nhãn</th>
-                          </tr>
-                        </thead>
-                        <tbody className="divide-y divide-slate-800/60 bg-zinc-900/50/50">
-                          {filteredEntries.length === 0 ? (
-                            <tr>
-                              <td colSpan="4" className="text-center py-12 text-zinc-500">
-                                <span className="text-3xl block mb-2"></span>
-                                <span>Không tìm thấy bài tập nào khớp với bộ lọc.</span>
-                              </td>
-                            </tr>
-                          ) : (
-                            filteredEntries.map((item) => {
-                              const pLower = item.priority.toLowerCase()
-                              const isImportant = pLower.includes('quan trọng') || pLower.includes('high')
-                              const isDaily = pLower.includes('hằng ngày') || pLower.includes('thói quen')
-
-                              return (
-                                <tr key={item.id} className="hover:bg-zinc-900/50 transition">
-                                  <td className="p-3.5 font-mono text-zinc-300 font-semibold whitespace-nowrap">
-                                    <span className="px-2 py-0.5 bg-black rounded border border-zinc-800">
-                                      {item.date}
-                                    </span>
-                                  </td>
-
-                                  <td className="p-3.5 font-semibold text-blue-300 whitespace-nowrap">
-                                    <span className="px-2 py-0.5 bg-blue-500/10 rounded border border-indigo-500/20">
-                                      {item.sessionTime}
-                                    </span>
-                                  </td>
-
-                                  <td className="p-3.5 text-slate-100 font-medium leading-relaxed">
-                                    {item.content}
-                                  </td>
-
-                                  <td className="p-3.5 whitespace-nowrap">
-                                    {isImportant && (
-                                      <span className="px-2.5 py-1 rounded-full text-[11px] font-bold bg-rose-500/20 text-rose-300 border border-rose-500/30">
-                                         Quan Trọng
-                                      </span>
-                                    )}
-                                    {isDaily && (
-                                      <span className="px-2.5 py-1 rounded-full text-[11px] font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 border border-emerald-500/30">
-                                         Hằng Ngày
-                                      </span>
-                                    )}
-                                    {!isImportant && !isDaily && (
-                                      <span className="px-2.5 py-1 rounded-full text-[11px] font-bold bg-blue-500/20 text-blue-300 border border-indigo-500/30">
-                                         {item.priority || 'Bình thường'}
-                                      </span>
-                                    )}
-                                  </td>
-                                </tr>
-                              )
-                            })
-                          )}
-                        </tbody>
-                      </table>
-                    </div>
-                  </div>
-                </div>
-              )
-            })()}
-
-            {/* TAB: Chat 2 chiều */}
-            {activeTab === 'chat' && (
-              <div className={`${cardBgClass} border rounded-2xl p-5 max-w-3xl mx-auto shadow-2xl`}>
-                <div className="flex items-center justify-between border-b border-zinc-800 pb-3 mb-4">
-                  <div className="flex items-center gap-2">
-                    <span className="text-2xl"></span>
-                    <div>
-                      <h2 className="font-bold text-base">Cửa Sổ Trò Chuyện Trực Tiếp</h2>
-                      <p className="text-xs text-zinc-400">{isAdmin ? 'Đang nhắn với tư cách Admin' : `Đang nhắn với tư cách: ${userRole || 'Người xem'}`}</p>
-                    </div>
-                  </div>
-                </div>
-                <div className="h-96 overflow-y-auto space-y-3 p-4 bg-black border border-zinc-800 rounded-xl mb-4">
-                  {chatMessages.length === 0 ? (
-                    <div className="text-center text-slate-600 text-sm py-16">Chưa có tin nhắn nào. Gửi tin nhắn đầu tiên bên dưới!</div>
-                  ) : (
-                    chatMessages.map((msg, idx) => (
-                      <div key={msg.id || idx} className={`flex ${msg.sender === 'admin' ? 'justify-end' : 'justify-start'}`}>
-                        <div className={`max-w-xs md:max-w-md p-3.5 rounded-2xl text-sm ${
-                          msg.sender === 'admin' ? 'bg-zinc-100 text-black hover:bg-white rounded-br-none' : 'bg-zinc-900 text-zinc-200 border border-zinc-800 rounded-bl-none'
-                        }`}>
-                          <div className="text-[10px] font-bold opacity-80 mb-1">{msg.sender === 'admin' ? 'Anh/Chị Quản lý' : msg.sender}</div>
-                          <div className="leading-relaxed break-words">{msg.message}</div>
-                          <div className="text-[9px] opacity-60 text-right mt-1.5">{formatTime(msg.created_at)}</div>
-                        </div>
-                      </div>
-                    ))
-                  )}
-                </div>
-                <form
-                  onSubmit={(e) => {
-                    e.preventDefault()
-                    handleSendChatMsg(chatInput)
-                  }}
-                  className="flex gap-2"
-                >
-                  <input
-                    type="text"
-                    placeholder={isAdmin ? 'Nhập tin nhắn nhắn cho em trai...' : 'Gõ tin nhắn phản hồi...'}
-                    value={chatInput}
-                    onChange={(e) => setChatInput(e.target.value)}
-                    className="flex-grow bg-black border border-zinc-800 rounded-xl px-4 py-3 text-sm focus:border-indigo-500 outline-none"
-                  />
-                  <button type="submit" className="px-6 py-3 bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-xl text-sm transition">
-                    Gửi
-                  </button>
-                </form>
-              </div>
-            )}
-
-            {/* TAB: AI Phân Tích */}
-            {activeTab === 'ai_analysis' && (
-              <div className="bg-zinc-950 border border-zinc-800 rounded-2xl p-6 space-y-6">
-                <div className="flex items-center gap-3">
-                  <Bot className="w-5 h-5 text-zinc-100 stroke-[1.5]" />
-                  <div>
-                    <h2 className="text-sm font-mono font-bold text-zinc-100 uppercase tracking-wider">Báo Cáo Phân Tích Thói Quen Dùng Máy</h2>
-                    <p className="text-xs text-zinc-400">Tự động soi tên cửa sổ, ứng dụng và nội dung web để phân biệt Học tập vs Giải trí</p>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="p-5 rounded-2xl bg-zinc-900/40 border border-zinc-800">
-                    <div className="text-zinc-400 text-xs mb-1">Chỉ số tập trung dựa trên nội dung</div>
-                    <div className="text-3xl font-extrabold text-blue-400">{aiReport.score}</div>
-                    <div className="text-sm font-medium mt-2 text-zinc-300">{aiReport.ratio}</div>
-                  </div>
-                  <div className="p-5 rounded-2xl bg-zinc-900/40 border border-zinc-800">
-                    <div className="text-zinc-400 text-xs mb-1">Tổng quan phân tích</div>
-                    <div className="text-sm text-zinc-200 mt-2">{aiReport.summary}</div>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/20">
-                    <div className="font-bold text-xs text-emerald-400 mb-2"> Nội dung Học tập / AutoCAD / Bài tập:</div>
-                    {aiReport.studyWindows.length === 0 ? (
-                      <div className="text-xs text-zinc-500">Chưa phát hiện cửa sổ học tập nào gần đây.</div>
-                    ) : (
-                      <div className="space-y-1 max-h-40 overflow-y-auto text-xs text-zinc-300">
-                        {aiReport.studyWindows.map((w, idx) => (
-                          <div key={idx} className="truncate">• {w}</div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-
-                  <div className="p-4 rounded-xl bg-amber-500/10 border border-amber-500/20">
-                    <div className="font-bold text-xs text-zinc-200 mb-2"> Nội dung Giải trí / Youtube / Game / Pick:</div>
-                    {aiReport.playWindows.length === 0 ? (
-                      <div className="text-xs text-zinc-500">Chưa phát hiện nội dung giải trí nào gần đây.</div>
-                    ) : (
-                      <div className="space-y-1 max-h-40 overflow-y-auto text-xs text-zinc-300">
-                        {aiReport.playWindows.map((w, idx) => (
-                          <div key={idx} className="truncate">• {w}</div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* TAB GỘP "QUÁ TRÌNH SỬ DỤNG" (CHIA LÀM 2 LỰA CHỌN:  ỨNG DỤNG & QUY TẮC +  LỊCH SỬ DUYỆT WEB DẠNG TIMELINE CHROME HAS BULK DELETE) */}
-            {activeTab === 'app_usage' && (
-              <div className={`${cardBgClass} border rounded-2xl p-6 space-y-6`}>
-                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-zinc-800 pb-4">
-                  <div>
-                    <h2 className="font-bold text-lg flex items-center gap-2">
-                      <span></span> Quá Trình Sử Dụng (App & Web)
-                    </h2>
-                    <p className="text-xs text-zinc-400 mt-1">Theo dõi thời gian dùng app, cài đặt cấm/giới hạn và xem lịch sử duyệt web dạng timeline.</p>
-                  </div>
-
-                    {/* TOGGLE 4 CHẾ ĐỘ XEM TRONG QUÁ TRÌNH SỬ DỤNG */}
-                    <div className="flex flex-wrap bg-black p-1 rounded-xl border border-zinc-800 text-xs gap-1">
-                      <button
-                        onClick={() => setUsageSubTab('apps')}
-                        className={`px-3.5 py-2 rounded-lg font-semibold transition ${
-                          usageSubTab === 'apps' ? 'bg-zinc-100 text-black hover:bg-white shadow' : 'text-zinc-400 hover:text-white'
-                        }`}
-                      >
-                         App & Quy Tắc
-                      </button>
-                      <button
-                        onClick={() => setUsageSubTab('history')}
-                        className={`px-3.5 py-2 rounded-lg font-semibold transition ${
-                          usageSubTab === 'history' ? 'bg-zinc-100 text-black hover:bg-white shadow' : 'text-zinc-400 hover:text-white'
-                        }`}
-                      >
-                         Web & Quy Tắc
-                      </button>
-                      <button
-                        onClick={() => setUsageSubTab('log')}
-                        className={`px-3.5 py-2 rounded-lg font-semibold transition ${
-                          usageSubTab === 'log' ? 'bg-green-600 text-white shadow' : 'text-zinc-400 hover:text-white'
-                        }`}
-                      >
-                         Log File ({totalLogFileCount})
-                      </button>
-                      <button
-                        onClick={() => setUsageSubTab('black_list')}
-                        className={`px-3.5 py-2 rounded-lg font-semibold transition ${
-                          usageSubTab === 'black_list' ? 'bg-amber-500/10 text-zinc-200 border border-amber-500/20 shadow' : 'text-zinc-400 hover:text-white'
-                        }`}
-                      >
-                         Black List ({webRules.length + appRules.length})
-                      </button>
-                      <button
-                        onClick={() => setUsageSubTab('schedule')}
-                        className={`px-3.5 py-2 rounded-lg font-semibold transition ${
-                          usageSubTab === 'schedule' ? 'bg-zinc-100 text-black hover:bg-white shadow' : 'text-zinc-400 hover:text-white'
-                        }`}
-                      >
-                         Khung Giờ
-                      </button>
-                    </div>
-                </div>
-
-                {/* Task 6: Date picker xem lịch sử web và app */}
-                <div className="p-3.5 bg-zinc-900/50 border border-zinc-800 rounded-2xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs shadow-inner">
-                  <div className="flex flex-col sm:flex-row sm:items-center gap-3">
-                    <div className="flex items-center gap-2">
-                      <span className="font-bold text-zinc-300"> Xem Lịch Sử Ngày:</span>
-                      <select
-                        value={historyDate}
-                        onChange={(e) => loadHistoryForDate(e.target.value)}
-                        className="bg-zinc-900 border border-zinc-800 rounded-xl px-3.5 py-1.5 font-bold text-blue-300 outline-none cursor-pointer focus:border-indigo-500 shadow"
-                      >
-                        <option value={new Date().toISOString().split('T')[0]}>Hôm nay (Mặc định)</option>
-                        {availableDates
-                          .filter(d => d !== new Date().toISOString().split('T')[0])
-                          .map(d => (
-                            <option key={d} value={d}>{d}</option>
-                          ))
-                        }
-                      </select>
-                    </div>
-                  </div>
-
-                  {isAdmin && (
-                    <button
-                      onClick={() => openDeleteDateModal(historyDate)}
-                      className="px-3.5 py-1.5 bg-red-500/10 hover:bg-rose-500/10 text-rose-400 border border-rose-500/20 hover:text-red-300 border border-red-500/30 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition ml-auto shadow"
-                    >
-                      <span>️</span> Xóa Dữ Liệu Ngày {historyDate}
-                    </button>
-                  )}
-                </div>
-
-                {/* SUB-TAB 1:  ỨNG DỤNG (RÚT GỌN CHỈ CÒN THỐNG KÊ) */}
-                {usageSubTab === 'apps' && (
-                  <div className="space-y-6">
-                    {/* BẢNG TỔNG QUAN THỜI GIAN SỬ DỤNG VÀ QUY TẮC APP HÔM NAY */}
-                    <div className="space-y-3">
-                      <div className="flex items-center justify-between border-b border-zinc-800 pb-2">
-                        <h3 className="font-bold text-sm text-blue-400 flex items-center gap-2">
-                          <span></span> Bảng Tổng Quan Quy Tắc & Thời Gian Dùng App Hôm Nay
-                        </h3>
-                        <div className="flex items-center gap-3">
-                          {/* Task 6: Nút ẩn ứng dụng không hoạt động */}
-                          <label className="flex items-center gap-1.5 cursor-pointer text-xs text-zinc-400 select-none">
-                            <input
-                              type="checkbox"
-                              checked={hideUnusedApps}
-                              onChange={(e) => setHideUnusedApps(e.target.checked)}
-                              className="w-3.5 h-3.5 text-blue-600 rounded"
-                            />
-                            Ẩn app không hoạt động
-                          </label>
-                          <span className="text-xs text-zinc-400">{mergedAppsList.length} ứng dụng</span>
-                        </div>
-                      </div>
-
-                      {mergedAppsList.length === 0 ? (
-                        <div className="text-zinc-500 text-sm py-4 text-center">Chưa có ứng dụng nào trong danh sách.</div>
-                      ) : (
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                          {mergedAppsList.map(app => (
-                            <div key={app.process_name} className="p-3.5 rounded-xl bg-zinc-900/50 border border-zinc-800 flex items-center justify-between gap-3 text-xs">
-                              <div>
-                                <div className="font-bold text-blue-300 text-sm flex items-center gap-1.5">
-                                  <span></span>
-                                  <span>{app.process_name}</span>
-                                </div>
-                                <div className="text-zinc-400 mt-0.5">
-                                  Đã dùng hôm nay: <strong className="text-white font-mono">{app.used_minutes} phút</strong>
-                                </div>
-                              </div>
-
-                              <div className="flex items-center gap-2">
-                                {isAdmin ? (
-                                  <>
-                                    <select
-                                      value={app.category}
-                                      onChange={(e) => {
-                                        if (app.rule_id) updateAppRule(app.rule_id, 'category', e.target.value)
-                                        else supabase.from('app_rules').insert({ device_name: DEVICE_NAME, process_name: app.process_name, category: e.target.value }).then(() => loadData(false))
-                                      }}
-                                      className="bg-zinc-900 border border-zinc-800 rounded-lg px-2.5 py-1 text-xs font-semibold outline-none focus:border-indigo-500"
-                                    >
-                                      <option value="allowed">Cho phép</option>
-                                      <option value="limited">Giới hạn</option>
-                                      <option value="forbidden">Cấm hẳn</option>
-                                    </select>
-
-                                    {app.category === 'limited' && (
-                                      <div className="flex items-center gap-1">
-                                        <input
-                                          type="number"
-                                          value={app.max_minutes_per_day}
-                                          onChange={(e) => {
-                                            const val = parseInt(e.target.value) || 0
-                                            if (app.rule_id) updateAppRule(app.rule_id, 'max_minutes_per_day', val)
-                                            else supabase.from('app_rules').insert({ device_name: DEVICE_NAME, process_name: app.process_name, category: 'limited', max_minutes_per_day: val }).then(() => loadData(false))
-                                          }}
-                                          className="w-14 bg-zinc-900/50 border border-zinc-800 rounded-lg px-1.5 py-0.5 text-xs text-center font-bold text-zinc-200 outline-none"
-                                        />
-                                        <span className="text-[11px] text-zinc-200">p</span>
-                                      </div>
-                                    )}
-                                  </>
-                                ) : (
-                                  <span className={`px-2.5 py-0.5 rounded-full text-[11px] font-semibold ${
-                                    app.category === 'forbidden' ? 'bg-rose-500/10 text-rose-400 border border-rose-500/20' :
-                                    app.category === 'limited' ? 'bg-amber-500/20 text-zinc-200' : 'bg-emerald-500/20 text-emerald-400'
-                                  }`}>
-                                    {app.category === 'forbidden' ? ' Cấm' : app.category === 'limited' ? `⏱ ${app.max_minutes_per_day}p/ngày` : ' Cho phép'}
-                                  </span>
-                                )}
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                )}
-
-                {/* SUB-TAB 2:  WEB & THỜI GIAN SỬ DỤNG */}
-                {usageSubTab === 'history' && (
-                  <div className="space-y-6">
-                    <div className="space-y-3">
-                      <div className="flex items-center justify-between border-b border-zinc-800 pb-2">
-                        <h3 className="font-bold text-sm text-blue-400 flex items-center gap-2">
-                          <span></span> Bảng Tổng Quan Quy Tắc & Thời Gian Lướt Web
-                        </h3>
-                        <div className="flex items-center gap-3">
-                          <label className="flex items-center gap-1.5 cursor-pointer text-xs text-zinc-400 select-none">
-                            <input
-                              type="checkbox"
-                              checked={hideUnusedApps}
-                              onChange={(e) => setHideUnusedApps(e.target.checked)}
-                              className="w-3.5 h-3.5 text-blue-600 rounded"
-                            />
-                            Ẩn Web 0 phút
-                          </label>
-                          <span className="text-xs text-zinc-400">{mergedWebsList.length} trang web</span>
-                        </div>
-                      </div>
-
-                      {mergedWebsList.length === 0 ? (
-                        <div className="text-zinc-500 text-sm py-4 text-center">Chưa có trang web nào được ghi nhận sử dụng.</div>
-                      ) : (
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                          {mergedWebsList.map(web => (
-                            <div key={web.domain} className="p-3.5 rounded-xl bg-zinc-900/50 border border-zinc-800 flex items-center justify-between gap-3 text-xs">
-                              <div>
-                                <div className="font-bold text-blue-300 text-sm flex items-center gap-1.5">
-                                  <span></span>
-                                  <span>{web.domain}</span>
-                                </div>
-                                <div className="text-zinc-400 mt-0.5">
-                                  Thời gian truy cập: <strong className="text-white font-mono">{web.used_minutes} phút</strong>
-                                </div>
-                              </div>
-
-                              <div className="flex items-center gap-2">
-                                {isAdmin ? (
-                                  <>
-                                    <select
-                                      value={web.category}
-                                      onChange={(e) => {
-                                        if (web.rule_id) updateWebRule(web.rule_id, 'category', e.target.value)
-                                        else supabase.from('web_rules').insert({ device_name: DEVICE_NAME, domain: web.domain, category: e.target.value }).then(() => loadData(false))
-                                      }}
-                                      className="bg-zinc-900 border border-zinc-800 rounded-lg px-2.5 py-1 text-xs font-semibold outline-none focus:border-indigo-500"
-                                    >
-                                      <option value="allowed">Cho phép</option>
-                                      <option value="limited">Giới hạn</option>
-                                      <option value="forbidden">Cấm hẳn</option>
-                                    </select>
-
-                                    {web.category === 'limited' && (
-                                      <div className="flex items-center gap-1">
-                                        <input
-                                          type="number"
-                                          value={web.max_minutes_per_day}
-                                          onChange={(e) => {
-                                            const val = parseInt(e.target.value) || 0
-                                            if (web.rule_id) updateWebRule(web.rule_id, 'max_minutes_per_day', val)
-                                            else supabase.from('web_rules').insert({ device_name: DEVICE_NAME, domain: web.domain, category: 'limited', max_minutes_per_day: val }).then(() => loadData(false))
-                                          }}
-                                          className="w-14 bg-zinc-900/50 border border-zinc-800 rounded-lg px-1.5 py-0.5 text-xs text-center font-bold text-zinc-200 outline-none"
-                                        />
-                                        <span className="text-[11px] text-zinc-200">p</span>
-                                      </div>
-                                    )}
-                                  </>
-                                ) : (
-                                  <span className={`px-2.5 py-0.5 rounded-full text-[11px] font-semibold ${
-                                    web.category === 'forbidden' ? 'bg-rose-500/10 text-rose-400 border border-rose-500/20' :
-                                    web.category === 'limited' ? 'bg-amber-500/20 text-zinc-200' : 'bg-emerald-500/20 text-emerald-400'
-                                  }`}>
-                                    {web.category === 'forbidden' ? ' Cấm' : web.category === 'limited' ? `⏱ ${web.max_minutes_per_day}p/ngày` : ' Cho phép'}
-                                  </span>
-                                )}
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                )}
-
-                {/* SUB-TAB 3:  LOG FILE VIEWER */}
-                {usageSubTab === 'log' && (
-                  <div className="space-y-4">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <h3 className="font-bold text-base flex items-center gap-2 text-green-400">
-                          <span></span> System Log Viewer
-                        </h3>
-                        <p className="text-xs text-zinc-400 mt-0.5">
-                          Chi tiết các sự kiện mở App và truy cập Web theo dạng Console Log.
-                        </p>
-                      </div>
-                    </div>
-
-                    <div className="bg-black border border-zinc-800 rounded-xl p-4 font-mono text-[11px] h-[500px] overflow-y-auto custom-scrollbar shadow-inner text-zinc-300">
-                      {Object.keys(groupedLogFile).length === 0 ? (
-                        <div className="text-zinc-500 italic">No logs found for {historyDate}.</div>
-                      ) : (
-                        Object.entries(groupedLogFile).map(([dateLabel, logs]) => (
-                          <div key={dateLabel} className="mb-6">
-                            <div className="text-green-500 font-bold mb-2 sticky top-0 bg-black py-1 border-b border-zinc-800/50">
-                              [{dateLabel}]
-                            </div>
-                            <div className="space-y-1 pl-2">
-                              {logs.map((log, idx) => (
-                                <div key={idx} className="flex gap-3 hover:bg-white/5 px-1 py-0.5 rounded transition">
-                                  <span className="text-zinc-500 flex-shrink-0 w-16">{log.displayTime}</span>
-                                  <span className={`flex-shrink-0 w-10 font-bold ${log.type === 'WEB' ? 'text-blue-400' : 'text-zinc-300'}`}>
-                                    [{log.type}]
-                                  </span>
-                                  <span className="text-amber-200/80 font-semibold flex-shrink-0 max-w-[120px] truncate">
-                                    {log.domain}
-                                  </span>
-                                  <span className="text-zinc-300 truncate">
-                                    {log.title}
-                                  </span>
-                                  {log.count > 1 && (
-                                    <span className="text-zinc-500 text-[10px] ml-auto">
-                                      (x{log.count})
-                                    </span>
-                                  )}
-                                </div>
-                              ))}
-                            </div>
-                          </div>
-                        ))
-                      )}
-                    </div>
-                  </div>
-                )}
-
-                {/* SUB-TAB 3:  BLACK LIST (QUẢN LÝ RIÊNG APP VÀ TRANG WEB BỊ GIỚI HẠN VÀ CẤM) */}
-                {usageSubTab === 'black_list' && (
-                  <div className="space-y-6">
-                    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-zinc-800 pb-4">
-                      <div>
-                        <h3 className="font-bold text-base flex items-center gap-2 text-zinc-200">
-                          <span></span> Danh Sách Black List (App & Website Bị Cấm / Giới Hạn)
-                        </h3>
-                        <p className="text-xs text-zinc-400 mt-1">
-                          Quản lý riêng tất cả ứng dụng (.exe) và trang web (domain) bị cấm hoặc giới hạn thời gian truy cập.
-                        </p>
-                      </div>
-
-                      {isAdmin && (
-                        <button
-                          onClick={() => setShowAddBlackListModal(true)}
-                          className="px-4 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-xl text-xs transition shadow-lg flex items-center gap-1.5"
-                        >
-                          <span>+</span>
-                          <span>Thêm App / Web Mới</span>
-                        </button>
-                      )}
-                    </div>
-
-                    {/* SUB TOGGLE WEB BLACK LIST VS APP BLACK LIST */}
-                    <div className="flex bg-black p-1 rounded-xl border border-zinc-800 text-xs w-fit">
-                      <button
-                        onClick={() => setBlackListSubTab('web')}
-                        className={`px-4 py-2 rounded-lg font-semibold transition ${
-                          blackListSubTab === 'web' ? 'bg-zinc-100 text-black hover:bg-white' : 'text-zinc-400 hover:text-white'
-                        }`}
-                      >
-                         Web Black List ({webRules.length})
-                      </button>
-                      <button
-                        onClick={() => setBlackListSubTab('app')}
-                        className={`px-4 py-2 rounded-lg font-semibold transition ${
-                          blackListSubTab === 'app' ? 'bg-zinc-100 text-black hover:bg-white' : 'text-zinc-400 hover:text-white'
-                        }`}
-                      >
-                         App Black List ({appRules.length})
-                      </button>
-                    </div>
-
-                    {/* DANH SÁCH WEB BLACK LIST */}
-                    {blackListSubTab === 'web' && (
-                      <div className="space-y-3">
-                        {webRules.length === 0 ? (
-                          <div className="text-center text-zinc-500 py-16 text-sm">
-                            Chưa có trang web nào trong Black List. Bấm "+ Thêm App / Web Mới" ở trên để tạo quy tắc cấm/giới hạn web.
-                          </div>
-                        ) : (
-                          webRules.map(rule => {
-                            const usedToday = webUsage.find(u => u.domain === rule.domain)?.used_minutes || 0
-
-                            return (
-                              <div key={rule.id} className="p-4 rounded-xl bg-zinc-900/50 border border-zinc-800 flex flex-col md:flex-row md:items-center justify-between gap-4">
-                                <div className="space-y-1">
-                                  <div className="font-bold text-amber-300 text-base flex items-center gap-2">
-                                    <span> {rule.domain}</span>
-                                    <span className={`px-2.5 py-0.5 rounded-full text-xs font-semibold ${
-                                      rule.category === 'forbidden' ? 'bg-rose-500/10 text-rose-400 border border-rose-500/20' :
-                                      rule.category === 'limited' ? 'bg-amber-500/20 text-zinc-200' : 'bg-emerald-500/20 text-emerald-400'
-                                    }`}>
-                                      {rule.category === 'forbidden' ? ' Cấm hẳn' : rule.category === 'limited' ? `⏱ Giới hạn ${rule.max_minutes_per_day} phút/ngày` : ' Cho phép'}
-                                    </span>
-                                  </div>
-                                  <div className="text-xs text-zinc-400">
-                                    Đã dùng hôm nay: <strong className="text-white font-mono text-sm">{usedToday} phút</strong>
-                                  </div>
-                                </div>
-
-                                <div className="flex flex-wrap items-center gap-3">
-                                  {isAdmin ? (
-                                    <>
-                                      <select
-                                        value={rule.category}
-                                        onChange={(e) => updateWebRule(rule.id, 'category', e.target.value)}
-                                        className="bg-zinc-900 border border-zinc-800 rounded-xl px-3 py-1.5 text-xs font-semibold text-blue-300 outline-none focus:border-indigo-500"
-                                      >
-                                        <option value="forbidden"> Cấm hẳn</option>
-                                        <option value="limited">⏱ Giới hạn</option>
-                                        <option value="allowed"> Cho phép</option>
-                                      </select>
-
-                                      {rule.category === 'limited' && (
-                                        <div className="flex items-center gap-1.5">
-                                          <span className="text-xs text-zinc-200 font-semibold">tối đa :</span>
-                                          <input
-                                            type="number"
-                                            value={rule.max_minutes_per_day}
-                                            onChange={(e) => updateWebRule(rule.id, 'max_minutes_per_day', parseInt(e.target.value) || 0)}
-                                            className="w-16 bg-zinc-900/50 border border-zinc-800 rounded-xl px-2 py-1 text-xs text-center font-bold text-zinc-200 outline-none"
-                                          />
-                                          <span className="text-xs text-zinc-200 font-semibold">phút/ngày</span>
-                                        </div>
-                                      )}
-
-                                      <button
-                                        onClick={() => deleteWebRule(rule.id)}
-                                        className="text-xs text-red-400 hover:text-red-300 px-3 py-1.5 rounded-xl hover:bg-red-500/10 transition border border-red-500/20 font-semibold"
-                                      >
-                                        ️ Xóa
-                                      </button>
-                                    </>
-                                  ) : (
-                                    <span className="text-xs text-zinc-400 font-mono">ID: {rule.id?.slice(0, 8)}</span>
-                                  )}
-                                </div>
-                              </div>
-                            )
-                          })
-                        )}
-                      </div>
-                    )}
-
-                    {/* DANH SÁCH APP BLACK LIST */}
-                    {blackListSubTab === 'app' && (
-                      <div className="space-y-3">
-                        {appRules.length === 0 ? (
-                          <div className="text-center text-zinc-500 py-16 text-sm">
-                            Chưa có ứng dụng nào trong Black List. Bấm "+ Thêm App / Web Mới" ở trên để chọn cấm/giới hạn app.
-                          </div>
-                        ) : (
-                          appRules.map(rule => {
-                            const usedToday = appUsage.find(u => u.process_name?.toLowerCase() === rule.process_name?.toLowerCase())?.used_minutes || 0
-
-                            return (
-                              <div key={rule.id} className="p-4 rounded-xl bg-zinc-900/50 border border-zinc-800 flex flex-col md:flex-row md:items-center justify-between gap-4">
-                                <div className="space-y-1">
-                                  <div className="font-bold text-blue-400 text-base flex items-center gap-2">
-                                    <span> {rule.process_name}</span>
-                                    <span className={`px-2.5 py-0.5 rounded-full text-xs font-semibold ${
-                                      rule.category === 'forbidden' ? 'bg-rose-500/10 text-rose-400 border border-rose-500/20' :
-                                      rule.category === 'limited' ? 'bg-amber-500/20 text-zinc-200' : 'bg-emerald-500/20 text-emerald-400'
-                                    }`}>
-                                      {rule.category === 'forbidden' ? ' Cấm hẳn' : rule.category === 'limited' ? `⏱ Giới hạn ${rule.max_minutes_per_day} phút/ngày` : ' Cho phép'}
-                                    </span>
-                                  </div>
-                                  <div className="text-xs text-zinc-400">
-                                    Đã dùng hôm nay: <strong className="text-white font-mono text-sm">{usedToday} phút</strong>
-                                  </div>
-                                </div>
-
-                                <div className="flex flex-wrap items-center gap-3">
-                                  {isAdmin ? (
-                                    <>
-                                      <select
-                                        value={rule.category}
-                                        onChange={(e) => updateAppRule(rule.id, 'category', e.target.value)}
-                                        className="bg-zinc-900 border border-zinc-800 rounded-xl px-3 py-1.5 text-xs font-semibold text-blue-300 outline-none focus:border-indigo-500"
-                                      >
-                                        <option value="forbidden"> Cấm hẳn</option>
-                                        <option value="limited">⏱ Giới hạn</option>
-                                        <option value="allowed"> Cho phép</option>
-                                      </select>
-
-                                      {rule.category === 'limited' && (
-                                        <div className="flex items-center gap-1.5">
-                                          <span className="text-xs text-zinc-200 font-semibold">tối đa :</span>
-                                          <input
-                                            type="number"
-                                            value={rule.max_minutes_per_day}
-                                            onChange={(e) => updateAppRule(rule.id, 'max_minutes_per_day', parseInt(e.target.value) || 0)}
-                                            className="w-16 bg-zinc-900/50 border border-zinc-800 rounded-xl px-2 py-1 text-xs text-center font-bold text-zinc-200 outline-none"
-                                          />
-                                          <span className="text-xs text-zinc-200 font-semibold">phút/ngày</span>
-                                        </div>
-                                      )}
-
-                                      <button
-                                        onClick={() => deleteAppRule(rule.id)}
-                                        className="text-xs text-red-400 hover:text-red-300 px-3 py-1.5 rounded-xl hover:bg-red-500/10 transition border border-red-500/20 font-semibold"
-                                      >
-                                        ️ Xóa
-                                      </button>
-                                    </>
-                                  ) : (
-                                    <span className="text-xs text-zinc-400 font-mono">ID: {rule.id?.slice(0, 8)}</span>
-                                  )}
-                                </div>
-                              </div>
-                            )
-                          })
-                        )}
-                      </div>
-                    )}
-                  </div>
-                )}
-
-                {/* SUB-TAB 4:  KHUNG GIỜ CHO PHÉP SỬ DỤNG MÁY TÍNH (REFACTORED UI/UX) */}
-                {usageSubTab === 'schedule' && (
-                  <div className="space-y-5">
-                    {/* THANH CÔNG CỤ ĐẦU TAB - KHÔNG KHOẢNG TRẮNG THỪA */}
-                    <div className="p-4 bg-zinc-900/50 border border-zinc-800 rounded-2xl flex flex-col md:flex-row items-start md:items-center justify-between gap-4 shadow-lg">
-                      <div className="space-y-1">
-                        <div className="flex items-center gap-2">
-                          <span className="text-xl"></span>
-                          <h3 className="font-bold text-base text-slate-100">Cấu Hình Khung Giờ Cho Phép Sử Dụng</h3>
-                        </div>
-                        <p className="text-xs text-zinc-400">Thiết lập khoảng giờ hoặc tổng thời gian tối đa mỗi ngày cho em trai.</p>
-                      </div>
-
-                      {/* MASTER TOGGLE SWITCH & MODE SELECTOR */}
-                      <div className="flex flex-wrap items-center gap-3 w-full md:w-auto">
-                        {/* Master Switch */}
-                        {isAdmin && (
-                          <button
-                            onClick={handleToggleMasterTimeLimit}
-                            className={`px-4 py-2 rounded-xl text-xs font-bold transition border flex items-center gap-2 shadow ${
-                              isMasterTimeLimitActive
-                                ? 'bg-emerald-600 hover:bg-emerald-500 text-white border-emerald-500 shadow-emerald-600/20'
-                                : 'bg-zinc-900 hover:bg-slate-700 text-zinc-400 border-zinc-800'
-                            }`}
-                          >
-                            <span>{isMasterTimeLimitActive ? ' Giới Hạn: ĐANG BẬT' : ' Giới Hạn: ĐÃ TẮT'}</span>
-                          </button>
-                        )}
-
-                        {/* Mode Radio Buttons */}
-                        {isAdmin && (
-                          <div className="flex bg-zinc-900/50 p-1 rounded-xl border border-zinc-800 text-xs">
-                            <button
-                              onClick={() => handleChangeTimeLimitMode('time_frame')}
-                              className={`px-3.5 py-1.5 rounded-lg font-bold transition ${
-                                timeLimitMode === 'time_frame' ? 'bg-zinc-100 text-black hover:bg-white shadow' : 'text-zinc-400 hover:text-white'
-                              }`}
-                            >
-                              ⏰ Theo Khung Giờ
-                            </button>
-                            <button
-                              onClick={() => handleChangeTimeLimitMode('max_daily')}
-                              className={`px-3.5 py-1.5 rounded-lg font-bold transition ${
-                                timeLimitMode === 'max_daily' ? 'bg-zinc-100 text-black hover:bg-white shadow' : 'text-zinc-400 hover:text-white'
-                              }`}
-                            >
-                              ⏱️ Theo Tổng Giờ/Ngày
-                            </button>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-
-                    {/* TRƯỜNG HỢP 1: THỜI GIAN THEO KHUNG GIỜ (time_frame) */}
-                    {timeLimitMode === 'time_frame' && (
-                      <div className="space-y-4">
-                        <div className="p-3 bg-blue-500/10 border border-indigo-500/20 rounded-xl text-xs text-blue-300 flex items-center gap-2">
-                          <span>ℹ️</span>
-                          <span>Chế độ <strong>Theo Khung Giờ</strong>: Em trai chỉ được phép dùng máy tính trong khoảng giờ được thiết lập bên dưới. Ngoài khoảng giờ này máy sẽ tự khóa.</span>
-                        </div>
-
-                        <div className="grid grid-cols-1 gap-4">
-                          {timeRules.map(rule => (
-                            <div key={rule.id} className="p-4 rounded-2xl bg-zinc-900/50 border border-zinc-800 space-y-3 hover:border-zinc-800 transition shadow">
-                              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-zinc-800 pb-3">
-                                <div className="flex items-center gap-2.5">
-                                  <span className="w-8 h-8 rounded-xl bg-blue-500/10 border border-indigo-500/20 text-blue-400 font-bold flex items-center justify-center text-xs">
-                                    {rule.day_of_week === 6 ? 'CN' : `T${rule.day_of_week + 2}`}
-                                  </span>
-                                  <span className="font-bold text-sm text-zinc-200">{dayNames[rule.day_of_week]}</span>
-                                </div>
-
-                                {isAdmin ? (
-                                  <div className="flex flex-wrap items-center gap-3">
-                                    <div className="flex items-center gap-2">
-                                      <span className="text-xs text-zinc-400 font-medium">Bắt đầu:</span>
-                                      <input
-                                        type="time"
-                                        value={rule.start_time?.slice(0, 5)}
-                                        onChange={(e) => updateTimeRule(rule.id, 'start_time', e.target.value + ':00')}
-                                        className="bg-zinc-900 border border-zinc-800 rounded-xl px-3 py-1.5 text-xs font-bold text-emerald-400 outline-none focus:border-indigo-500 shadow"
-                                      />
-                                      <span className="text-zinc-500">→</span>
-                                      <span className="text-xs text-zinc-400 font-medium font-mono">Kết thúc:</span>
-                                      <input
-                                        type="time"
-                                        value={rule.end_time?.slice(0, 5)}
-                                        onChange={(e) => updateTimeRule(rule.id, 'end_time', e.target.value + ':00')}
-                                        className="bg-zinc-900 border border-zinc-800 rounded-xl px-3 py-1.5 text-xs font-bold text-emerald-400 outline-none focus:border-indigo-500 shadow"
-                                      />
-                                    </div>
-
-                                    <button
-                                      onClick={() => updateTimeRule(rule.id, 'is_active', !rule.is_active)}
-                                      className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition ${
-                                        rule.is_active ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : 'bg-zinc-900 text-zinc-400 border border-zinc-800'
-                                      }`}
-                                    >
-                                      {rule.is_active ? 'Đang bật' : 'Đã tắt'}
-                                    </button>
-                                  </div>
-                                ) : (
-                                  <div className="flex items-center gap-3">
-                                    <span className="text-xs font-bold text-emerald-400 bg-emerald-500/10 px-3 py-1 rounded-lg border border-emerald-500/20">
-                                      {rule.start_time?.slice(0, 5)} → {rule.end_time?.slice(0, 5)}
-                                    </span>
-                                    <span className={`px-2.5 py-1 rounded-lg text-xs font-semibold ${
-                                      rule.is_active ? 'bg-emerald-500/15 text-emerald-400' : 'bg-zinc-900 text-zinc-400'
-                                    }`}>
-                                      {rule.is_active ? 'Đang bật' : 'Đã tắt'}
-                                    </span>
-                                  </div>
-                                )}
-                              </div>
-
-                              {/* Visual 24h Timeline Bar */}
-                              {render24hTimeline(rule)}
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-
-                    {/* TRƯỜNG HỢP 2: THỜI GIAN THEO TỔNG TỐI ĐA (max_daily) */}
-                    {timeLimitMode === 'max_daily' && (
-                      <div className="space-y-4">
-                        <div className="p-3 bg-zinc-400/10 border border-zinc-400/20 rounded-xl text-xs text-zinc-300 flex items-center gap-2">
-                          <span>ℹ️</span>
-                          <span>Chế độ <strong>Tổng Thời Gian Tối Đa</strong>: Em trai được dùng tổng cộng số giờ cài đặt trong ngày. Khi mở máy dùng tích lũy đủ số giờ này, máy sẽ tự khóa.</span>
-                        </div>
-
-                        <div className="grid grid-cols-1 gap-4">
-                          {timeRules.map(rule => {
-                            const hoursVal = rule.max_hours !== undefined && rule.max_hours !== null ? rule.max_hours : 4
-                            const totalMinutes = Math.round(hoursVal * 60)
-
-                            return (
-                              <div key={rule.id} className="p-4 rounded-2xl bg-zinc-900/50 border border-zinc-800 space-y-3 hover:border-zinc-800 transition shadow">
-                                <div className="flex items-center justify-between border-b border-zinc-800 pb-3">
-                                  <div className="flex items-center gap-2.5">
-                                    <span className="w-8 h-8 rounded-xl bg-zinc-400/10 border border-zinc-400/20 text-zinc-300 font-bold flex items-center justify-center text-xs">
-                                      {rule.day_of_week === 6 ? 'CN' : `T${rule.day_of_week + 2}`}
-                                    </span>
-                                    <span className="font-bold text-sm text-zinc-200">{dayNames[rule.day_of_week]}</span>
-                                  </div>
-
-                                  <div className="flex items-center gap-3">
-                                    <span className="text-xs font-mono font-bold text-zinc-300 bg-zinc-400/15 border border-zinc-400/30 px-3 py-1 rounded-xl">
-                                      ⏱ {hoursVal} giờ/ngày ({totalMinutes} phút)
-                                    </span>
-
-                                    {isAdmin && (
-                                      <button
-                                        onClick={() => updateTimeRule(rule.id, 'is_active', !rule.is_active)}
-                                        className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition ${
-                                          rule.is_active ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : 'bg-zinc-900 text-zinc-400 border border-zinc-800'
-                                        }`}
-                                      >
-                                        {rule.is_active ? 'Đang bật' : 'Đã tắt'}
-                                      </button>
-                                    )}
-                                  </div>
-                                </div>
-
-                                {/* SLIDER KẾT HỢP INPUT NUMBER */}
-                                {isAdmin ? (
-                                  <div className="flex flex-col sm:flex-row items-center gap-4 pt-1">
-                                    <div className="flex-grow w-full flex items-center gap-3">
-                                      <span className="text-[11px] text-zinc-500 font-mono">0h</span>
-                                      <input
-                                        type="range"
-                                        min="0"
-                                        max="24"
-                                        step="0.5"
-                                        value={hoursVal}
-                                        onChange={(e) => updateTimeRule(rule.id, 'max_hours', parseFloat(e.target.value))}
-                                        className="flex-grow h-2 bg-zinc-900/50 rounded-lg appearance-none cursor-pointer accent-zinc-400"
-                                      />
-                                      <span className="text-[11px] text-zinc-500 font-mono">24h</span>
-                                    </div>
-
-                                    <div className="flex items-center gap-2 shrink-0">
-                                      <span className="text-xs text-zinc-400 font-medium">Số giờ:</span>
-                                      <input
-                                        type="number"
-                                        min="0"
-                                        max="24"
-                                        step="0.5"
-                                        value={hoursVal}
-                                        onChange={(e) => updateTimeRule(rule.id, 'max_hours', parseFloat(e.target.value) || 0)}
-                                        className="w-20 bg-zinc-900 border border-zinc-800 rounded-xl px-3 py-1.5 text-xs text-center font-bold text-zinc-300 outline-none focus:border-zinc-400"
-                                      />
-                                      <span className="text-xs text-zinc-400">giờ</span>
-                                    </div>
-                                  </div>
-                                ) : (
-                                  <div className="text-xs text-zinc-400">
-                                    Thời gian tối đa được phép dùng máy: <strong className="text-white font-mono">{hoursVal} tiếng</strong> ({totalMinutes} phút).
-                                  </div>
-                                )}
-                              </div>
-                            )
-                          })}
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                )}
-              </div>
-            )}
-
-            {/* TAB:  ẢNH CHỤP MÀN HÌNH (CHỈ ADMIN XEM, SẮP XẾP THEO NGÀY & XÓA NHIỀU ẢNH) */}
-            {activeTab === 'screenshots' && isAdmin && (
-              <div className="space-y-6">
-                <div className={`${cardBgClass} border rounded-2xl p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4`}>
-                  <div>
-                    <h2 className="font-bold text-lg flex items-center gap-2">
-                      <span></span> Ảnh Chụp Màn Hình (Quyền Riêng Admin)
-                    </h2>
-                    <p className="text-xs text-zinc-400 mt-1">Đã tự động nhóm theo ngày. Tích chọn để xóa nhiều ảnh cùng lúc.</p>
-                  </div>
-
-                  {selectedScreenshotIds.length > 0 && (
-                    <button
-                      onClick={handleBulkDeleteScreenshots}
-                      disabled={bulkDeleting}
-                      className="px-4 py-2 bg-red-600 hover:bg-red-500 text-white font-bold rounded-xl text-xs flex items-center gap-2 transition disabled:opacity-50"
-                    >
-                      {bulkDeleting ? '⏳ Đang xóa...' : `️ Xóa ${selectedScreenshotIds.length} ảnh đã chọn`}
-                    </button>
-                  )}
-                </div>
-
-                {/* KHUNG CỐ ĐỊNH:  ẢNH VỪA CHỤP NGAY TỨC THÌ (INSTANT PREVIEW CONTAINER) */}
-                <div className={`${cardBgClass} border border-indigo-500/40 rounded-2xl p-5 space-y-4 bg-gradient-to-r from-blue-950/30 to-slate-900 shadow-2xl`}>
-                  <div className="flex items-center justify-between border-b border-indigo-500/20 pb-3">
-                    <div className="flex items-center gap-2">
-                      <span className="w-3 h-3 rounded-full bg-emerald-400 animate-ping"></span>
-                      <h3 className="font-bold text-base text-blue-300 flex items-center gap-2">
-                         Khung Xem Nhanh Ảnh Chụp Màn Hình Ngay Tức Thì
-                      </h3>
-                      <span className="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 border border-emerald-500/30 uppercase tracking-wider">
-                        Mới Nhất
-                      </span>
-                    </div>
-                    <button
-                      onClick={sendInstantScreenshot}
-                      disabled={cmdSending}
-                      className="px-3.5 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-xl text-xs transition disabled:opacity-50 flex items-center gap-1.5 shadow"
-                    >
-                      {cmdSending ? '⏳ Đang chụp...' : ' Chụp Mới Ngay Tức Thì'}
-                    </button>
-                  </div>
-
-                  {screenshots.length === 0 ? (
-                    <div className="text-center text-zinc-500 py-8 text-xs">Bấm nút "Chụp Mới Ngay Tức Thì" để lấy ảnh chụp màn hình máy em trai lập tức.</div>
-                  ) : (
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      {/* Ảnh mới nhất 1 */}
-                      {screenshots.slice(0, 1).map(item => (
-                        <div key={`instant-${item.id}`} className="border border-indigo-500/40 rounded-xl overflow-hidden group relative bg-black shadow-xl">
-                          <img
-                            src={getScreenshotUrl(item.file_path, { width: 640, quality: 70 })}
-                            alt="instant screenshot" loading="lazy"
-                            className="w-full h-64 object-contain bg-black cursor-pointer"
-                            onClick={() => setSelectedImage(getScreenshotUrl(item.file_path, { width: 1600, quality: 85 }))}
-                          />
-                          <div className="p-3 flex items-center justify-between text-xs bg-zinc-900/50/90 border-t border-zinc-800">
-                            <div className="flex items-center gap-2">
-                              <span className="text-zinc-300 text-xs font-semibold"> {item.created_at ? new Date(item.created_at).toLocaleDateString('vi-VN') : ''}</span>
-                              <span className="font-mono text-amber-300 font-bold bg-amber-500/20 text-xs px-2.5 py-0.5 rounded border border-amber-500/30">
-                                ⏱ {getScreenshotDisplayTime(item) || formatClockTime(item.created_at)}
-                              </span>
-                            </div>
-                            <div className="flex gap-2">
-                              <button
-                                onClick={() => setSelectedImage(getScreenshotUrl(item.file_path, { width: 1600, quality: 85 }))}
-                                className="text-blue-400 hover:text-blue-300 font-semibold px-2.5 py-1 rounded bg-blue-500/10 hover:bg-blue-500/20 transition text-xs"
-                              >
-                                 Phóng To
-                              </button>
-                              <button
-                                onClick={() => deleteScreenshot(item.id, item.file_path)}
-                                className="text-red-400 hover:text-red-300 font-semibold px-2 py-1 rounded hover:bg-red-500/10 transition text-xs"
-                              >
-                                Xóa
-                              </button>
-                            </div>
-                          </div>
-                        </div>
-                      ))}
-
-                      {/* Ảnh mới thứ 2 nếu có */}
-                      {screenshots.slice(1, 2).map(item => (
-                        <div key={`instant-prev-${item.id}`} className="border border-zinc-800 rounded-xl overflow-hidden group relative bg-black opacity-90">
-                          <img
-                            src={getScreenshotUrl(item.file_path, { width: 640, quality: 70 })}
-                            alt="instant screenshot previous" loading="lazy"
-                            className="w-full h-64 object-contain bg-black cursor-pointer"
-                            onClick={() => setSelectedImage(getScreenshotUrl(item.file_path, { width: 1600, quality: 85 }))}
-                          />
-                          <div className="p-3 flex items-center justify-between text-xs bg-zinc-900/50/90 border-t border-zinc-800">
-                            <div className="flex items-center gap-2">
-                              <span className="text-zinc-400 text-xs">Ảnh trước đó:</span>
-                              <span className="font-mono text-zinc-300 font-bold bg-zinc-900 px-2 py-0.5 rounded text-xs">
-                                ⏱ {getScreenshotDisplayTime(item) || formatClockTime(item.created_at)}
-                              </span>
-                            </div>
-                            <button
-                              onClick={() => setSelectedImage(getScreenshotUrl(item.file_path, { width: 1600, quality: 85 }))}
-                              className="text-blue-400 hover:text-blue-300 font-semibold px-2.5 py-1 rounded bg-blue-500/10 transition text-xs"
-                            >
-                               Phóng To
-                            </button>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-
-                {Object.keys(groupedScreenshots).length === 0 ? (
-                  <div className="text-center text-zinc-500 py-16">Chưa có ảnh chụp màn hình nào.</div>
-                ) : (
-                  Object.entries(groupedScreenshots).map(([dateLabel, items]) => {
-                    const allInGroupSelected = items.every(i => selectedScreenshotIds.includes(i.id))
-
-                    return (
-                      <div key={dateLabel} className={`${cardBgClass} border rounded-2xl p-5 space-y-4`}>
-                        <div className="flex items-center justify-between border-b border-zinc-800 pb-3">
-                          <label className="flex items-center gap-2 cursor-pointer font-bold text-blue-400 text-sm">
-                            <input
-                              type="checkbox"
-                              checked={allInGroupSelected}
-                              onChange={() => toggleSelectDateGroup(dateLabel, items)}
-                              className="w-4 h-4 rounded text-blue-600"
-                            />
-                            <span> {dateLabel} ({items.length} ảnh)</span>
-                          </label>
-
-                          <span className="text-xs text-zinc-500">Tích chọn để nhóm toàn bộ ngày này</span>
-                        </div>
-
-                        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                          {items.map(item => {
-                            const isSelected = selectedScreenshotIds.includes(item.id)
-                            return (
-                              <div
-                                key={item.id}
-                                className={`border rounded-xl overflow-hidden group relative transition ${
-                                  isSelected ? 'border-indigo-500 ring-2 ring-blue-500/50' : 'border-zinc-800 hover:border-indigo-500/30'
-                                }`}
-                              >
-                                <input
-                                  type="checkbox"
-                                  checked={isSelected}
-                                  onChange={() => toggleSelectScreenshot(item.id)}
-                                  className="absolute top-2 left-2 z-10 w-5 h-5 rounded text-blue-600 cursor-pointer shadow"
-                                />
-
-                                <img
-                                  src={getScreenshotUrl(item.file_path, { width: 640, quality: 70 })}
-                                  alt="screenshot" loading="lazy"
-                                  className="w-full h-40 object-cover cursor-pointer"
-                                  onClick={() => setSelectedImage(getScreenshotUrl(item.file_path, { width: 1600, quality: 85 }))}
-                                />
-
-                                <div className="p-2 flex items-center justify-between text-xs text-zinc-400 bg-zinc-900/50">
-                                  <div className="flex items-center gap-2">
-                                    <span className="text-zinc-300 text-[11px] font-medium">
-                                      {item.created_at ? new Date(item.created_at).toLocaleDateString('vi-VN') : ''}
-                                    </span>
-                                    <span className="font-mono text-zinc-200 text-[11px] font-bold bg-amber-500/10 px-2 py-0.5 rounded border border-amber-500/20">
-                                      ⏱ {getScreenshotDisplayTime(item) || formatClockTime(item.created_at)}
-                                    </span>
-                                  </div>
-                                  <button
-                                    onClick={() => deleteScreenshot(item.id, item.file_path)}
-                                    className="text-red-400 hover:text-red-300 font-semibold px-2 py-0.5 rounded hover:bg-red-500/10 transition text-[11px]"
-                                  >
-                                    Xóa
-                                  </button>
-                                </div>
-                              </div>
-                            )
-                          })}
-                        </div>
-                      </div>
-                    )
-                  })
-                )}
-
-                {selectedImage && (
-                  <div
-                    className="fixed inset-0 bg-black/90 z-50 flex items-center justify-center p-4"
-                    onClick={() => setSelectedImage(null)}
-                  >
-                    <img src={selectedImage} alt="full" className="max-w-full max-h-full rounded-lg shadow-2xl" />
-                  </div>
-                )}
-              </div>
-            )}
-
-            {/* TAB: CÀI ĐẶT ADMIN — REFACTORED SUB-TABS & PERMISSION MATRIX */}
-            {activeTab === 'config' && isAdmin && (
-              <div className="space-y-6 max-w-5xl mx-auto pb-16">
-                <div className={`${cardBgClass} border rounded-2xl p-6 space-y-6 shadow-2xl`}>
-
-                  {/* HEADER TOP BAR */}
-                  <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 border-b border-zinc-800 pb-5">
-                    <div>
-                      <h2 className="text-xl font-bold flex items-center gap-2 text-slate-100">
-                        <span></span> Cài Đặt Admin & Quản Lý Hệ Thống
-                      </h2>
-                      <p className="text-xs text-zinc-400 mt-1">
-                        Cấu hình phân quyền tư cách, quản lý thiết bị kết nối và bảo mật hệ thống.
-                      </p>
-                    </div>
-                  </div>
-
-                  {/* NAV SUB-TABS (4 SUB-TABS) */}
-                  <div className="flex bg-black p-1.5 rounded-2xl border border-zinc-800 text-xs overflow-x-auto gap-1">
-                    <button
-                      onClick={() => setSettingsSubTab('permissions')}
-                      className={`px-4 py-2.5 rounded-xl font-bold transition flex items-center gap-2 shrink-0 ${
-                        settingsSubTab === 'permissions' ? 'bg-zinc-100 text-black hover:bg-white shadow' : 'text-zinc-400 hover:text-white'
-                      }`}
-                    >
-                      <span></span>
-                      <span>Phân Quyền & Tư Cách</span>
-                    </button>
-
-                    <button
-                      onClick={() => setSettingsSubTab('devices')}
-                      className={`px-4 py-2.5 rounded-xl font-bold transition flex items-center gap-2 shrink-0 ${
-                        settingsSubTab === 'devices' ? 'bg-zinc-100 text-black hover:bg-white shadow' : 'text-zinc-400 hover:text-white'
-                      }`}
-                    >
-                      <span></span>
-                      <span>Thiết Bị Truy Cập ({activeSessions.length})</span>
-                    </button>
-
-                    <button
-                      onClick={() => setSettingsSubTab('updates')}
-                      className={`px-4 py-2.5 rounded-xl font-bold transition flex items-center gap-2 shrink-0 ${
-                        settingsSubTab === 'updates' ? 'bg-zinc-100 text-black hover:bg-white shadow' : 'text-zinc-400 hover:text-white'
-                      }`}
-                    >
-                      <span>🚀</span>
-                      <span>Cập Nhật Agent ({agentVersions.find(v => v.is_latest)?.version || 'v2.0'})</span>
-                    </button>
-
-                    <button
-                      onClick={() => setSettingsSubTab('agent')}
-                      className={`px-4 py-2.5 rounded-xl font-bold transition flex items-center gap-2 shrink-0 ${
-                        settingsSubTab === 'agent' ? 'bg-zinc-100 text-black hover:bg-white shadow' : 'text-zinc-400 hover:text-white'
-                      }`}
-                    >
-                      <span></span>
-                      <span>Cấu Hình Agent & Theme</span>
-                    </button>
-
-                    <button
-                      onClick={() => setSettingsSubTab('security')}
-                      className={`px-4 py-2.5 rounded-xl font-bold transition flex items-center gap-2 shrink-0 ${
-                        settingsSubTab === 'security' ? 'bg-zinc-100 text-black hover:bg-white shadow' : 'text-zinc-400 hover:text-white'
-                      }`}
-                    >
-                      <span></span>
-                      <span>Bảo Mật & Mật Khẩu</span>
-                    </button>
-                  </div>
-
-                  {/* SUB-TAB 1: PERMISSION MATRIX TABLE */}
-                  {settingsSubTab === 'permissions' && (
-                    <div className="space-y-5">
-                      <div className="p-4 bg-zinc-900/50 border border-zinc-800 rounded-2xl space-y-4 shadow-inner">
-                        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-                          <div>
-                            <h3 className="font-bold text-sm text-blue-400 flex items-center gap-2">
-                              <span></span> Quản Lý Tư Cách Người Dùng
-                            </h3>
-                            <p className="text-xs text-zinc-400">Thêm vai trò mới (Ví dụ: Gia sư, Ông bà, Bố, Mẹ...)</p>
-                          </div>
-
-                          <form onSubmit={handleAddCustomRole} className="flex gap-2 w-full sm:w-auto">
-                            <input
-                              type="text"
-                              placeholder="Thêm tư cách mới..."
-                              value={newRoleInput}
-                              onChange={(e) => setNewRoleInput(e.target.value)}
-                              className="bg-zinc-900 border border-zinc-800 rounded-xl px-3.5 py-1.5 text-xs text-slate-100 outline-none focus:border-indigo-500 flex-grow"
-                            />
-                            <button type="submit" className="px-3.5 py-1.5 bg-indigo-600 hover:bg-indigo-500 font-bold rounded-xl text-xs text-white whitespace-nowrap shadow">
-                              + Thêm
-                            </button>
-                          </form>
-                        </div>
-
-                        {/* PASSWORD TƯ CÁCH */}
-                        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 pt-2">
-                          {displayRoles.map(roleName => (
-                            <div key={roleName} className="p-3 bg-zinc-900/50 border border-zinc-800 rounded-xl space-y-2 text-xs">
-                              <div className="flex items-center justify-between font-bold">
-                                <span>{roleName}</span>
-                                {roleName !== 'Khách (Chưa chọn)' && customRoles.length > 1 && (
-                                  <button onClick={() => handleRemoveCustomRole(roleName)} className="text-[10px] text-red-400 hover:text-red-300">
-                                    Xóa
-                                  </button>
-                                )}
-                              </div>
-                              <input
-                                type="text"
-                                placeholder="Mật khẩu tư cách..."
-                                value={rolePasswords[roleName] || ''}
-                                onChange={(e) => handleSetRolePassword(roleName, e.target.value)}
-                                className="w-full bg-black border border-zinc-800 rounded-lg px-2.5 py-1 text-xs font-mono text-emerald-400 outline-none"
-                              />
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-
-                      {/* BẢNG MA TRẬN PHÂN QUYỀN (PERMISSION MATRIX TABLE) */}
-                      <div className="space-y-3">
-                        <div className="text-xs font-bold text-zinc-300 flex items-center gap-2">
-                          <span></span> BẢNG MA TRẬN PHÂN QUYỀN TRUY CẬP (PERMISSION MATRIX)
-                        </div>
-
-                        <div className="overflow-x-auto rounded-2xl border border-zinc-800 shadow">
-                          <table className="w-full text-left text-xs">
-                            <thead>
-                              <tr className="border-b border-zinc-800 text-zinc-400 font-bold uppercase tracking-wider text-[11px] bg-black/90">
-                                <th className="p-3.5 sticky left-0 bg-black z-10 border-r border-zinc-800">Chức Năng / Tab</th>
-                                {displayRoles.map(roleName => (
-                                  <th key={roleName} className="p-3.5 text-center min-w-[130px] border-r border-zinc-800/60 text-amber-300">
-                                    {roleName}
-                                  </th>
-                                ))}
-                              </tr>
-                            </thead>
-                            <tbody className="divide-y divide-slate-800/60 bg-zinc-900/50/40">
-                              {rawTabList.filter(t => t.id !== 'config' && t.id !== 'screenshots').map(tab => (
-                                <tr key={tab.id} className="hover:bg-zinc-900/40 transition">
-                                  <td className="p-3.5 font-bold text-zinc-200 sticky left-0 bg-zinc-900/50 border-r border-zinc-800 whitespace-nowrap">
-                                    {tab.label}
-                                  </td>
-                                  {displayRoles.map(roleName => {
-                                    const curPerm = rolePermissions[roleName]?.[tab.id] || 'edit'
-
-                                    return (
-                                      <td key={roleName} className="p-2.5 text-center border-r border-zinc-800/60">
-                                        <select
-                                          value={curPerm}
-                                          onChange={(e) => handleSetRolePermission(roleName, tab.id, e.target.value)}
-                                          className={`w-full border rounded-xl px-2 py-1 text-xs font-bold outline-none cursor-pointer transition ${
-                                            curPerm === 'edit'
-                                              ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 border-emerald-500/40'
-                                              : curPerm === 'view'
-                                              ? 'bg-blue-500/20 text-blue-300 border-indigo-500/40'
-                                              : 'bg-red-500/20 text-red-300 border-red-500/40'
-                                          }`}
-                                        >
-                                          <option value="edit"> Toàn Quyền</option>
-                                          <option value="view"> Chỉ Xem</option>
-                                          <option value="none"> Ẩn Tab</option>
-                                        </select>
-                                      </td>
-                                    )
-                                  })}
-                                </tr>
-                              ))}
-                            </tbody>
-                          </table>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* SUB-TAB 2: DEVICE ACCESS MANAGEMENT TABLE */}
-                  {settingsSubTab === 'devices' && (
-                    <div className="space-y-4">
-                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs text-zinc-400 px-1">
-                        <span className="font-bold text-zinc-200">DANH SÁCH THIẾT BỊ ĐANG KẾT NỐI ({activeSessions.length})</span>
-                        <div className="flex items-center gap-2">
-                          <button
-                            onClick={cleanupStaleSessions}
-                            className="px-3 py-1.5 bg-zinc-900 hover:bg-slate-700 text-zinc-300 text-xs font-bold rounded-xl transition border border-zinc-800 shadow flex items-center gap-1.5"
-                          >
-                            <span></span>
-                            <span>Dọn Dẹp Session Rác</span>
-                          </button>
-                        </div>
-                      </div>
-
-                      <div className="overflow-x-auto rounded-2xl border border-zinc-800 shadow">
-                        <table className="w-full text-left text-xs">
-                          <thead>
-                            <tr className="border-b border-zinc-800 text-zinc-400 font-bold uppercase tracking-wider text-[11px] bg-zinc-900/50">
-                              <th className="p-3.5">Thiết Bị / Trình Duyệt</th>
-                              <th className="p-3.5">Tư Cách</th>
-                              <th className="p-3.5">Trạng Thái & Hoạt Động</th>
-                              <th className="p-3.5 text-right">Tác Vụ</th>
-                            </tr>
-                          </thead>
-                          <tbody className="divide-y divide-slate-800/60 bg-zinc-900/50/40">
-                            {activeSessions.map((sess, idx) => {
-                              const isCurrentDev = sess.session_id === sessionId
-                              const infoLower = (sess.device_info || '').toLowerCase()
-                              const isMobile = infoLower.includes('mobile') || infoLower.includes('android') || infoLower.includes('iphone')
-                              const diffSec = sess.last_active ? Math.max(0, Math.round((Date.now() - new Date(sess.last_active).getTime()) / 1000)) : 0
-                              const activeText = diffSec <= 5 ? ' Vừa tương tác' : `⏱ ${diffSec}s trước`
-
-                              return (
-                                <tr key={sess.session_id || idx} className="hover:bg-zinc-900/50 transition">
-                                  <td className="p-3.5 font-semibold text-zinc-200">
-                                    <div className="flex items-center gap-2">
-                                      {isCurrentDev ? (
-                                        <span className="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 border border-emerald-500/30">
-                                           MÁY NÀY
-                                        </span>
-                                      ) : isMobile ? (
-                                        <span className="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold bg-blue-500/20 text-blue-300 border border-indigo-500/30">
-                                           ĐIỆN THOẠI
-                                        </span>
-                                      ) : (
-                                        <span className="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold bg-zinc-400/20 text-zinc-300 border border-zinc-400/30">
-                                          ️ LAPTOP / PC
-                                        </span>
-                                      )}
-                                      <span className="truncate">{sess.device_info || 'Thiết bị Web'}</span>
-                                    </div>
-                                  </td>
-
-                                  <td className="p-3.5">
-                                    <div className="flex items-center gap-1.5">
-                                      <span className="px-2.5 py-1 rounded-xl text-xs font-bold bg-zinc-900 text-blue-300 border border-zinc-800">
-                                        {sess.user_role}
-                                      </span>
-                                      {sess.tabCount > 1 && (
-                                        <span className="px-2 py-0.5 rounded-lg text-[10px] font-bold bg-zinc-400/20 text-zinc-300 border border-zinc-400/30 font-mono">
-                                          {sess.tabCount} Tabs
-                                        </span>
-                                      )}
-                                    </div>
-                                  </td>
-
-                                  <td className="p-3.5 font-mono text-zinc-400 text-[11px]">
-                                    <div className="text-emerald-400 font-bold">{activeText}</div>
-                                    <div className="text-zinc-500 text-[10px]">{formatTime(sess.last_active)}</div>
-                                  </td>
-
-                                  <td className="p-3.5 text-right">
-                                    <button
-                                      onClick={() => openBlockSessionModal(sess)}
-                                      className={`px-3.5 py-1.5 rounded-xl font-bold text-xs transition border shadow ${
-                                        sess.is_blocked
-                                          ? 'bg-emerald-600 hover:bg-emerald-500 text-white border-emerald-500'
-                                          : 'bg-red-600/15 hover:bg-red-600 text-red-300 hover:text-white border-red-500/30'
-                                      }`}
-                                    >
-                                      {sess.is_blocked ? ' Bỏ Chặn' : ' Chặn Thiết Bị'}
-                                    </button>
-                                  </td>
-                                </tr>
-                              )
-                            })}
-                          </tbody>
-                        </table>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* SUB-TAB 5: AGENT UPDATE & VERSION CONTROL */}
-                  {settingsSubTab === 'updates' && (
-                    <div className="space-y-6">
-                      <div className="p-5 rounded-2xl bg-zinc-900/50 border border-zinc-800 space-y-4 shadow-lg">
-                        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-zinc-800 pb-4">
-                          <div>
-                            <h3 className="font-bold text-base text-emerald-400 flex items-center gap-2">
-                              <span>🚀</span> Kiểm Tra & Cập Nhật Agent Từ Xa
-                            </h3>
-                            <p className="text-xs text-zinc-400 mt-1">
-                              Quản lý phiên bản phần mềm Agent chạy ngầm trên máy em trai ({DEVICE_NAME}).
+                {/* TAB: TO DO NOTE — REFACTORED UNIFIED DASHBOARD */}
+                {activeTab === 'todo' && (() => {
+                  // Gộp tất cả các task từ Supabase và Google Sheet thành danh sách thống nhất
+                  const combinedTasks = [
+                    ...todoNotes.map(t => ({
+                      id: t.id,
+                      title: t.task_title,
+                      taskType: t.task_type || 'custom',
+                      isCompleted: !!t.is_completed,
+                      isSheet: false,
+                      createdAt: t.created_at
+                    })),
+                    ...sheetTasks
+                      .filter(st => !deletedSheetTaskIds.includes(st.id))
+                      .map(st => ({
+                        id: st.id,
+                        title: st.title,
+                        taskType: st.isDaily ? 'routine' : 'sheet',
+                        isCompleted: !!completedSheetTasks[st.id],
+                        isSheet: true,
+                        createdAt: null
+                      }))
+                  ]
+
+                  const totalTasks = combinedTasks.length
+                  const completedTasks = combinedTasks.filter(t => t.isCompleted).length
+                  const progressPercent = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0
+
+                  return (
+                    <div className="space-y-6 max-w-4xl mx-auto">
+                      {/* CARD CHÍNH CỦA BẢNG TO DO */}
+                      <div className={`${cardBgClass} border rounded-2xl p-6 space-y-6 shadow-2xl`}>
+
+                        {/* 1. HEADER CHÍNH: TIÊU ĐỀ + TIẾN ĐỘ + NÚT ĐỒNG BỘ GOOGLE SHEET */}
+                        <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 border-b border-zinc-800 pb-5">
+                          <div className="space-y-1">
+                            <h2 className="text-xl font-bold flex items-center gap-2 text-slate-100">
+                              <span></span> Danh Sách Nhiệm Vụ & Bài Tập Hôm Nay
+                            </h2>
+                            <p className="text-xs text-zinc-400">
+                              Tổng hợp công việc do Admin giao, bài tập tự chọn và thói quen từ Google Sheet ({todayFormatted}).
                             </p>
                           </div>
-                          <button
-                            onClick={triggerForceAgentUpdate}
-                            disabled={updateSending}
-                            className="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-xl text-xs transition shadow-lg shadow-emerald-600/20 flex items-center gap-2 disabled:opacity-50"
-                          >
-                            <span>⚡</span>
-                            <span>{updateSending ? 'Đang Gửi Lệnh Cập Nhật...' : 'Cưỡng Chế Cập Nhật Ngay (Force Update)'}</span>
-                          </button>
+
+                          <div className="flex items-center gap-3 w-full md:w-auto justify-between md:justify-end">
+                            <button
+                              onClick={fetchGoogleSheetTasks}
+                              disabled={isSyncingSheet}
+                              className="px-4 py-2 bg-zinc-900 hover:bg-slate-700 text-blue-300 font-bold rounded-xl text-xs border border-zinc-800 transition flex items-center gap-2 disabled:opacity-50 shadow"
+                            >
+                              <span className={isSyncingSheet ? 'animate-spin' : ''}></span>
+                              <span>{isSyncingSheet ? 'Đang đồng bộ...' : 'Đồng Bộ Google Sheet'}</span>
+                            </button>
+                          </div>
                         </div>
 
-                        {/* THÔNG TIN BẢN MỚI NHẤT & TRẠNG THÁI MÁY */}
-                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                          <div className="p-4 bg-zinc-950/60 border border-zinc-800 rounded-xl space-y-1">
-                            <div className="text-[11px] text-zinc-400 font-medium">Bản Mới Nhất Trên Cloud:</div>
-                            <div className="text-base font-bold text-emerald-400 font-mono">
-                              {agentVersions.find(v => v.is_latest)?.version || 'v2.0 Local-First'}
-                            </div>
-                            <div className="text-[10px] text-zinc-500">Tệp: {agentVersions.find(v => v.is_latest)?.file_path || 'agent_update.zip'}</div>
+                        {/* 2. THANH TIẾN ĐỘ HOÀN THÀNH (PROGRESS BAR) */}
+                        <div className="p-4 bg-zinc-900/50 border border-zinc-800 rounded-2xl space-y-2 shadow-inner">
+                          <div className="flex items-center justify-between text-xs font-bold">
+                            <span className="text-zinc-300 flex items-center gap-2">
+                              <span></span>
+                              <span>TIẾN ĐỘ HOÀN THÀNH CÔNG VIỆC</span>
+                            </span>
+                            <span className="text-emerald-400 font-mono text-xs bg-emerald-500/10 px-2.5 py-0.5 rounded-full border border-emerald-500/20">
+                              Đã xong {completedTasks}/{totalTasks} việc ({progressPercent}%)
+                            </span>
                           </div>
 
-                          <div className="p-4 bg-zinc-950/60 border border-zinc-800 rounded-xl space-y-1">
-                            <div className="text-[11px] text-zinc-400 font-medium">Thiết Bị Đang Kiểm Soát:</div>
-                            <div className="text-base font-bold text-blue-400">{DEVICE_NAME}</div>
-                            <div className="text-[10px] text-zinc-500 flex items-center gap-1">
-                              <span className={`w-1.5 h-1.5 rounded-full ${isDeviceOnline ? 'bg-emerald-400 animate-pulse' : 'bg-red-400'}`}></span>
-                              <span>{isDeviceOnline ? 'Đang Online' : 'Đang Offline'}</span>
-                            </div>
+                          <div className="h-3 w-full bg-zinc-900/50 rounded-full overflow-hidden border border-zinc-800 relative">
+                            <div
+                              className="h-full bg-gradient-to-r from-blue-500 via-teal-400 to-emerald-400 rounded-full transition-all duration-500 shadow-lg shadow-emerald-500/30"
+                              style={{ width: `${progressPercent}%` }}
+                            ></div>
+                          </div>
+                        </div>
+
+                        {/* 3. THANH THÊM NHANH NHIỆM VỤ MỚI (QUICK ADD BAR) */}
+                        <form onSubmit={handleQuickAddTodoTask} className="p-4 bg-zinc-900/50 border border-zinc-800 rounded-2xl space-y-3 shadow">
+                          <div className="text-xs font-bold text-blue-400 flex items-center gap-2">
+                            <span></span> Thêm Công Việc / Nhiệm Vụ Mới
                           </div>
 
-                          <div className="p-4 bg-zinc-950/60 border border-zinc-800 rounded-xl space-y-1">
-                            <div className="text-[11px] text-zinc-400 font-medium">Cơ Chế Auto Update:</div>
-                            <div className="text-xs font-bold text-amber-300">Tự Động 100% (No User Interaction)</div>
-                            <div className="text-[10px] text-zinc-500">Watchdog ngầm tự tải & giải nén</div>
+                          <div className="flex flex-col sm:flex-row gap-2.5">
+                            <input
+                              type="text"
+                              placeholder="Nhập tên bài tập hoặc công việc cần làm..."
+                              value={quickAddTitle}
+                              onChange={(e) => setQuickAddTitle(e.target.value)}
+                              className="flex-grow bg-zinc-900 border border-zinc-800 rounded-xl px-4 py-2.5 text-xs text-slate-100 placeholder-slate-500 outline-none focus:border-indigo-500 shadow"
+                            />
+
+                            <select
+                              value={quickAddType}
+                              onChange={(e) => setQuickAddType(e.target.value)}
+                              className="bg-zinc-900 border border-zinc-800 rounded-xl px-3 py-2.5 text-xs font-bold text-blue-300 outline-none focus:border-indigo-500 cursor-pointer shadow"
+                            >
+                              {isAdmin && <option value="admin_assigned"> Admin Giao</option>}
+                              <option value="custom">⭐ Tự Chọn</option>
+                              <option value="routine"> Hằng Ngày / Thói Quen</option>
+                            </select>
+
+                            <button
+                              type="submit"
+                              className="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-xl text-xs transition shadow-lg shadow-blue-600/20 whitespace-nowrap"
+                            >
+                              + Thêm Công Việc
+                            </button>
                           </div>
+                        </form>
+
+                        {/* 4. DANH SÁCH THỐNG NHẤT TOÀN BỘ NHIỆM VỤ (UNIFIED TASK LIST) */}
+                        <div className="space-y-3">
+                          <div className="flex items-center justify-between text-xs text-zinc-400 px-1">
+                            <span className="font-bold text-zinc-300">DANH SÁCH CÔNG VIỆC CẦN HOÀN THÀNH ({totalTasks})</span>
+                            <span className="text-[11px] text-zinc-500">* Tích vào ô vuông khi đã hoàn thành bài tập</span>
+                          </div>
+
+                          {combinedTasks.length === 0 ? (
+                            /* EMPTY STATE VISUAL */
+                            <div className="p-12 text-center bg-zinc-900/50 border border-zinc-800 rounded-2xl space-y-3 shadow-inner">
+                              <span className="text-5xl block"></span>
+                              <h3 className="font-bold text-base text-zinc-200">Không Có Bài Tập Nào Cần Làm Hôm Nay!</h3>
+                              <p className="text-xs text-zinc-400 max-w-sm mx-auto">
+                                Bạn chưa có công việc nào trong danh sách. Hãy nhập bài tập mới ở thanh trên hoặc bấm nút "Đồng Bộ Google Sheet".
+                              </p>
+                            </div>
+                          ) : (
+                            <div className="space-y-2.5">
+                              {combinedTasks.map((task) => {
+                                const isEditing = editingTaskId === task.id
+
+                                return (
+                                  <div
+                                    key={task.id}
+                                    className={`p-3.5 rounded-2xl border transition flex flex-col sm:flex-row sm:items-center justify-between gap-3 ${
+                                      task.isCompleted
+                                        ? 'bg-black/40 border-slate-900 opacity-60'
+                                        : 'bg-zinc-900/50/90 border-zinc-800 hover:border-zinc-800 shadow-md'
+                                    }`}
+                                  >
+                                    {/* INLINE EDIT MODE */}
+                                    {isEditing ? (
+                                      <form onSubmit={handleSaveEditTodoTask} className="w-full flex flex-col sm:flex-row gap-2 items-center">
+                                        <input
+                                          type="text"
+                                          value={editingTaskTitle}
+                                          onChange={(e) => setEditingTaskTitle(e.target.value)}
+                                          className="flex-grow bg-black border border-indigo-500 rounded-xl px-3 py-1.5 text-xs text-white outline-none"
+                                          autoFocus
+                                        />
+
+                                        <select
+                                          value={editingTaskType}
+                                          onChange={(e) => setEditingTaskType(e.target.value)}
+                                          className="bg-black border border-zinc-800 rounded-xl px-2 py-1.5 text-xs font-bold text-blue-300"
+                                        >
+                                          <option value="admin_assigned"> Admin Giao</option>
+                                          <option value="custom">⭐ Tự Chọn</option>
+                                          <option value="routine"> Hằng Ngày</option>
+                                        </select>
+
+                                        <div className="flex gap-2">
+                                          <button type="submit" className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-bold">
+                                            Lưu
+                                          </button>
+                                          <button
+                                            type="button"
+                                            onClick={() => setEditingTaskId(null)}
+                                            className="px-3 py-1.5 bg-zinc-900 text-zinc-400 rounded-xl text-xs font-semibold"
+                                          >
+                                            Hủy
+                                          </button>
+                                        </div>
+                                      </form>
+                                    ) : (
+                                      <>
+                                        {/* TASK ITEM CONTENT & CHECKBOX */}
+                                        <div className="flex items-center gap-3 flex-grow min-w-0">
+                                          <input
+                                            type="checkbox"
+                                            checked={task.isCompleted}
+                                            onChange={() => {
+                                              if (task.isSheet) toggleSheetTaskComplete(task.id)
+                                              else toggleTodoComplete(task.id, task.isCompleted)
+                                            }}
+                                            className="w-5 h-5 rounded-lg bg-black border-zinc-800 text-blue-600 cursor-pointer shrink-0"
+                                          />
+
+                                          <div className="space-y-1 min-w-0 flex-grow">
+                                            <div className="flex items-center gap-2 flex-wrap">
+                                              {/* BADGES PHÂN LOẠI */}
+                                              {task.taskType === 'admin_assigned' && (
+                                                <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-rose-500/20 text-rose-300 border border-rose-500/30">
+                                                   Admin Giao
+                                                </span>
+                                              )}
+                                              {task.taskType === 'custom' && (
+                                                <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-blue-500/20 text-blue-300 border border-indigo-500/30">
+                                                  ⭐ Tự Chọn
+                                                </span>
+                                              )}
+                                              {task.taskType === 'routine' && (
+                                                <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 border border-emerald-500/30">
+                                                   Hằng Ngày
+                                                </span>
+                                              )}
+                                              {task.taskType === 'sheet' && (
+                                                <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/10 text-zinc-200 border border-amber-500/20 border border-amber-500/30">
+                                                   Google Sheet
+                                                </span>
+                                              )}
+
+                                              <span
+                                                className={`text-xs font-medium leading-relaxed break-words ${
+                                                  task.isCompleted ? 'line-through text-zinc-500' : 'text-slate-100 font-semibold'
+                                                }`}
+                                              >
+                                                {task.title}
+                                              </span>
+                                            </div>
+                                          </div>
+                                        </div>
+
+                                        {/* ACTIONS: SỬA & XÓA */}
+                                        <div className="flex items-center gap-2 shrink-0 self-end sm:self-center">
+                                          <button
+                                            onClick={() => handleStartEditTodoTask(task)}
+                                            className="px-2.5 py-1 text-[11px] font-semibold text-zinc-400 hover:text-blue-300 rounded-lg hover:bg-zinc-900 transition"
+                                          >
+                                            ️ Sửa
+                                          </button>
+                                          <button
+                                            onClick={() => handleDeleteUnifiedTask(task)}
+                                            className="px-2.5 py-1 text-[11px] font-semibold text-zinc-500 hover:text-red-400 rounded-lg hover:bg-red-500/10 transition"
+                                          >
+                                            ️ Xóa
+                                          </button>
+                                        </div>
+                                      </>
+                                    )}
+                                  </div>
+                                )
+                              })}
+                            </div>
+                          )}
                         </div>
                       </div>
+                    </div>
+                  )
+                })()}
 
-                      {/* BẢNG LỊCH SỬ PHÁT HÀNH PHIÊN BẢN AGENT */}
-                      <div className="space-y-3">
-                        <div className="flex items-center justify-between text-xs px-1">
-                          <span className="font-bold text-zinc-200 uppercase tracking-wider">Lịch Sử Các Bản Cập Nhật ({agentVersions.length})</span>
-                          <span className="text-zinc-400">Dữ liệu từ Supabase Agent Versions Catalog</span>
+                {/* TAB: LỊCH HỌC TẬP & THỜI GIAN BIỂU — REFACTORED CUSTOM DATA TABLE */}
+                {activeTab === 'calendar' && (() => {
+                  // Áp dụng bộ lọc nhanh lên allSheetEntries
+                  const filteredEntries = allSheetEntries.filter(entry => {
+                    // Lọc theo Ngày
+                    if (calendarDateFilter === 'today' && !entry.isToday) return false
+
+                    // Lọc theo Ưu tiên
+                    if (calendarPriorityFilter !== 'all') {
+                      const p = entry.priority.toLowerCase()
+                      if (calendarPriorityFilter === 'important' && !p.includes('quan trọng') && !p.includes('high')) return false
+                      if (calendarPriorityFilter === 'daily' && !p.includes('hằng ngày') && !p.includes('thói quen')) return false
+                      if (calendarPriorityFilter === 'normal' && (p.includes('quan trọng') || p.includes('hằng ngày'))) return false
+                    }
+
+                    // Lọc theo Từ khóa tìm kiếm
+                    if (calendarSearch.trim()) {
+                      const q = calendarSearch.toLowerCase().trim()
+                      const matchTitle = entry.title.toLowerCase().includes(q)
+                      const matchDate = entry.date.toLowerCase().includes(q)
+                      const matchTime = entry.sessionTime.toLowerCase().includes(q)
+                      if (!matchTitle && !matchDate && !matchTime) return false
+                    }
+
+                    return true
+                  })
+
+                  return (
+                    <div className="space-y-6">
+                      <div className={`${cardBgClass} border rounded-2xl p-6 space-y-6 shadow-2xl`}>
+                        {/* HEADER BAR */}
+                        <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 border-b border-zinc-800 pb-4">
+                          <div>
+                            <h2 className="text-xl font-bold flex items-center gap-2 text-slate-100">
+                              <span></span> Lịch Học Tập & Thời Gian Biểu (Custom Data Table)
+                            </h2>
+                            <p className="text-xs text-zinc-400 mt-1">
+                              Đồng bộ dữ liệu trực tiếp từ Google Sheet sang bảng dữ liệu chuẩn hóa SaaS Dark Mode.
+                            </p>
+                          </div>
+
+                          <div className="flex flex-wrap items-center gap-2">
+                            <button
+                              onClick={fetchGoogleSheetTasks}
+                              disabled={isSyncingSheet}
+                              className="px-4 py-2 bg-zinc-900 hover:bg-slate-700 text-blue-300 font-bold rounded-xl text-xs border border-zinc-800 transition flex items-center gap-2 disabled:opacity-50 shadow"
+                            >
+                              <span className={isSyncingSheet ? 'animate-spin' : ''}></span>
+                              <span>{isSyncingSheet ? 'Đang đồng bộ...' : 'Tải Lại Dữ Liệu'}</span>
+                            </button>
+
+                            <a
+                              href={GOOGLE_SHEET_URL}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-xl text-xs flex items-center gap-2 transition shadow-lg shadow-emerald-600/20"
+                            >
+                              <span></span> Mở Trang Google Sheet Gốc
+                            </a>
+                          </div>
                         </div>
 
+                        {/* BỘ LỌC NHANH (QUICK FILTERS BAR) */}
+                        <div className="p-4 bg-zinc-900/50 border border-zinc-800 rounded-2xl flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4 shadow-inner">
+                          <div className="flex flex-wrap items-center gap-3 w-full lg:w-auto">
+                            {/* Lọc theo ngày */}
+                            <div className="flex items-center gap-1.5 bg-zinc-900/50 p-1 rounded-xl border border-zinc-800 text-xs">
+                              <span className="px-2 text-zinc-400 font-medium">Lọc Ngày:</span>
+                              <button
+                                onClick={() => setCalendarDateFilter('today')}
+                                className={`px-3 py-1.5 rounded-lg font-bold transition ${
+                                  calendarDateFilter === 'today' ? 'bg-zinc-100 text-black hover:bg-white shadow' : 'text-zinc-400 hover:text-white'
+                                }`}
+                              >
+                                 Hôm Nay ({allSheetEntries.filter(e => e.isToday).length})
+                              </button>
+                              <button
+                                onClick={() => setCalendarDateFilter('all')}
+                                className={`px-3 py-1.5 rounded-lg font-bold transition ${
+                                  calendarDateFilter === 'all' ? 'bg-zinc-100 text-black hover:bg-white shadow' : 'text-zinc-400 hover:text-white'
+                                }`}
+                              >
+                                 Tất Cả ({allSheetEntries.length})
+                              </button>
+                            </div>
+
+                            {/* Lọc theo mức độ ưu tiên */}
+                            <div className="flex items-center gap-1.5 bg-zinc-900/50 p-1 rounded-xl border border-zinc-800 text-xs">
+                              <span className="px-2 text-zinc-400 font-medium">Ưu Tiên:</span>
+                              <button
+                                onClick={() => setCalendarPriorityFilter('all')}
+                                className={`px-2.5 py-1 rounded-lg font-bold transition ${
+                                  calendarPriorityFilter === 'all' ? 'bg-slate-700 text-white' : 'text-zinc-400 hover:text-white'
+                                }`}
+                              >
+                                Tất cả
+                              </button>
+                              <button
+                                onClick={() => setCalendarPriorityFilter('important')}
+                                className={`px-2.5 py-1 rounded-lg font-bold transition ${
+                                  calendarPriorityFilter === 'important' ? 'bg-rose-600 text-white' : 'text-rose-400 hover:text-white'
+                                }`}
+                              >
+                                 Quan Trọng
+                              </button>
+                              <button
+                                onClick={() => setCalendarPriorityFilter('daily')}
+                                className={`px-2.5 py-1 rounded-lg font-bold transition ${
+                                  calendarPriorityFilter === 'daily' ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : 'text-emerald-400 hover:text-white'
+                                }`}
+                              >
+                                 Hằng Ngày
+                              </button>
+                              <button
+                                onClick={() => setCalendarPriorityFilter('normal')}
+                                className={`px-2.5 py-1 rounded-lg font-bold transition ${
+                                  calendarPriorityFilter === 'normal' ? 'bg-zinc-100 text-black hover:bg-white' : 'text-blue-400 hover:text-white'
+                                }`}
+                              >
+                                 Bình Thường
+                              </button>
+                            </div>
+                          </div>
+
+                          {/* Ô Tìm Kiếm Từ Khóa */}
+                          <div className="w-full lg:w-64">
+                            <input
+                              type="text"
+                              placeholder=" Tìm bài tập / khung giờ..."
+                              value={calendarSearch}
+                              onChange={(e) => setCalendarSearch(e.target.value)}
+                              className="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-3.5 py-2 text-xs text-slate-100 placeholder-slate-500 outline-none focus:border-indigo-500"
+                            />
+                          </div>
+                        </div>
+
+                        {/* RENDER CUSTOM DATA TABLE */}
                         <div className="overflow-x-auto rounded-2xl border border-zinc-800 shadow">
                           <table className="w-full text-left text-xs">
                             <thead>
-                              <tr className="border-b border-zinc-800 text-zinc-400 font-bold uppercase tracking-wider text-[11px] bg-zinc-900/50">
-                                <th className="p-3.5">Mã Phiên Bản (Version)</th>
-                                <th className="p-3.5">Tệp Gói Cập Nhật (.zip)</th>
-                                <th className="p-3.5">Trạng Thái Release</th>
-                                <th className="p-3.5 text-right">Ngày Phát Hành (GMT+7)</th>
+                              <tr className="border-b border-zinc-800 text-zinc-400 font-mono text-[11px] uppercase tracking-wider bg-zinc-900/50">
+                                <th className="p-3.5">Ngày</th>
+                                <th className="p-3.5">Buổi / Khung Giờ</th>
+                                <th className="p-3.5">Nội Dung Công Việc / Bài Tập</th>
+                                <th className="p-3.5">Độ Ưu Tiên / Nhãn</th>
                               </tr>
                             </thead>
-                            <tbody className="divide-y divide-slate-800/60 bg-zinc-900/40">
-                              {agentVersions.length === 0 ? (
+                            <tbody className="divide-y divide-slate-800/60 bg-zinc-900/50/50">
+                              {filteredEntries.length === 0 ? (
                                 <tr>
-                                  <td colSpan="4" className="p-4 text-center text-zinc-500">Chưa có thông tin phiên bản nào trong kho.</td>
+                                  <td colSpan="4" className="text-center py-12 text-zinc-500">
+                                    <span className="text-3xl block mb-2"></span>
+                                    <span>Không tìm thấy bài tập nào khớp với bộ lọc.</span>
+                                  </td>
                                 </tr>
                               ) : (
-                                agentVersions.map((ver, idx) => (
-                                  <tr key={ver.id || idx} className="hover:bg-zinc-900/60 transition">
-                                    <td className="p-3.5 font-bold font-mono text-emerald-400">
-                                      {ver.version}
-                                    </td>
-                                    <td className="p-3.5 font-mono text-zinc-300">
-                                      {ver.file_path}
-                                    </td>
-                                    <td className="p-3.5">
-                                      {ver.is_latest ? (
-                                        <span className="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
-                                          🌟 BẢN MỚI NHẤT (CURRENT)
+                                filteredEntries.map((item) => {
+                                  const pLower = item.priority.toLowerCase()
+                                  const isImportant = pLower.includes('quan trọng') || pLower.includes('high')
+                                  const isDaily = pLower.includes('hằng ngày') || pLower.includes('thói quen')
+
+                                  return (
+                                    <tr key={item.id} className="hover:bg-zinc-900/50 transition">
+                                      <td className="p-3.5 font-mono text-zinc-300 font-semibold whitespace-nowrap">
+                                        <span className="px-2 py-0.5 bg-black rounded border border-zinc-800">
+                                          {item.date}
                                         </span>
-                                      ) : (
-                                        <span className="px-2.5 py-0.5 rounded-full text-[10px] font-medium bg-zinc-800 text-zinc-400 border border-zinc-700">
-                                          Bản Cũ
+                                      </td>
+
+                                      <td className="p-3.5 font-semibold text-blue-300 whitespace-nowrap">
+                                        <span className="px-2 py-0.5 bg-blue-500/10 rounded border border-indigo-500/20">
+                                          {item.sessionTime}
                                         </span>
-                                      )}
-                                    </td>
-                                    <td className="p-3.5 text-right font-mono text-zinc-400">
-                                      {formatTime(ver.created_at)}
-                                    </td>
-                                  </tr>
-                                ))
+                                      </td>
+
+                                      <td className="p-3.5 text-slate-100 font-medium leading-relaxed">
+                                        {item.content}
+                                      </td>
+
+                                      <td className="p-3.5 whitespace-nowrap">
+                                        {isImportant && (
+                                          <span className="px-2.5 py-1 rounded-full text-[11px] font-bold bg-rose-500/20 text-rose-300 border border-rose-500/30">
+                                             Quan Trọng
+                                          </span>
+                                        )}
+                                        {isDaily && (
+                                          <span className="px-2.5 py-1 rounded-full text-[11px] font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 border border-emerald-500/30">
+                                             Hằng Ngày
+                                          </span>
+                                        )}
+                                        {!isImportant && !isDaily && (
+                                          <span className="px-2.5 py-1 rounded-full text-[11px] font-bold bg-blue-500/20 text-blue-300 border border-indigo-500/30">
+                                             {item.priority || 'Bình thường'}
+                                          </span>
+                                        )}
+                                      </td>
+                                    </tr>
+                                  )
+                                })
                               )}
                             </tbody>
                           </table>
                         </div>
                       </div>
                     </div>
-                  )}
+                  )
+                })()}
 
-                  {/* SUB-TAB 3: AGENT CONFIG & THEME */}
-                  {settingsSubTab === 'agent' && (
-                    <div className="space-y-5">
-                      {/* THEME SELECTOR */}
-                      <div className="p-4 rounded-2xl bg-zinc-900/50 border border-zinc-800 space-y-3 shadow-inner">
-                        <label className="block text-xs font-bold text-blue-400"> Chủ Đề Giao Diện (Theme Mode)</label>
-                        <div className="grid grid-cols-3 gap-3">
-                          <button
-                            type="button"
-                            onClick={() => changeTheme('light')}
-                            className={`p-3 rounded-xl border text-xs font-bold flex items-center justify-center gap-1.5 transition ${
-                              themeMode === 'light' ? 'bg-zinc-100 text-black hover:bg-white border-indigo-500 shadow' : 'bg-white text-slate-900 border-slate-300'
-                            }`}
-                          >
-                            <span>️ Sáng</span>
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => changeTheme('dark')}
-                            className={`p-3 rounded-xl border text-xs font-bold flex items-center justify-center gap-1.5 transition ${
-                              themeMode === 'dark' ? 'bg-zinc-100 text-black hover:bg-white border-indigo-500 shadow' : 'bg-zinc-900/50 text-zinc-200 border-zinc-800'
-                            }`}
-                          >
-                            <span> Tối (Slate)</span>
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => changeTheme('black')}
-                            className={`p-3 rounded-xl border text-xs font-bold flex items-center justify-center gap-1.5 transition ${
-                              themeMode === 'black' ? 'bg-zinc-100 text-black hover:bg-white border-indigo-500 shadow' : 'bg-black text-zinc-200 border-zinc-800'
-                            }`}
-                          >
-                            <span>⬛ Tối Sâu (Black)</span>
-                          </button>
+                {/* TAB: Chat 2 chiều */}
+                {activeTab === 'chat' && (
+                  <div className={`${cardBgClass} border rounded-2xl p-5 max-w-3xl mx-auto shadow-2xl`}>
+                    <div className="flex items-center justify-between border-b border-zinc-800 pb-3 mb-4">
+                      <div className="flex items-center gap-2">
+                        <span className="text-2xl"></span>
+                        <div>
+                          <h2 className="font-bold text-base">Cửa Sổ Trò Chuyện Trực Tiếp</h2>
+                          <p className="text-xs text-zinc-400">{isAdmin ? 'Đang nhắn với tư cách Admin' : `Đang nhắn với tư cách: ${userRole || 'Người xem'}`}</p>
                         </div>
-                      </div>
-
-                      {/* SCREENSHOT INTERVAL */}
-                      <div className="p-4 rounded-2xl bg-zinc-900/50 border border-zinc-800 space-y-3 shadow-inner">
-                        <label className="block text-xs font-bold text-zinc-200">
-                          ⏱ Chu Kỳ Chụp Màn Hình Tự Động (Nhập số phút thủ công)
-                        </label>
-                        <div className="flex items-center gap-3">
-                          <input
-                            type="number"
-                            min="1"
-                            max="180"
-                            value={screenshotMin}
-                            onChange={(e) => setScreenshotMin(e.target.value)}
-                            className="w-32 bg-zinc-900 border border-zinc-800 rounded-xl px-4 py-2 text-sm font-bold text-zinc-200 outline-none focus:border-amber-500 text-center"
-                            required
-                          />
-                          <span className="text-xs font-semibold text-zinc-300">phút / lần</span>
-                        </div>
-                        <span className="text-[11px] text-zinc-500">Nhập số phút Agent sẽ chụp màn hình máy em trai định kỳ (Ví dụ: 1, 3, 5...).</span>
                       </div>
                     </div>
-                  )}
-
-                  {/* SUB-TAB 4: SECURITY & SYSTEM PASSWORDS (WITH EYE TOGGLES) */}
-                  {settingsSubTab === 'security' && (
-                    <div className="space-y-5">
-                      <div className="p-5 rounded-2xl bg-zinc-900/50 border border-zinc-800 space-y-4 shadow-inner">
-                        <div className="text-xs font-bold text-emerald-400 flex items-center gap-2">
-                          <span></span> Thay Đổi Mật Khẩu Hệ Thống & PIN Admin
-                        </div>
-
-                        {/* AGENT PASSWORD */}
-                        <div className="space-y-1.5">
-                          <label className="block text-xs font-semibold text-zinc-300">
-                            Mật Khẩu Dừng / Gỡ Agent (Máy Em Trai)
-                          </label>
-                          <div className="relative">
-                            <input
-                              type={showAgentPass ? "text" : "password"}
-                              value={newAgentPass}
-                              onChange={(e) => setNewAgentPass(e.target.value)}
-                              className="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-4 py-2.5 text-xs font-mono text-emerald-300 focus:border-indigo-500 outline-none pr-20"
-                              required
-                            />
-                            <button
-                              type="button"
-                              onClick={() => setShowAgentPass(!showAgentPass)}
-                              className="absolute right-2.5 top-1/2 -translate-y-1/2 px-2.5 py-1 bg-zinc-900 hover:bg-slate-700 text-zinc-300 text-[11px] font-bold rounded-lg transition"
-                            >
-                              {showAgentPass ? ' Ẩn' : '️ Hiện'}
-                            </button>
+                    <div className="h-96 overflow-y-auto space-y-3 p-4 bg-black border border-zinc-800 rounded-xl mb-4">
+                      {chatMessages.length === 0 ? (
+                        <div className="text-center text-slate-600 text-sm py-16">Chưa có tin nhắn nào. Gửi tin nhắn đầu tiên bên dưới!</div>
+                      ) : (
+                        chatMessages.map((msg, idx) => (
+                          <div key={msg.id || idx} className={`flex ${msg.sender === 'admin' ? 'justify-end' : 'justify-start'}`}>
+                            <div className={`max-w-xs md:max-w-md p-3.5 rounded-2xl text-sm ${
+                              msg.sender === 'admin' ? 'bg-zinc-100 text-black hover:bg-white rounded-br-none' : 'bg-zinc-900 text-zinc-200 border border-zinc-800 rounded-bl-none'
+                            }`}>
+                              <div className="text-[10px] font-bold opacity-80 mb-1">{msg.sender === 'admin' ? 'Anh/Chị Quản lý' : msg.sender}</div>
+                              <div className="leading-relaxed break-words">{msg.message}</div>
+                              <div className="text-[9px] opacity-60 text-right mt-1.5">{formatTime(msg.created_at)}</div>
+                            </div>
                           </div>
-                        </div>
-
-                        {/* ADMIN PIN */}
-                        <div className="space-y-1.5">
-                          <label className="block text-xs font-semibold text-zinc-300">
-                            Mã PIN Đăng Nhập Web Admin
-                          </label>
-                          <div className="relative">
-                            <input
-                              type={showAdminPin ? "text" : "password"}
-                              value={newAdminPin}
-                              onChange={(e) => setNewAdminPin(e.target.value)}
-                              className="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-4 py-2.5 text-xs font-mono text-emerald-300 focus:border-indigo-500 outline-none pr-20"
-                              required
-                            />
-                            <button
-                              type="button"
-                              onClick={() => setShowAdminPin(!showAdminPin)}
-                              className="absolute right-2.5 top-1/2 -translate-y-1/2 px-2.5 py-1 bg-zinc-900 hover:bg-slate-700 text-zinc-300 text-[11px] font-bold rounded-lg transition"
-                            >
-                              {showAdminPin ? ' Ẩn' : '️ Hiện'}
-                            </button>
-                          </div>
-                        </div>
-                      </div>
+                        ))
+                      )}
                     </div>
-                  )}
-
-                  {configMsg && (
-                    <div className="text-xs p-3 rounded-xl bg-zinc-900 border border-zinc-800 font-medium text-emerald-400">
-                      {configMsg}
-                    </div>
-                  )}
-                </div>
-
-                {/* STICKY SAVE BAR AT BOTTOM */}
-                <div className="fixed bottom-16 lg:bottom-6 right-6 z-40 bg-zinc-900/50/95 border border-indigo-500/40 backdrop-blur-xl rounded-2xl p-3 shadow-2xl flex items-center gap-4 animate-in slide-in-from-bottom duration-200">
-                  <div className="hidden sm:block text-xs text-zinc-300 font-medium">
-                    <span> Đã sẵn sàng áp dụng cấu hình Cài Đặt Admin.</span>
-                  </div>
-                  <button
-                    onClick={handleSaveConfig}
-                    className="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-xl text-xs transition shadow-lg shadow-indigo-600/20 flex items-center gap-2"
-                  >
-                    <span></span>
-                    <span>Lưu Tất Cả Cài Đặt Admin</span>
-                  </button>
-                </div>
-              </div>
-            )}
-
-            {/* TAB: QUẢN LÝ BỘ NHỚ (STORAGE MANAGEMENT) */}
-            {activeTab === 'storage' && isAdmin && (
-              <div className={`${cardBgClass} border rounded-2xl p-6 space-y-6 max-w-5xl mx-auto shadow-2xl`}>
-                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-zinc-800 pb-4">
-                  <div>
-                    <h2 className="font-bold text-xl flex items-center gap-2 text-emerald-400">
-                      <span>💾</span> Quản Lý Bộ Nhớ & Dọn Rác Triệt Để Supabase
-                    </h2>
-                    <p className="text-xs text-zinc-400 mt-1">
-                      Thống kê dung lượng, xóa log theo khoảng ngày, cấu hình tự động dọn rác và tối ưu dung lượng DB.
-                    </p>
-                  </div>
-                  <button
-                    onClick={handleDeepStorageVacuum}
-                    disabled={isCleaningStorage}
-                    className="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-xl text-xs transition shadow-lg shadow-emerald-600/20 flex items-center gap-2 disabled:opacity-50"
-                  >
-                    <span>🧹</span>
-                    <span>{isCleaningStorage ? 'Đang Dọn Rác...' : 'Dọn Rác Triệt Để (Vacuum)'}</span>
-                  </button>
-                </div>
-
-                {storageMessage && (
-                  <div className={`p-4 rounded-xl text-xs font-semibold ${
-                    storageMessage.includes('❌') 
-                      ? 'bg-red-500/10 border border-red-500/20 text-red-400'
-                      : 'bg-emerald-500/10 border border-emerald-500/20 text-emerald-400'
-                  }`}>
-                    {storageMessage}
+                    <form
+                      onSubmit={(e) => {
+                        e.preventDefault()
+                        handleSendChatMsg(chatInput)
+                      }}
+                      className="flex gap-2"
+                    >
+                      <input
+                        type="text"
+                        placeholder={isAdmin ? 'Nhập tin nhắn nhắn cho em trai...' : 'Gõ tin nhắn phản hồi...'}
+                        value={chatInput}
+                        onChange={(e) => setChatInput(e.target.value)}
+                        className="flex-grow bg-black border border-zinc-800 rounded-xl px-4 py-3 text-sm focus:border-indigo-500 outline-none"
+                      />
+                      <button type="submit" className="px-6 py-3 bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-xl text-sm transition">
+                        Gửi
+                      </button>
+                    </form>
                   </div>
                 )}
 
-                {/* THỐNG KÊ DUNG LƯỢNG HIỆN TẠI (ROW COUNTS) */}
-                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-3">
-                  <div className="p-3.5 bg-zinc-900/50 border border-zinc-800 rounded-xl space-y-1 text-center">
-                    <div className="text-[10px] text-zinc-400 font-medium">Lịch Sử Web</div>
-                    <div className="text-lg font-bold text-blue-400">{browserHistory.length.toLocaleString()}</div>
-                    <div className="text-[9px] text-zinc-500">dòng log</div>
-                  </div>
-                  <div className="p-3.5 bg-zinc-900/50 border border-zinc-800 rounded-xl space-y-1 text-center">
-                    <div className="text-[10px] text-zinc-400 font-medium">Active Window</div>
-                    <div className="text-lg font-bold text-amber-400">{activeWindows.length.toLocaleString()}</div>
-                    <div className="text-[9px] text-zinc-500">dòng log</div>
-                  </div>
-                  <div className="p-3.5 bg-zinc-900/50 border border-zinc-800 rounded-xl space-y-1 text-center">
-                    <div className="text-[10px] text-zinc-400 font-medium">Tiến Trình</div>
-                    <div className="text-lg font-bold text-emerald-400">{processes.length.toLocaleString()}</div>
-                    <div className="text-[9px] text-zinc-500">dòng log</div>
-                  </div>
-                  <div className="p-3.5 bg-zinc-900/50 border border-zinc-800 rounded-xl space-y-1 text-center">
-                    <div className="text-[10px] text-zinc-400 font-medium">Ảnh Chụp</div>
-                    <div className="text-lg font-bold text-purple-400">{screenshots.length.toLocaleString()}</div>
-                    <div className="text-[9px] text-zinc-500">files ảnh</div>
-                  </div>
-                  <div className="p-3.5 bg-zinc-900/50 border border-zinc-800 rounded-xl space-y-1 text-center">
-                    <div className="text-[10px] text-zinc-400 font-medium">Hộp Thao Tác</div>
-                    <div className="text-lg font-bold text-indigo-400">{todoNotes.length.toLocaleString()}</div>
-                    <div className="text-[9px] text-zinc-500">bản ghi</div>
-                  </div>
-                  <div className="p-3.5 bg-zinc-900/50 border border-zinc-800 rounded-xl space-y-1 text-center">
-                    <div className="text-[10px] text-zinc-400 font-medium">Chat & Lệnh</div>
-                    <div className="text-lg font-bold text-cyan-400">{chatMessages.length.toLocaleString()}</div>
-                    <div className="text-[9px] text-zinc-500">tin nhắn</div>
-                  </div>
-                </div>
-
-                {/* KHUNG XÓA DỮ LIỆU THEO KHOẢNG NGÀY VÀ LOẠI DỮ LIỆU */}
-                <div className="p-5 rounded-2xl bg-zinc-900/40 border border-zinc-800 space-y-4">
-                  <div className="flex items-center gap-2 border-b border-zinc-800 pb-3">
-                    <span className="text-lg">🗓️</span>
-                    <h3 className="font-bold text-sm text-zinc-200">Xóa Dữ Liệu Tự Chọn Theo Khoảng Thời Gian</h3>
-                  </div>
-
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    {/* Loại dữ liệu */}
-                    <div className="space-y-1.5">
-                      <label className="text-xs text-zinc-400 font-medium">Chọn loại dữ liệu cần xóa:</label>
-                      <select
-                        value={storageLogType}
-                        onChange={e => setStorageLogType(e.target.value)}
-                        className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2 text-xs text-zinc-200 focus:outline-none focus:border-indigo-500"
-                      >
-                        <option value="all">⚡ TẤT CẢ DỮ LIỆU LOG (Tối ưu nhất)</option>
-                        <option value="browser_history_logs">🌐 Lịch sử duyệt Web (browser_history_logs)</option>
-                        <option value="active_window_logs">🖥️ Log Cửa sổ Active (active_window_logs)</option>
-                        <option value="process_logs">⚙️ Log Tiến trình (process_logs)</option>
-                        <option value="screenshot_logs">📸 Log & Files Ảnh Chụp (screenshot_logs)</option>
-                        <option value="system_events">🔔 Log Sự kiện hệ thống (system_events)</option>
-                        <option value="system_commands">📡 Log Lệnh hệ thống (system_commands)</option>
-                      </select>
+                {/* TAB: AI Phân Tích */}
+                {activeTab === 'ai_analysis' && (
+                  <div className="bg-zinc-950 border border-zinc-800 rounded-2xl p-6 space-y-6">
+                    <div className="flex items-center gap-3">
+                      <Bot className="w-5 h-5 text-zinc-100 stroke-[1.5]" />
+                      <div>
+                        <h2 className="text-sm font-mono font-bold text-zinc-100 uppercase tracking-wider">Báo Cáo Phân Tích Thói Quen Dùng Máy</h2>
+                        <p className="text-xs text-zinc-400">Tự động soi tên cửa sổ, ứng dụng và nội dung web để phân biệt Học tập vs Giải trí</p>
+                      </div>
                     </div>
 
-                    {/* Từ ngày */}
-                    <div className="space-y-1.5">
-                      <label className="text-xs text-zinc-400 font-medium">Từ ngày (Start Date):</label>
-                      <input
-                        type="date"
-                        value={storageStartDate}
-                        onChange={e => setStorageStartDate(e.target.value)}
-                        className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2 text-xs text-zinc-200 focus:outline-none focus:border-indigo-500"
-                      />
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="p-5 rounded-2xl bg-zinc-900/40 border border-zinc-800">
+                        <div className="text-zinc-400 text-xs mb-1">Chỉ số tập trung dựa trên nội dung</div>
+                        <div className="text-3xl font-extrabold text-blue-400">{aiReport.score}</div>
+                        <div className="text-sm font-medium mt-2 text-zinc-300">{aiReport.ratio}</div>
+                      </div>
+                      <div className="p-5 rounded-2xl bg-zinc-900/40 border border-zinc-800">
+                        <div className="text-zinc-400 text-xs mb-1">Tổng quan phân tích</div>
+                        <div className="text-sm text-zinc-200 mt-2">{aiReport.summary}</div>
+                      </div>
                     </div>
 
-                    {/* Đến ngày */}
-                    <div className="space-y-1.5">
-                      <label className="text-xs text-zinc-400 font-medium">Đến ngày (End Date):</label>
-                      <input
-                        type="date"
-                        value={storageEndDate}
-                        onChange={e => setStorageEndDate(e.target.value)}
-                        className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2 text-xs text-zinc-200 focus:outline-none focus:border-indigo-500"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="flex justify-end pt-2">
-                    <button
-                      onClick={handleDeleteStorageByRange}
-                      disabled={isCleaningStorage}
-                      className="px-5 py-2.5 bg-red-600 hover:bg-red-500 text-white font-bold rounded-xl text-xs transition shadow-lg shadow-red-600/20 flex items-center gap-2 disabled:opacity-50"
-                    >
-                      <span>🗑️</span>
-                      <span>{isCleaningStorage ? 'Đang Xóa...' : 'Xóa Dữ Liệu Trong Khoảng Ngày Đã Chọn'}</span>
-                    </button>
-                  </div>
-                </div>
-
-                {/* KHUNG CẤU HÌNH TỰ ĐỘNG DỌN DẸP LÊN SUPABASE */}
-                <div className="p-5 rounded-2xl bg-zinc-900/40 border border-zinc-800 space-y-4">
-                  <div className="flex items-center justify-between border-b border-zinc-800 pb-3">
-                    <div className="flex items-center gap-2">
-                      <span className="text-lg">⚙️</span>
-                      <h3 className="font-bold text-sm text-zinc-200">Cấu Hình Tự Động Xóa Dữ Liệu Định Kỳ</h3>
-                    </div>
-                    <span className="text-[11px] px-2.5 py-1 bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 rounded-full font-mono">
-                      Đang bật dọn rác tự động 30 ngày
-                    </span>
-                  </div>
-
-                  <div className="text-xs text-zinc-400 leading-relaxed space-y-2">
-                    <p>
-                      Hệ thống Supabase được tích hợp sẵn hàm dọn dẹp tự động <code className="text-amber-300">clean_old_logs()</code> chạy ngầm. Các bản ghi log tiến trình, lịch sử duyệt web và các lệnh hệ thống cũ hơn 30 ngày sẽ tự động được dọn dẹp để bộ nhớ Supabase Cloud luôn ở trạng thái xanh an toàn.
-                    </p>
-                    <div className="p-3 bg-zinc-950/60 border border-zinc-800/80 rounded-xl flex items-center justify-between">
-                      <span className="text-zinc-300 font-medium">Trạng thái tự động Vacuum dọn rác DB Supabase:</span>
-                      <span className="text-emerald-400 font-bold flex items-center gap-1.5">
-                        <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
-                        ĐÃ BẬT KHUNG DỌN DẸP TỰ ĐỘNG
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* TAB:  HƯỚNG DẪN DÀNH CHO ADMIN */}
-            {activeTab === 'admin_guide' && isAdmin && (
-              <div className={`${cardBgClass} border rounded-2xl p-6 space-y-6 max-w-4xl mx-auto shadow-2xl`}>
-                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-zinc-800 pb-4">
-                  <div>
-                    <h2 className="font-bold text-xl flex items-center gap-2.5 text-blue-400">
-                      <span></span> Hướng Dẫn Chi Tiết Cài Đặt, Tạm Dừng & Gỡ Bỏ (Admin)
-                    </h2>
-                    <p className="text-xs text-zinc-400 mt-1">Tài liệu quản trị hệ thống Parental Control toàn diện.</p>
-                  </div>
-                  <a
-                    href="/Admin_Manual_ParentalControl.html"
-                    target="_blank"
-                    className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-xl text-xs transition shadow flex items-center gap-1.5"
-                  >
-                    <span></span>
-                    <span>Mở File Hướng Dẫn HTML Gốc</span>
-                  </a>
-                </div>
-
-                {/* KHUNG CÁC CÁCH CÀI ĐẶT LÊN MÁY EM TRAI */}
-                <div className="p-5 rounded-xl bg-zinc-900/50 border border-zinc-800 space-y-3">
-                  <h3 className="font-bold text-sm text-emerald-400 flex items-center gap-2">
-                    <span></span> 1. CÁCH CÀI ĐẶT NGẦM 1-CLICK LÊN MÁY EM TRAI
-                  </h3>
-                  <div className="text-xs text-zinc-300 space-y-2 leading-relaxed">
-                    <p>Code Python của Agent đã được đóng gói thành file thực thi mã hóa <strong className="text-white">ParentalControlAgent.exe</strong>. Em trai không thể xem hay chỉnh sửa mã nguồn bên trong.</p>
-                    <ol className="list-decimal pl-5 space-y-1.5 text-zinc-400">
-                      <li>Biên dịch file EXE (trên máy bạn): Chạy file <code className="text-amber-300">d:\Hoàng\PMQL\parental-control\agent\build_exe.bat</code> để tạo file <code className="text-amber-300">ParentalControlAgent.exe</code> trong <code className="text-zinc-200">dist\ParentalControlAgent\</code>.</li>
-                      <li>Copy file cài đặt <code className="text-amber-300">Install_Parental_Control.bat</code> bỏ vào cùng thư mục <code className="text-zinc-200">dist\ParentalControlAgent\</code>.</li>
-                      <li>Copy toàn bộ thư mục sang máy em trai (hoặc nén zip gửi sang).</li>
-                      <li>Trên máy em trai: Chuột phải vào file <strong className="text-emerald-300">Install_Parental_Control.bat  Chọn "Run as administrator"</strong>.</li>
-                      <li>Chương trình sẽ tự động cài vào thư mục ẩn hệ thống <code className="text-zinc-200">C:\ProgramData\ParentalControl\</code>, tự ẩn thư mục và tự đăng ký Windows Task Scheduler khởi động ngầm cùng Windows dưới quyền Administrator cao nhất.</li>
-                    </ol>
-                  </div>
-                </div>
-
-                {/* KHUNG CÁC CÁCH TẠM DỪNG KIỂM SOÁT */}
-                <div className="p-5 rounded-xl bg-zinc-900/50 border border-zinc-800 space-y-3">
-                  <h3 className="font-bold text-sm text-zinc-200 flex items-center gap-2">
-                    <span></span> 2. CÁCH TẠM DỪNG KIỂM SOÁT (2 CÁCH)
-                  </h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
-                    <div className="p-3.5 rounded-xl bg-zinc-900/50 border border-zinc-800 space-y-2">
-                      <div className="font-bold text-zinc-200 text-sm">Cách 1: Tạm Dừng Từ Xa Qua Web App (Khuyên Dùng)</div>
-                      <p className="text-zinc-400 leading-relaxed">
-                        Trên thanh Header chính của trang Web này, bấm nút <strong className="text-zinc-100">Tạm Dừng Kiểm Soát</strong>.
-                        Agent trên máy em trai sẽ tự động tạm dừng tất cả các hiệu ứng cấm web, cấm app, giới hạn giờ và khóa màn hình. 
-                        Khi muốn bật lại, bạn chỉ cần bấm <strong className="text-zinc-100">Tiếp Tục Kiểm Soát</strong>.
-                      </p>
-                    </div>
-
-                    <div className="p-3.5 rounded-xl bg-zinc-900/50 border border-zinc-800 space-y-2">
-                      <div className="font-bold text-zinc-200 text-sm">Cách 2: Mở Khóa Tạm Thời Tại Chỗ Trên Máy Em Trai</div>
-                      <p className="text-zinc-400 leading-relaxed">
-                        Khi màn hình máy tính em trai bị khóa, bấm nút <strong className="text-zinc-100 font-mono">[ Mật khẩu dừng Agent ]</strong> trên khung khóa, nhập mật khẩu Agent để mở khóa session sử dụng tạm thời.
-                      </p>
-                    </div>
-                  </div>
-                </div>
-
-                {/* KHUNG CÁCH XÓA HOÀN TOÀN */}
-                <div className="p-5 rounded-xl bg-zinc-900/50 border border-zinc-800 space-y-3">
-                  <h3 className="font-bold text-sm text-red-400 flex items-center gap-2">
-                    <span>️</span> 3. CÁCH GỠ BỎ HOÀN TOÀN KHỎI MÁY EM TRAI
-                  </h3>
-                  <div className="text-xs text-zinc-300 space-y-2 leading-relaxed">
-                    <p className="text-zinc-400">Để xóa sạch 100% phần mềm khỏi máy em trai, chọn 1 trong 2 cách sau:</p>
-                    <div className="space-y-2">
-                      <div className="p-3 rounded-lg bg-zinc-900/50 border border-zinc-800">
-                        <div className="font-bold text-red-300">Cách 1: Dùng script gỡ tự động (1-Click)</div>
-                        <p className="text-zinc-400 mt-1">
-                          Chuột phải vào file <code className="text-amber-300">Uninstall_Parental_Control.bat</code> trên máy em trai  Chọn <strong className="text-white">"Run as administrator"</strong>. Script sẽ tự dừng tiến trình, gỡ Windows Task và xóa sạch thư mục.
-                        </p>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/20">
+                        <div className="font-bold text-xs text-emerald-400 mb-2"> Nội dung Học tập / AutoCAD / Bài tập:</div>
+                        {aiReport.studyWindows.length === 0 ? (
+                          <div className="text-xs text-zinc-500">Chưa phát hiện cửa sổ học tập nào gần đây.</div>
+                        ) : (
+                          <div className="space-y-1 max-h-40 overflow-y-auto text-xs text-zinc-300">
+                            {aiReport.studyWindows.map((w, idx) => (
+                              <div key={idx} className="truncate">• {w}</div>
+                            ))}
+                          </div>
+                        )}
                       </div>
 
-                      <div className="p-3 rounded-lg bg-zinc-900/50 border border-zinc-800">
-                        <div className="font-bold text-red-300">Cách 2: Gỡ thủ công bằng Command Prompt (Admin)</div>
-                        <p className="text-zinc-400 mt-1">Mở CMD với quyền Administrator và gán lần lượt 3 dòng lệnh sau:</p>
-                        <pre className="bg-black p-2 rounded text-red-300 font-mono text-[11px] mt-1 space-y-1">
-schtasks /delete /tn "ParentalControlAgentTask" /f
-taskkill /f /im ParentalControlAgent.exe
-rmdir /s /q "C:\ProgramData\ParentalControl"</pre>
+                      <div className="p-4 rounded-xl bg-amber-500/10 border border-amber-500/20">
+                        <div className="font-bold text-xs text-zinc-200 mb-2"> Nội dung Giải trí / Youtube / Game / Pick:</div>
+                        {aiReport.playWindows.length === 0 ? (
+                          <div className="text-xs text-zinc-500">Chưa phát hiện nội dung giải trí nào gần đây.</div>
+                        ) : (
+                          <div className="space-y-1 max-h-40 overflow-y-auto text-xs text-zinc-300">
+                            {aiReport.playWindows.map((w, idx) => (
+                              <div key={idx} className="truncate">• {w}</div>
+                            ))}
+                          </div>
+                        )}
                       </div>
                     </div>
                   </div>
-                </div>
-              </div>
-            )}
+                )}
 
-            {/* TAB: Khung giờ Cho Phép Sử Dụng */}
-            {activeTab === 'schedule' && (
-              <div className={`${cardBgClass} border rounded-2xl p-6 space-y-5 shadow-2xl`}>
-                {/* THANH CÔNG CỤ ĐẦU TAB */}
-                <div className="p-4 bg-zinc-900/50 border border-zinc-800 rounded-2xl flex flex-col md:flex-row items-start md:items-center justify-between gap-4 shadow-lg">
-                  <div className="space-y-1">
-                    <div className="flex items-center gap-2">
-                      <span className="text-xl"></span>
-                      <h3 className="font-bold text-base text-slate-100">Cấu Hình Khung Giờ Cho Phép Sử Dụng</h3>
+                {/* TAB GỘP "QUÁ TRÌNH SỬ DỤNG" (CHIA LÀM 2 LỰA CHỌN:  ỨNG DỤNG & QUY TẮC +  LỊCH SỬ DUYỆT WEB DẠNG TIMELINE CHROME HAS BULK DELETE) */}
+                {activeTab === 'app_usage' && (
+                  <div className={`${cardBgClass} border rounded-2xl p-6 space-y-6`}>
+                    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-zinc-800 pb-4">
+                      <div>
+                        <h2 className="font-bold text-lg flex items-center gap-2">
+                          <span></span> Quá Trình Sử Dụng (App & Web)
+                        </h2>
+                        <p className="text-xs text-zinc-400 mt-1">Theo dõi thời gian dùng app, cài đặt cấm/giới hạn và xem lịch sử duyệt web dạng timeline.</p>
+                      </div>
+
+                        {/* TOGGLE 4 CHẾ ĐỘ XEM TRONG QUÁ TRÌNH SỬ DỤNG */}
+                        <div className="flex flex-wrap bg-black p-1 rounded-xl border border-zinc-800 text-xs gap-1">
+                          <button
+                            onClick={() => setUsageSubTab('apps')}
+                            className={`px-3.5 py-2 rounded-lg font-semibold transition ${
+                              usageSubTab === 'apps' ? 'bg-zinc-100 text-black hover:bg-white shadow' : 'text-zinc-400 hover:text-white'
+                            }`}
+                          >
+                             App & Quy Tắc
+                          </button>
+                          <button
+                            onClick={() => setUsageSubTab('history')}
+                            className={`px-3.5 py-2 rounded-lg font-semibold transition ${
+                              usageSubTab === 'history' ? 'bg-zinc-100 text-black hover:bg-white shadow' : 'text-zinc-400 hover:text-white'
+                            }`}
+                          >
+                             Web & Quy Tắc
+                          </button>
+                          <button
+                            onClick={() => setUsageSubTab('log')}
+                            className={`px-3.5 py-2 rounded-lg font-semibold transition ${
+                              usageSubTab === 'log' ? 'bg-green-600 text-white shadow' : 'text-zinc-400 hover:text-white'
+                            }`}
+                          >
+                             Log File ({totalLogFileCount})
+                          </button>
+                          <button
+                            onClick={() => setUsageSubTab('black_list')}
+                            className={`px-3.5 py-2 rounded-lg font-semibold transition ${
+                              usageSubTab === 'black_list' ? 'bg-amber-500/10 text-zinc-200 border border-amber-500/20 shadow' : 'text-zinc-400 hover:text-white'
+                            }`}
+                          >
+                             Black List ({webRules.length + appRules.length})
+                          </button>
+                          <button
+                            onClick={() => setUsageSubTab('schedule')}
+                            className={`px-3.5 py-2 rounded-lg font-semibold transition ${
+                              usageSubTab === 'schedule' ? 'bg-zinc-100 text-black hover:bg-white shadow' : 'text-zinc-400 hover:text-white'
+                            }`}
+                          >
+                             Khung Giờ
+                          </button>
+                        </div>
                     </div>
-                    <p className="text-xs text-zinc-400">Thiết lập khoảng giờ hoặc tổng thời gian tối đa mỗi ngày cho em trai.</p>
-                  </div>
 
-                  {/* MASTER TOGGLE SWITCH & MODE SELECTOR */}
-                  <div className="flex flex-wrap items-center gap-3 w-full md:w-auto">
-                    {/* Master Switch */}
-                    {isAdmin && (
-                      <button
-                        onClick={handleToggleMasterTimeLimit}
-                        className={`px-4 py-2 rounded-xl text-xs font-bold transition border flex items-center gap-2 shadow ${
-                          isMasterTimeLimitActive
-                            ? 'bg-emerald-600 hover:bg-emerald-500 text-white border-emerald-500 shadow-emerald-600/20'
-                            : 'bg-zinc-900 hover:bg-slate-700 text-zinc-400 border-zinc-800'
-                        }`}
-                      >
-                        <span>{isMasterTimeLimitActive ? ' Giới Hạn: ĐANG BẬT' : ' Giới Hạn: ĐÃ TẮT'}</span>
-                      </button>
-                    )}
+                    {/* Task 6: Date picker xem lịch sử web và app */}
+                    <div className="p-3.5 bg-zinc-900/50 border border-zinc-800 rounded-2xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs shadow-inner">
+                      <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+                        <div className="flex items-center gap-2">
+                          <span className="font-bold text-zinc-300"> Xem Lịch Sử Ngày:</span>
+                          <select
+                            value={historyDate}
+                            onChange={(e) => loadHistoryForDate(e.target.value)}
+                            className="bg-zinc-900 border border-zinc-800 rounded-xl px-3.5 py-1.5 font-bold text-blue-300 outline-none cursor-pointer focus:border-indigo-500 shadow"
+                          >
+                            <option value={new Date().toISOString().split('T')[0]}>Hôm nay (Mặc định)</option>
+                            {availableDates
+                              .filter(d => d !== new Date().toISOString().split('T')[0])
+                              .map(d => (
+                                <option key={d} value={d}>{d}</option>
+                              ))
+                            }
+                          </select>
+                        </div>
+                      </div>
 
-                    {/* Mode Radio Buttons */}
-                    {isAdmin && (
-                      <div className="flex bg-zinc-900/50 p-1 rounded-xl border border-zinc-800 text-xs">
+                      {isAdmin && (
                         <button
-                          onClick={() => handleChangeTimeLimitMode('time_frame')}
-                          className={`px-3.5 py-1.5 rounded-lg font-bold transition ${
-                            timeLimitMode === 'time_frame' ? 'bg-zinc-100 text-black hover:bg-white shadow' : 'text-zinc-400 hover:text-white'
-                          }`}
+                          onClick={() => openDeleteDateModal(historyDate)}
+                          className="px-3.5 py-1.5 bg-red-500/10 hover:bg-rose-500/10 text-rose-400 border border-rose-500/20 hover:text-red-300 border border-red-500/30 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition ml-auto shadow"
                         >
-                          ⏰ Theo Khung Giờ
+                          <span>️</span> Xóa Dữ Liệu Ngày {historyDate}
                         </button>
-                        <button
-                          onClick={() => handleChangeTimeLimitMode('max_daily')}
-                          className={`px-3.5 py-1.5 rounded-lg font-bold transition ${
-                            timeLimitMode === 'max_daily' ? 'bg-zinc-100 text-black hover:bg-white shadow' : 'text-zinc-400 hover:text-white'
-                          }`}
-                        >
-                          ⏱️ Theo Tổng Giờ/Ngày
-                        </button>
-                      </div>
-                    )}
-                  </div>
-                </div>
-
-                {/* TRƯỜNG HỢP 1: THỜI GIAN THEO KHUNG GIỜ (time_frame) */}
-                {timeLimitMode === 'time_frame' && (
-                  <div className="space-y-4">
-                    <div className="p-3 bg-blue-500/10 border border-indigo-500/20 rounded-xl text-xs text-blue-300 flex items-center gap-2">
-                      <span>ℹ️</span>
-                      <span>Chế độ <strong>Theo Khung Giờ</strong>: Em trai chỉ được phép dùng máy tính trong khoảng giờ được thiết lập bên dưới. Ngoài khoảng giờ này máy sẽ tự khóa.</span>
+                      )}
                     </div>
 
-                    <div className="grid grid-cols-1 gap-4">
-                      {timeRules.map(rule => (
-                        <div key={rule.id} className="p-4 rounded-2xl bg-zinc-900/50 border border-zinc-800 space-y-3 hover:border-zinc-800 transition shadow">
-                          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-zinc-800 pb-3">
-                            <div className="flex items-center gap-2.5">
-                              <span className="w-8 h-8 rounded-xl bg-blue-500/10 border border-indigo-500/20 text-blue-400 font-bold flex items-center justify-center text-xs">
-                                {rule.day_of_week === 6 ? 'CN' : `T${rule.day_of_week + 2}`}
-                              </span>
-                              <span className="font-bold text-sm text-zinc-200">{dayNames[rule.day_of_week]}</span>
+                    {/* SUB-TAB 1:  ỨNG DỤNG (RÚT GỌN CHỈ CÒN THỐNG KÊ) */}
+                    {usageSubTab === 'apps' && (
+                      <div className="space-y-6">
+                        {/* BẢNG TỔNG QUAN THỜI GIAN SỬ DỤNG VÀ QUY TẮC APP HÔM NAY */}
+                        <div className="space-y-3">
+                          <div className="flex items-center justify-between border-b border-zinc-800 pb-2">
+                            <h3 className="font-bold text-sm text-blue-400 flex items-center gap-2">
+                              <span></span> Bảng Tổng Quan Quy Tắc & Thời Gian Dùng App Hôm Nay
+                            </h3>
+                            <div className="flex items-center gap-3">
+                              {/* Task 6: Nút ẩn ứng dụng không hoạt động */}
+                              <label className="flex items-center gap-1.5 cursor-pointer text-xs text-zinc-400 select-none">
+                                <input
+                                  type="checkbox"
+                                  checked={hideUnusedApps}
+                                  onChange={(e) => setHideUnusedApps(e.target.checked)}
+                                  className="w-3.5 h-3.5 text-blue-600 rounded"
+                                />
+                                Ẩn app không hoạt động
+                              </label>
+                              <span className="text-xs text-zinc-400">{mergedAppsList.length} ứng dụng</span>
                             </div>
+                          </div>
 
-                            {isAdmin ? (
-                              <div className="flex flex-wrap items-center gap-3">
-                                <div className="flex items-center gap-2">
-                                  <span className="text-xs text-zinc-400 font-medium">Bắt đầu:</span>
-                                  <input
-                                    type="time"
-                                    value={rule.start_time?.slice(0, 5)}
-                                    onChange={(e) => updateTimeRule(rule.id, 'start_time', e.target.value + ':00')}
-                                    className="bg-zinc-900 border border-zinc-800 rounded-xl px-3 py-1.5 text-xs font-bold text-emerald-400 outline-none focus:border-indigo-500 shadow"
-                                  />
-                                  <span className="text-zinc-500">→</span>
-                                  <span className="text-xs text-zinc-400 font-medium font-mono">Kết thúc:</span>
-                                  <input
-                                    type="time"
-                                    value={rule.end_time?.slice(0, 5)}
-                                    onChange={(e) => updateTimeRule(rule.id, 'end_time', e.target.value + ':00')}
-                                    className="bg-zinc-900 border border-zinc-800 rounded-xl px-3 py-1.5 text-xs font-bold text-emerald-400 outline-none focus:border-indigo-500 shadow"
-                                  />
+                          {mergedAppsList.length === 0 ? (
+                            <div className="text-zinc-500 text-sm py-4 text-center">Chưa có ứng dụng nào trong danh sách.</div>
+                          ) : (
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                              {mergedAppsList.map(app => (
+                                <div key={app.process_name} className="p-3.5 rounded-xl bg-zinc-900/50 border border-zinc-800 flex items-center justify-between gap-3 text-xs">
+                                  <div>
+                                    <div className="font-bold text-blue-300 text-sm flex items-center gap-1.5">
+                                      <span></span>
+                                      <span>{app.process_name}</span>
+                                    </div>
+                                    <div className="text-zinc-400 mt-0.5">
+                                      Đã dùng hôm nay: <strong className="text-white font-mono">{app.used_minutes} phút</strong>
+                                    </div>
+                                  </div>
+
+                                  <div className="flex items-center gap-2">
+                                    {isAdmin ? (
+                                      <>
+                                        <select
+                                          value={app.category}
+                                          onChange={(e) => {
+                                            if (app.rule_id) updateAppRule(app.rule_id, 'category', e.target.value)
+                                            else supabase.from('app_rules').insert({ device_name: DEVICE_NAME, process_name: app.process_name, category: e.target.value }).then(() => loadData(false))
+                                          }}
+                                          className="bg-zinc-900 border border-zinc-800 rounded-lg px-2.5 py-1 text-xs font-semibold outline-none focus:border-indigo-500"
+                                        >
+                                          <option value="allowed">Cho phép</option>
+                                          <option value="limited">Giới hạn</option>
+                                          <option value="forbidden">Cấm hẳn</option>
+                                        </select>
+
+                                        {app.category === 'limited' && (
+                                          <div className="flex items-center gap-1">
+                                            <input
+                                              type="number"
+                                              value={app.max_minutes_per_day}
+                                              onChange={(e) => {
+                                                const val = parseInt(e.target.value) || 0
+                                                if (app.rule_id) updateAppRule(app.rule_id, 'max_minutes_per_day', val)
+                                                else supabase.from('app_rules').insert({ device_name: DEVICE_NAME, process_name: app.process_name, category: 'limited', max_minutes_per_day: val }).then(() => loadData(false))
+                                              }}
+                                              className="w-14 bg-zinc-900/50 border border-zinc-800 rounded-lg px-1.5 py-0.5 text-xs text-center font-bold text-zinc-200 outline-none"
+                                            />
+                                            <span className="text-[11px] text-zinc-200">p</span>
+                                          </div>
+                                        )}
+                                      </>
+                                    ) : (
+                                      <span className={`px-2.5 py-0.5 rounded-full text-[11px] font-semibold ${
+                                        app.category === 'forbidden' ? 'bg-rose-500/10 text-rose-400 border border-rose-500/20' :
+                                        app.category === 'limited' ? 'bg-amber-500/20 text-zinc-200' : 'bg-emerald-500/20 text-emerald-400'
+                                      }`}>
+                                        {app.category === 'forbidden' ? ' Cấm' : app.category === 'limited' ? `⏱ ${app.max_minutes_per_day}p/ngày` : ' Cho phép'}
+                                      </span>
+                                    )}
+                                  </div>
                                 </div>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    )}
 
-                                <button
-                                  onClick={() => updateTimeRule(rule.id, 'is_active', !rule.is_active)}
-                                  className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition ${
-                                    rule.is_active ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : 'bg-zinc-900 text-zinc-400 border border-zinc-800'
-                                  }`}
-                                >
-                                  {rule.is_active ? 'Đang bật' : 'Đã tắt'}
-                                </button>
+                    {/* SUB-TAB 2:  WEB & THỜI GIAN SỬ DỤNG */}
+                    {usageSubTab === 'history' && (
+                      <div className="space-y-6">
+                        <div className="space-y-3">
+                          <div className="flex items-center justify-between border-b border-zinc-800 pb-2">
+                            <h3 className="font-bold text-sm text-blue-400 flex items-center gap-2">
+                              <span></span> Bảng Tổng Quan Quy Tắc & Thời Gian Lướt Web
+                            </h3>
+                            <div className="flex items-center gap-3">
+                              <label className="flex items-center gap-1.5 cursor-pointer text-xs text-zinc-400 select-none">
+                                <input
+                                  type="checkbox"
+                                  checked={hideUnusedApps}
+                                  onChange={(e) => setHideUnusedApps(e.target.checked)}
+                                  className="w-3.5 h-3.5 text-blue-600 rounded"
+                                />
+                                Ẩn Web 0 phút
+                              </label>
+                              <span className="text-xs text-zinc-400">{mergedWebsList.length} trang web</span>
+                            </div>
+                          </div>
+
+                          {mergedWebsList.length === 0 ? (
+                            <div className="text-zinc-500 text-sm py-4 text-center">Chưa có trang web nào được ghi nhận sử dụng.</div>
+                          ) : (
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                              {mergedWebsList.map(web => (
+                                <div key={web.domain} className="p-3.5 rounded-xl bg-zinc-900/50 border border-zinc-800 flex items-center justify-between gap-3 text-xs">
+                                  <div>
+                                    <div className="font-bold text-blue-300 text-sm flex items-center gap-1.5">
+                                      <span></span>
+                                      <span>{web.domain}</span>
+                                    </div>
+                                    <div className="text-zinc-400 mt-0.5">
+                                      Thời gian truy cập: <strong className="text-white font-mono">{web.used_minutes} phút</strong>
+                                    </div>
+                                  </div>
+
+                                  <div className="flex items-center gap-2">
+                                    {isAdmin ? (
+                                      <>
+                                        <select
+                                          value={web.category}
+                                          onChange={(e) => {
+                                            if (web.rule_id) updateWebRule(web.rule_id, 'category', e.target.value)
+                                            else supabase.from('web_rules').insert({ device_name: DEVICE_NAME, domain: web.domain, category: e.target.value }).then(() => loadData(false))
+                                          }}
+                                          className="bg-zinc-900 border border-zinc-800 rounded-lg px-2.5 py-1 text-xs font-semibold outline-none focus:border-indigo-500"
+                                        >
+                                          <option value="allowed">Cho phép</option>
+                                          <option value="limited">Giới hạn</option>
+                                          <option value="forbidden">Cấm hẳn</option>
+                                        </select>
+
+                                        {web.category === 'limited' && (
+                                          <div className="flex items-center gap-1">
+                                            <input
+                                              type="number"
+                                              value={web.max_minutes_per_day}
+                                              onChange={(e) => {
+                                                const val = parseInt(e.target.value) || 0
+                                                if (web.rule_id) updateWebRule(web.rule_id, 'max_minutes_per_day', val)
+                                                else supabase.from('web_rules').insert({ device_name: DEVICE_NAME, domain: web.domain, category: 'limited', max_minutes_per_day: val }).then(() => loadData(false))
+                                              }}
+                                              className="w-14 bg-zinc-900/50 border border-zinc-800 rounded-lg px-1.5 py-0.5 text-xs text-center font-bold text-zinc-200 outline-none"
+                                            />
+                                            <span className="text-[11px] text-zinc-200">p</span>
+                                          </div>
+                                        )}
+                                      </>
+                                    ) : (
+                                      <span className={`px-2.5 py-0.5 rounded-full text-[11px] font-semibold ${
+                                        web.category === 'forbidden' ? 'bg-rose-500/10 text-rose-400 border border-rose-500/20' :
+                                        web.category === 'limited' ? 'bg-amber-500/20 text-zinc-200' : 'bg-emerald-500/20 text-emerald-400'
+                                      }`}>
+                                        {web.category === 'forbidden' ? ' Cấm' : web.category === 'limited' ? `⏱ ${web.max_minutes_per_day}p/ngày` : ' Cho phép'}
+                                      </span>
+                                    )}
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* SUB-TAB 3:  LOG FILE VIEWER */}
+                    {usageSubTab === 'log' && (
+                      <div className="space-y-4">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <h3 className="font-bold text-base flex items-center gap-2 text-green-400">
+                              <span></span> System Log Viewer
+                            </h3>
+                            <p className="text-xs text-zinc-400 mt-0.5">
+                              Chi tiết các sự kiện mở App và truy cập Web theo dạng Console Log.
+                            </p>
+                          </div>
+                        </div>
+
+                        <div className="bg-black border border-zinc-800 rounded-xl p-4 font-mono text-[11px] h-[500px] overflow-y-auto custom-scrollbar shadow-inner text-zinc-300">
+                          {Object.keys(groupedLogFile).length === 0 ? (
+                            <div className="text-zinc-500 italic">No logs found for {historyDate}.</div>
+                          ) : (
+                            Object.entries(groupedLogFile).map(([dateLabel, logs]) => (
+                              <div key={dateLabel} className="mb-6">
+                                <div className="text-green-500 font-bold mb-2 sticky top-0 bg-black py-1 border-b border-zinc-800/50">
+                                  [{dateLabel}]
+                                </div>
+                                <div className="space-y-1 pl-2">
+                                  {logs.map((log, idx) => (
+                                    <div key={idx} className="flex gap-3 hover:bg-white/5 px-1 py-0.5 rounded transition">
+                                      <span className="text-zinc-500 flex-shrink-0 w-16">{log.displayTime}</span>
+                                      <span className={`flex-shrink-0 w-10 font-bold ${log.type === 'WEB' ? 'text-blue-400' : 'text-zinc-300'}`}>
+                                        [{log.type}]
+                                      </span>
+                                      <span className="text-amber-200/80 font-semibold flex-shrink-0 max-w-[120px] truncate">
+                                        {log.domain}
+                                      </span>
+                                      <span className="text-zinc-300 truncate">
+                                        {log.title}
+                                      </span>
+                                      {log.count > 1 && (
+                                        <span className="text-zinc-500 text-[10px] ml-auto">
+                                          (x{log.count})
+                                        </span>
+                                      )}
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            ))
+                          )}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* SUB-TAB 3:  BLACK LIST (QUẢN LÝ RIÊNG APP VÀ TRANG WEB BỊ GIỚI HẠN VÀ CẤM) */}
+                    {usageSubTab === 'black_list' && (
+                      <div className="space-y-6">
+                        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-zinc-800 pb-4">
+                          <div>
+                            <h3 className="font-bold text-base flex items-center gap-2 text-zinc-200">
+                              <span></span> Danh Sách Black List (App & Website Bị Cấm / Giới Hạn)
+                            </h3>
+                            <p className="text-xs text-zinc-400 mt-1">
+                              Quản lý riêng tất cả ứng dụng (.exe) và trang web (domain) bị cấm hoặc giới hạn thời gian truy cập.
+                            </p>
+                          </div>
+
+                          {isAdmin && (
+                            <button
+                              onClick={() => setShowAddBlackListModal(true)}
+                              className="px-4 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-xl text-xs transition shadow-lg flex items-center gap-1.5"
+                            >
+                              <span>+</span>
+                              <span>Thêm App / Web Mới</span>
+                            </button>
+                          )}
+                        </div>
+
+                        {/* SUB TOGGLE WEB BLACK LIST VS APP BLACK LIST */}
+                        <div className="flex bg-black p-1 rounded-xl border border-zinc-800 text-xs w-fit">
+                          <button
+                            onClick={() => setBlackListSubTab('web')}
+                            className={`px-4 py-2 rounded-lg font-semibold transition ${
+                              blackListSubTab === 'web' ? 'bg-zinc-100 text-black hover:bg-white' : 'text-zinc-400 hover:text-white'
+                            }`}
+                          >
+                             Web Black List ({webRules.length})
+                          </button>
+                          <button
+                            onClick={() => setBlackListSubTab('app')}
+                            className={`px-4 py-2 rounded-lg font-semibold transition ${
+                              blackListSubTab === 'app' ? 'bg-zinc-100 text-black hover:bg-white' : 'text-zinc-400 hover:text-white'
+                            }`}
+                          >
+                             App Black List ({appRules.length})
+                          </button>
+                        </div>
+
+                        {/* DANH SÁCH WEB BLACK LIST */}
+                        {blackListSubTab === 'web' && (
+                          <div className="space-y-3">
+                            {webRules.length === 0 ? (
+                              <div className="text-center text-zinc-500 py-16 text-sm">
+                                Chưa có trang web nào trong Black List. Bấm "+ Thêm App / Web Mới" ở trên để tạo quy tắc cấm/giới hạn web.
                               </div>
                             ) : (
-                              <div className="flex items-center gap-3">
-                                <span className="text-xs font-bold text-emerald-400 bg-emerald-500/10 px-3 py-1 rounded-lg border border-emerald-500/20">
-                                  {rule.start_time?.slice(0, 5)} → {rule.end_time?.slice(0, 5)}
-                                </span>
-                                <span className={`px-2.5 py-1 rounded-lg text-xs font-semibold ${
-                                  rule.is_active ? 'bg-emerald-500/15 text-emerald-400' : 'bg-zinc-900 text-zinc-400'
-                                }`}>
-                                  {rule.is_active ? 'Đang bật' : 'Đã tắt'}
-                                </span>
+                              webRules.map(rule => {
+                                const usedToday = webUsage.find(u => u.domain === rule.domain)?.used_minutes || 0
+
+                                return (
+                                  <div key={rule.id} className="p-4 rounded-xl bg-zinc-900/50 border border-zinc-800 flex flex-col md:flex-row md:items-center justify-between gap-4">
+                                    <div className="space-y-1">
+                                      <div className="font-bold text-amber-300 text-base flex items-center gap-2">
+                                        <span> {rule.domain}</span>
+                                        <span className={`px-2.5 py-0.5 rounded-full text-xs font-semibold ${
+                                          rule.category === 'forbidden' ? 'bg-rose-500/10 text-rose-400 border border-rose-500/20' :
+                                          rule.category === 'limited' ? 'bg-amber-500/20 text-zinc-200' : 'bg-emerald-500/20 text-emerald-400'
+                                        }`}>
+                                          {rule.category === 'forbidden' ? ' Cấm hẳn' : rule.category === 'limited' ? `⏱ Giới hạn ${rule.max_minutes_per_day} phút/ngày` : ' Cho phép'}
+                                        </span>
+                                      </div>
+                                      <div className="text-xs text-zinc-400">
+                                        Đã dùng hôm nay: <strong className="text-white font-mono text-sm">{usedToday} phút</strong>
+                                      </div>
+                                    </div>
+
+                                    <div className="flex flex-wrap items-center gap-3">
+                                      {isAdmin ? (
+                                        <>
+                                          <select
+                                            value={rule.category}
+                                            onChange={(e) => updateWebRule(rule.id, 'category', e.target.value)}
+                                            className="bg-zinc-900 border border-zinc-800 rounded-xl px-3 py-1.5 text-xs font-semibold text-blue-300 outline-none focus:border-indigo-500"
+                                          >
+                                            <option value="forbidden"> Cấm hẳn</option>
+                                            <option value="limited">⏱ Giới hạn</option>
+                                            <option value="allowed"> Cho phép</option>
+                                          </select>
+
+                                          {rule.category === 'limited' && (
+                                            <div className="flex items-center gap-1.5">
+                                              <span className="text-xs text-zinc-200 font-semibold">tối đa :</span>
+                                              <input
+                                                type="number"
+                                                value={rule.max_minutes_per_day}
+                                                onChange={(e) => updateWebRule(rule.id, 'max_minutes_per_day', parseInt(e.target.value) || 0)}
+                                                className="w-16 bg-zinc-900/50 border border-zinc-800 rounded-xl px-2 py-1 text-xs text-center font-bold text-zinc-200 outline-none"
+                                              />
+                                              <span className="text-xs text-zinc-200 font-semibold">phút/ngày</span>
+                                            </div>
+                                          )}
+
+                                          <button
+                                            onClick={() => deleteWebRule(rule.id)}
+                                            className="text-xs text-red-400 hover:text-red-300 px-3 py-1.5 rounded-xl hover:bg-red-500/10 transition border border-red-500/20 font-semibold"
+                                          >
+                                            ️ Xóa
+                                          </button>
+                                        </>
+                                      ) : (
+                                        <span className="text-xs text-zinc-400 font-mono">ID: {rule.id?.slice(0, 8)}</span>
+                                      )}
+                                    </div>
+                                  </div>
+                                )
+                              })
+                            )}
+                          </div>
+                        )}
+
+                        {/* DANH SÁCH APP BLACK LIST */}
+                        {blackListSubTab === 'app' && (
+                          <div className="space-y-3">
+                            {appRules.length === 0 ? (
+                              <div className="text-center text-zinc-500 py-16 text-sm">
+                                Chưa có ứng dụng nào trong Black List. Bấm "+ Thêm App / Web Mới" ở trên để chọn cấm/giới hạn app.
+                              </div>
+                            ) : (
+                              appRules.map(rule => {
+                                const usedToday = appUsage.find(u => u.process_name?.toLowerCase() === rule.process_name?.toLowerCase())?.used_minutes || 0
+
+                                return (
+                                  <div key={rule.id} className="p-4 rounded-xl bg-zinc-900/50 border border-zinc-800 flex flex-col md:flex-row md:items-center justify-between gap-4">
+                                    <div className="space-y-1">
+                                      <div className="font-bold text-blue-400 text-base flex items-center gap-2">
+                                        <span> {rule.process_name}</span>
+                                        <span className={`px-2.5 py-0.5 rounded-full text-xs font-semibold ${
+                                          rule.category === 'forbidden' ? 'bg-rose-500/10 text-rose-400 border border-rose-500/20' :
+                                          rule.category === 'limited' ? 'bg-amber-500/20 text-zinc-200' : 'bg-emerald-500/20 text-emerald-400'
+                                        }`}>
+                                          {rule.category === 'forbidden' ? ' Cấm hẳn' : rule.category === 'limited' ? `⏱ Giới hạn ${rule.max_minutes_per_day} phút/ngày` : ' Cho phép'}
+                                        </span>
+                                      </div>
+                                      <div className="text-xs text-zinc-400">
+                                        Đã dùng hôm nay: <strong className="text-white font-mono text-sm">{usedToday} phút</strong>
+                                      </div>
+                                    </div>
+
+                                    <div className="flex flex-wrap items-center gap-3">
+                                      {isAdmin ? (
+                                        <>
+                                          <select
+                                            value={rule.category}
+                                            onChange={(e) => updateAppRule(rule.id, 'category', e.target.value)}
+                                            className="bg-zinc-900 border border-zinc-800 rounded-xl px-3 py-1.5 text-xs font-semibold text-blue-300 outline-none focus:border-indigo-500"
+                                          >
+                                            <option value="forbidden"> Cấm hẳn</option>
+                                            <option value="limited">⏱ Giới hạn</option>
+                                            <option value="allowed"> Cho phép</option>
+                                          </select>
+
+                                          {rule.category === 'limited' && (
+                                            <div className="flex items-center gap-1.5">
+                                              <span className="text-xs text-zinc-200 font-semibold">tối đa :</span>
+                                              <input
+                                                type="number"
+                                                value={rule.max_minutes_per_day}
+                                                onChange={(e) => updateAppRule(rule.id, 'max_minutes_per_day', parseInt(e.target.value) || 0)}
+                                                className="w-16 bg-zinc-900/50 border border-zinc-800 rounded-xl px-2 py-1 text-xs text-center font-bold text-zinc-200 outline-none"
+                                              />
+                                              <span className="text-xs text-zinc-200 font-semibold">phút/ngày</span>
+                                            </div>
+                                          )}
+
+                                          <button
+                                            onClick={() => deleteAppRule(rule.id)}
+                                            className="text-xs text-red-400 hover:text-red-300 px-3 py-1.5 rounded-xl hover:bg-red-500/10 transition border border-red-500/20 font-semibold"
+                                          >
+                                            ️ Xóa
+                                          </button>
+                                        </>
+                                      ) : (
+                                        <span className="text-xs text-zinc-400 font-mono">ID: {rule.id?.slice(0, 8)}</span>
+                                      )}
+                                    </div>
+                                  </div>
+                                )
+                              })
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    {/* SUB-TAB 4:  KHUNG GIỜ CHO PHÉP SỬ DỤNG MÁY TÍNH (REFACTORED UI/UX) */}
+                    {usageSubTab === 'schedule' && (
+                      <div className="space-y-5">
+                        {/* THANH CÔNG CỤ ĐẦU TAB - KHÔNG KHOẢNG TRẮNG THỪA */}
+                        <div className="p-4 bg-zinc-900/50 border border-zinc-800 rounded-2xl flex flex-col md:flex-row items-start md:items-center justify-between gap-4 shadow-lg">
+                          <div className="space-y-1">
+                            <div className="flex items-center gap-2">
+                              <span className="text-xl"></span>
+                              <h3 className="font-bold text-base text-slate-100">Cấu Hình Khung Giờ Cho Phép Sử Dụng</h3>
+                            </div>
+                            <p className="text-xs text-zinc-400">Thiết lập khoảng giờ hoặc tổng thời gian tối đa mỗi ngày cho em trai.</p>
+                          </div>
+
+                          {/* MASTER TOGGLE SWITCH & MODE SELECTOR */}
+                          <div className="flex flex-wrap items-center gap-3 w-full md:w-auto">
+                            {/* Master Switch */}
+                            {isAdmin && (
+                              <button
+                                onClick={handleToggleMasterTimeLimit}
+                                className={`px-4 py-2 rounded-xl text-xs font-bold transition border flex items-center gap-2 shadow ${
+                                  isMasterTimeLimitActive
+                                    ? 'bg-emerald-600 hover:bg-emerald-500 text-white border-emerald-500 shadow-emerald-600/20'
+                                    : 'bg-zinc-900 hover:bg-slate-700 text-zinc-400 border-zinc-800'
+                                }`}
+                              >
+                                <span>{isMasterTimeLimitActive ? ' Giới Hạn: ĐANG BẬT' : ' Giới Hạn: ĐÃ TẮT'}</span>
+                              </button>
+                            )}
+
+                            {/* Mode Radio Buttons */}
+                            {isAdmin && (
+                              <div className="flex bg-zinc-900/50 p-1 rounded-xl border border-zinc-800 text-xs">
+                                <button
+                                  onClick={() => handleChangeTimeLimitMode('time_frame')}
+                                  className={`px-3.5 py-1.5 rounded-lg font-bold transition ${
+                                    timeLimitMode === 'time_frame' ? 'bg-zinc-100 text-black hover:bg-white shadow' : 'text-zinc-400 hover:text-white'
+                                  }`}
+                                >
+                                  ⏰ Theo Khung Giờ
+                                </button>
+                                <button
+                                  onClick={() => handleChangeTimeLimitMode('max_daily')}
+                                  className={`px-3.5 py-1.5 rounded-lg font-bold transition ${
+                                    timeLimitMode === 'max_daily' ? 'bg-zinc-100 text-black hover:bg-white shadow' : 'text-zinc-400 hover:text-white'
+                                  }`}
+                                >
+                                  ⏱️ Theo Tổng Giờ/Ngày
+                                </button>
                               </div>
                             )}
                           </div>
-
-                          {/* Visual 24h Timeline Bar */}
-                          {render24hTimeline(rule)}
                         </div>
-                      ))}
+
+                        {/* TRƯỜNG HỢP 1: THỜI GIAN THEO KHUNG GIỜ (time_frame) */}
+                        {timeLimitMode === 'time_frame' && (
+                          <div className="space-y-4">
+                            <div className="p-3 bg-blue-500/10 border border-indigo-500/20 rounded-xl text-xs text-blue-300 flex items-center gap-2">
+                              <span>ℹ️</span>
+                              <span>Chế độ <strong>Theo Khung Giờ</strong>: Em trai chỉ được phép dùng máy tính trong khoảng giờ được thiết lập bên dưới. Ngoài khoảng giờ này máy sẽ tự khóa.</span>
+                            </div>
+
+                            <div className="grid grid-cols-1 gap-4">
+                              {timeRules.map(rule => (
+                                <div key={rule.id} className="p-4 rounded-2xl bg-zinc-900/50 border border-zinc-800 space-y-3 hover:border-zinc-800 transition shadow">
+                                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-zinc-800 pb-3">
+                                    <div className="flex items-center gap-2.5">
+                                      <span className="w-8 h-8 rounded-xl bg-blue-500/10 border border-indigo-500/20 text-blue-400 font-bold flex items-center justify-center text-xs">
+                                        {rule.day_of_week === 6 ? 'CN' : `T${rule.day_of_week + 2}`}
+                                      </span>
+                                      <span className="font-bold text-sm text-zinc-200">{dayNames[rule.day_of_week]}</span>
+                                    </div>
+
+                                    {isAdmin ? (
+                                      <div className="flex flex-wrap items-center gap-3">
+                                        <div className="flex items-center gap-2">
+                                          <span className="text-xs text-zinc-400 font-medium">Bắt đầu:</span>
+                                          <input
+                                            type="time"
+                                            value={rule.start_time?.slice(0, 5)}
+                                            onChange={(e) => updateTimeRule(rule.id, 'start_time', e.target.value + ':00')}
+                                            className="bg-zinc-900 border border-zinc-800 rounded-xl px-3 py-1.5 text-xs font-bold text-emerald-400 outline-none focus:border-indigo-500 shadow"
+                                          />
+                                          <span className="text-zinc-500">→</span>
+                                          <span className="text-xs text-zinc-400 font-medium font-mono">Kết thúc:</span>
+                                          <input
+                                            type="time"
+                                            value={rule.end_time?.slice(0, 5)}
+                                            onChange={(e) => updateTimeRule(rule.id, 'end_time', e.target.value + ':00')}
+                                            className="bg-zinc-900 border border-zinc-800 rounded-xl px-3 py-1.5 text-xs font-bold text-emerald-400 outline-none focus:border-indigo-500 shadow"
+                                          />
+                                        </div>
+
+                                        <button
+                                          onClick={() => updateTimeRule(rule.id, 'is_active', !rule.is_active)}
+                                          className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition ${
+                                            rule.is_active ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : 'bg-zinc-900 text-zinc-400 border border-zinc-800'
+                                          }`}
+                                        >
+                                          {rule.is_active ? 'Đang bật' : 'Đã tắt'}
+                                        </button>
+                                      </div>
+                                    ) : (
+                                      <div className="flex items-center gap-3">
+                                        <span className="text-xs font-bold text-emerald-400 bg-emerald-500/10 px-3 py-1 rounded-lg border border-emerald-500/20">
+                                          {rule.start_time?.slice(0, 5)} → {rule.end_time?.slice(0, 5)}
+                                        </span>
+                                        <span className={`px-2.5 py-1 rounded-lg text-xs font-semibold ${
+                                          rule.is_active ? 'bg-emerald-500/15 text-emerald-400' : 'bg-zinc-900 text-zinc-400'
+                                        }`}>
+                                          {rule.is_active ? 'Đang bật' : 'Đã tắt'}
+                                        </span>
+                                      </div>
+                                    )}
+                                  </div>
+
+                                  {/* Visual 24h Timeline Bar */}
+                                  {render24hTimeline(rule)}
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+
+                        {/* TRƯỜNG HỢP 2: THỜI GIAN THEO TỔNG TỐI ĐA (max_daily) */}
+                        {timeLimitMode === 'max_daily' && (
+                          <div className="space-y-4">
+                            <div className="p-3 bg-zinc-400/10 border border-zinc-400/20 rounded-xl text-xs text-zinc-300 flex items-center gap-2">
+                              <span>ℹ️</span>
+                              <span>Chế độ <strong>Tổng Thời Gian Tối Đa</strong>: Em trai được dùng tổng cộng số giờ cài đặt trong ngày. Khi mở máy dùng tích lũy đủ số giờ này, máy sẽ tự khóa.</span>
+                            </div>
+
+                            <div className="grid grid-cols-1 gap-4">
+                              {timeRules.map(rule => {
+                                const hoursVal = rule.max_hours !== undefined && rule.max_hours !== null ? rule.max_hours : 4
+                                const totalMinutes = Math.round(hoursVal * 60)
+
+                                return (
+                                  <div key={rule.id} className="p-4 rounded-2xl bg-zinc-900/50 border border-zinc-800 space-y-3 hover:border-zinc-800 transition shadow">
+                                    <div className="flex items-center justify-between border-b border-zinc-800 pb-3">
+                                      <div className="flex items-center gap-2.5">
+                                        <span className="w-8 h-8 rounded-xl bg-zinc-400/10 border border-zinc-400/20 text-zinc-300 font-bold flex items-center justify-center text-xs">
+                                          {rule.day_of_week === 6 ? 'CN' : `T${rule.day_of_week + 2}`}
+                                        </span>
+                                        <span className="font-bold text-sm text-zinc-200">{dayNames[rule.day_of_week]}</span>
+                                      </div>
+
+                                      <div className="flex items-center gap-3">
+                                        <span className="text-xs font-mono font-bold text-zinc-300 bg-zinc-400/15 border border-zinc-400/30 px-3 py-1 rounded-xl">
+                                          ⏱ {hoursVal} giờ/ngày ({totalMinutes} phút)
+                                        </span>
+
+                                        {isAdmin && (
+                                          <button
+                                            onClick={() => updateTimeRule(rule.id, 'is_active', !rule.is_active)}
+                                            className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition ${
+                                              rule.is_active ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : 'bg-zinc-900 text-zinc-400 border border-zinc-800'
+                                            }`}
+                                          >
+                                            {rule.is_active ? 'Đang bật' : 'Đã tắt'}
+                                          </button>
+                                        )}
+                                      </div>
+                                    </div>
+
+                                    {/* SLIDER KẾT HỢP INPUT NUMBER */}
+                                    {isAdmin ? (
+                                      <div className="flex flex-col sm:flex-row items-center gap-4 pt-1">
+                                        <div className="flex-grow w-full flex items-center gap-3">
+                                          <span className="text-[11px] text-zinc-500 font-mono">0h</span>
+                                          <input
+                                            type="range"
+                                            min="0"
+                                            max="24"
+                                            step="0.5"
+                                            value={hoursVal}
+                                            onChange={(e) => updateTimeRule(rule.id, 'max_hours', parseFloat(e.target.value))}
+                                            className="flex-grow h-2 bg-zinc-900/50 rounded-lg appearance-none cursor-pointer accent-zinc-400"
+                                          />
+                                          <span className="text-[11px] text-zinc-500 font-mono">24h</span>
+                                        </div>
+
+                                        <div className="flex items-center gap-2 shrink-0">
+                                          <span className="text-xs text-zinc-400 font-medium">Số giờ:</span>
+                                          <input
+                                            type="number"
+                                            min="0"
+                                            max="24"
+                                            step="0.5"
+                                            value={hoursVal}
+                                            onChange={(e) => updateTimeRule(rule.id, 'max_hours', parseFloat(e.target.value) || 0)}
+                                            className="w-20 bg-zinc-900 border border-zinc-800 rounded-xl px-3 py-1.5 text-xs text-center font-bold text-zinc-300 outline-none focus:border-zinc-400"
+                                          />
+                                          <span className="text-xs text-zinc-400">giờ</span>
+                                        </div>
+                                      </div>
+                                    ) : (
+                                      <div className="text-xs text-zinc-400">
+                                        Thời gian tối đa được phép dùng máy: <strong className="text-white font-mono">{hoursVal} tiếng</strong> ({totalMinutes} phút).
+                                      </div>
+                                    )}
+                                  </div>
+                                )
+                              })}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* TAB:  ẢNH CHỤP MÀN HÌNH (CHỈ ADMIN XEM, SẮP XẾP THEO NGÀY & XÓA NHIỀU ẢNH) */}
+                {activeTab === 'screenshots' && isAdmin && (
+                  <div className="space-y-6">
+                    <div className={`${cardBgClass} border rounded-2xl p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4`}>
+                      <div>
+                        <h2 className="font-bold text-lg flex items-center gap-2">
+                          <span></span> Ảnh Chụp Màn Hình (Quyền Riêng Admin)
+                        </h2>
+                        <p className="text-xs text-zinc-400 mt-1">Đã tự động nhóm theo ngày. Tích chọn để xóa nhiều ảnh cùng lúc.</p>
+                      </div>
+
+                      {selectedScreenshotIds.length > 0 && (
+                        <button
+                          onClick={handleBulkDeleteScreenshots}
+                          disabled={bulkDeleting}
+                          className="px-4 py-2 bg-red-600 hover:bg-red-500 text-white font-bold rounded-xl text-xs flex items-center gap-2 transition disabled:opacity-50"
+                        >
+                          {bulkDeleting ? '⏳ Đang xóa...' : `️ Xóa ${selectedScreenshotIds.length} ảnh đã chọn`}
+                        </button>
+                      )}
+                    </div>
+
+                    {/* KHUNG CỐ ĐỊNH:  ẢNH VỪA CHỤP NGAY TỨC THÌ (INSTANT PREVIEW CONTAINER) */}
+                    <div className={`${cardBgClass} border border-indigo-500/40 rounded-2xl p-5 space-y-4 bg-gradient-to-r from-blue-950/30 to-slate-900 shadow-2xl`}>
+                      <div className="flex items-center justify-between border-b border-indigo-500/20 pb-3">
+                        <div className="flex items-center gap-2">
+                          <span className="w-3 h-3 rounded-full bg-emerald-400 animate-ping"></span>
+                          <h3 className="font-bold text-base text-blue-300 flex items-center gap-2">
+                             Khung Xem Nhanh Ảnh Chụp Màn Hình Ngay Tức Thì
+                          </h3>
+                          <span className="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 border border-emerald-500/30 uppercase tracking-wider">
+                            Mới Nhất
+                          </span>
+                        </div>
+                        <button
+                          onClick={sendInstantScreenshot}
+                          disabled={cmdSending}
+                          className="px-3.5 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-xl text-xs transition disabled:opacity-50 flex items-center gap-1.5 shadow"
+                        >
+                          {cmdSending ? '⏳ Đang chụp...' : ' Chụp Mới Ngay Tức Thì'}
+                        </button>
+                      </div>
+
+                      {screenshots.length === 0 ? (
+                        <div className="text-center text-zinc-500 py-8 text-xs">Bấm nút "Chụp Mới Ngay Tức Thì" để lấy ảnh chụp màn hình máy em trai lập tức.</div>
+                      ) : (
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          {/* Ảnh mới nhất 1 */}
+                          {screenshots.slice(0, 1).map(item => (
+                            <div key={`instant-${item.id}`} className="border border-indigo-500/40 rounded-xl overflow-hidden group relative bg-black shadow-xl">
+                              <img
+                                src={getScreenshotUrl(item.file_path, { width: 640, quality: 70 })}
+                                alt="instant screenshot" loading="lazy"
+                                className="w-full h-64 object-contain bg-black cursor-pointer"
+                                onClick={() => setSelectedImage(getScreenshotUrl(item.file_path, { width: 1600, quality: 85 }))}
+                              />
+                              <div className="p-3 flex items-center justify-between text-xs bg-zinc-900/50/90 border-t border-zinc-800">
+                                <div className="flex items-center gap-2">
+                                  <span className="text-zinc-300 text-xs font-semibold"> {item.created_at ? new Date(item.created_at).toLocaleDateString('vi-VN') : ''}</span>
+                                  <span className="font-mono text-amber-300 font-bold bg-amber-500/20 text-xs px-2.5 py-0.5 rounded border border-amber-500/30">
+                                    ⏱ {getScreenshotDisplayTime(item) || formatClockTime(item.created_at)}
+                                  </span>
+                                </div>
+                                <div className="flex gap-2">
+                                  <button
+                                    onClick={() => setSelectedImage(getScreenshotUrl(item.file_path, { width: 1600, quality: 85 }))}
+                                    className="text-blue-400 hover:text-blue-300 font-semibold px-2.5 py-1 rounded bg-blue-500/10 hover:bg-blue-500/20 transition text-xs"
+                                  >
+                                     Phóng To
+                                  </button>
+                                  <button
+                                    onClick={() => deleteScreenshot(item.id, item.file_path)}
+                                    className="text-red-400 hover:text-red-300 font-semibold px-2 py-1 rounded hover:bg-red-500/10 transition text-xs"
+                                  >
+                                    Xóa
+                                  </button>
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+
+                          {/* Ảnh mới thứ 2 nếu có */}
+                          {screenshots.slice(1, 2).map(item => (
+                            <div key={`instant-prev-${item.id}`} className="border border-zinc-800 rounded-xl overflow-hidden group relative bg-black opacity-90">
+                              <img
+                                src={getScreenshotUrl(item.file_path, { width: 640, quality: 70 })}
+                                alt="instant screenshot previous" loading="lazy"
+                                className="w-full h-64 object-contain bg-black cursor-pointer"
+                                onClick={() => setSelectedImage(getScreenshotUrl(item.file_path, { width: 1600, quality: 85 }))}
+                              />
+                              <div className="p-3 flex items-center justify-between text-xs bg-zinc-900/50/90 border-t border-zinc-800">
+                                <div className="flex items-center gap-2">
+                                  <span className="text-zinc-400 text-xs">Ảnh trước đó:</span>
+                                  <span className="font-mono text-zinc-300 font-bold bg-zinc-900 px-2 py-0.5 rounded text-xs">
+                                    ⏱ {getScreenshotDisplayTime(item) || formatClockTime(item.created_at)}
+                                  </span>
+                                </div>
+                                <button
+                                  onClick={() => setSelectedImage(getScreenshotUrl(item.file_path, { width: 1600, quality: 85 }))}
+                                  className="text-blue-400 hover:text-blue-300 font-semibold px-2.5 py-1 rounded bg-blue-500/10 transition text-xs"
+                                >
+                                   Phóng To
+                                </button>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+
+                    {Object.keys(groupedScreenshots).length === 0 ? (
+                      <div className="text-center text-zinc-500 py-16">Chưa có ảnh chụp màn hình nào.</div>
+                    ) : (
+                      Object.entries(groupedScreenshots).map(([dateLabel, items]) => {
+                        const allInGroupSelected = items.every(i => selectedScreenshotIds.includes(i.id))
+
+                        return (
+                          <div key={dateLabel} className={`${cardBgClass} border rounded-2xl p-5 space-y-4`}>
+                            <div className="flex items-center justify-between border-b border-zinc-800 pb-3">
+                              <label className="flex items-center gap-2 cursor-pointer font-bold text-blue-400 text-sm">
+                                <input
+                                  type="checkbox"
+                                  checked={allInGroupSelected}
+                                  onChange={() => toggleSelectDateGroup(dateLabel, items)}
+                                  className="w-4 h-4 rounded text-blue-600"
+                                />
+                                <span> {dateLabel} ({items.length} ảnh)</span>
+                              </label>
+
+                              <span className="text-xs text-zinc-500">Tích chọn để nhóm toàn bộ ngày này</span>
+                            </div>
+
+                            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                              {items.map(item => {
+                                const isSelected = selectedScreenshotIds.includes(item.id)
+                                return (
+                                  <div
+                                    key={item.id}
+                                    className={`border rounded-xl overflow-hidden group relative transition ${
+                                      isSelected ? 'border-indigo-500 ring-2 ring-blue-500/50' : 'border-zinc-800 hover:border-indigo-500/30'
+                                    }`}
+                                  >
+                                    <input
+                                      type="checkbox"
+                                      checked={isSelected}
+                                      onChange={() => toggleSelectScreenshot(item.id)}
+                                      className="absolute top-2 left-2 z-10 w-5 h-5 rounded text-blue-600 cursor-pointer shadow"
+                                    />
+
+                                    <img
+                                      src={getScreenshotUrl(item.file_path, { width: 640, quality: 70 })}
+                                      alt="screenshot" loading="lazy"
+                                      className="w-full h-40 object-cover cursor-pointer"
+                                      onClick={() => setSelectedImage(getScreenshotUrl(item.file_path, { width: 1600, quality: 85 }))}
+                                    />
+
+                                    <div className="p-2 flex items-center justify-between text-xs text-zinc-400 bg-zinc-900/50">
+                                      <div className="flex items-center gap-2">
+                                        <span className="text-zinc-300 text-[11px] font-medium">
+                                          {item.created_at ? new Date(item.created_at).toLocaleDateString('vi-VN') : ''}
+                                        </span>
+                                        <span className="font-mono text-zinc-200 text-[11px] font-bold bg-amber-500/10 px-2 py-0.5 rounded border border-amber-500/20">
+                                          ⏱ {getScreenshotDisplayTime(item) || formatClockTime(item.created_at)}
+                                        </span>
+                                      </div>
+                                      <button
+                                        onClick={() => deleteScreenshot(item.id, item.file_path)}
+                                        className="text-red-400 hover:text-red-300 font-semibold px-2 py-0.5 rounded hover:bg-red-500/10 transition text-[11px]"
+                                      >
+                                        Xóa
+                                      </button>
+                                    </div>
+                                  </div>
+                                )
+                              })}
+                            </div>
+                          </div>
+                        )
+                      })
+                    )}
+
+                    {selectedImage && (
+                      <div
+                        className="fixed inset-0 bg-black/90 z-50 flex items-center justify-center p-4"
+                        onClick={() => setSelectedImage(null)}
+                      >
+                        <img src={selectedImage} alt="full" className="max-w-full max-h-full rounded-lg shadow-2xl" />
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* TAB: CÀI ĐẶT ADMIN — REFACTORED SUB-TABS & PERMISSION MATRIX */}
+                {activeTab === 'config' && isAdmin && (
+                  <div className="space-y-6 max-w-5xl mx-auto pb-16">
+                    <div className={`${cardBgClass} border rounded-2xl p-6 space-y-6 shadow-2xl`}>
+
+                      {/* HEADER TOP BAR */}
+                      <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 border-b border-zinc-800 pb-5">
+                        <div>
+                          <h2 className="text-xl font-bold flex items-center gap-2 text-slate-100">
+                            <span></span> Cài Đặt Admin & Quản Lý Hệ Thống
+                          </h2>
+                          <p className="text-xs text-zinc-400 mt-1">
+                            Cấu hình phân quyền tư cách, quản lý thiết bị kết nối và bảo mật hệ thống.
+                          </p>
+                        </div>
+                      </div>
+
+                      {/* NAV SUB-TABS (4 SUB-TABS) */}
+                      <div className="flex bg-black p-1.5 rounded-2xl border border-zinc-800 text-xs overflow-x-auto gap-1">
+                        <button
+                          onClick={() => setSettingsSubTab('permissions')}
+                          className={`px-4 py-2.5 rounded-xl font-bold transition flex items-center gap-2 shrink-0 ${
+                            settingsSubTab === 'permissions' ? 'bg-zinc-100 text-black hover:bg-white shadow' : 'text-zinc-400 hover:text-white'
+                          }`}
+                        >
+                          <span></span>
+                          <span>Phân Quyền & Tư Cách</span>
+                        </button>
+
+                        <button
+                          onClick={() => setSettingsSubTab('devices')}
+                          className={`px-4 py-2.5 rounded-xl font-bold transition flex items-center gap-2 shrink-0 ${
+                            settingsSubTab === 'devices' ? 'bg-zinc-100 text-black hover:bg-white shadow' : 'text-zinc-400 hover:text-white'
+                          }`}
+                        >
+                          <span></span>
+                          <span>Thiết Bị Truy Cập ({activeSessions.length})</span>
+                        </button>
+
+                        <button
+                          onClick={() => setSettingsSubTab('updates')}
+                          className={`px-4 py-2.5 rounded-xl font-bold transition flex items-center gap-2 shrink-0 ${
+                            settingsSubTab === 'updates' ? 'bg-zinc-100 text-black hover:bg-white shadow' : 'text-zinc-400 hover:text-white'
+                          }`}
+                        >
+                          <span>🚀</span>
+                          <span>Cập Nhật Agent ({agentVersions.find(v => v.is_latest)?.version || 'v2.0'})</span>
+                        </button>
+
+                        <button
+                          onClick={() => setSettingsSubTab('agent')}
+                          className={`px-4 py-2.5 rounded-xl font-bold transition flex items-center gap-2 shrink-0 ${
+                            settingsSubTab === 'agent' ? 'bg-zinc-100 text-black hover:bg-white shadow' : 'text-zinc-400 hover:text-white'
+                          }`}
+                        >
+                          <span></span>
+                          <span>Cấu Hình Agent & Theme</span>
+                        </button>
+
+                        <button
+                          onClick={() => setSettingsSubTab('security')}
+                          className={`px-4 py-2.5 rounded-xl font-bold transition flex items-center gap-2 shrink-0 ${
+                            settingsSubTab === 'security' ? 'bg-zinc-100 text-black hover:bg-white shadow' : 'text-zinc-400 hover:text-white'
+                          }`}
+                        >
+                          <span></span>
+                          <span>Bảo Mật & Mật Khẩu</span>
+                        </button>
+                      </div>
+
+                      {/* SUB-TAB 1: PERMISSION MATRIX TABLE */}
+                      {settingsSubTab === 'permissions' && (
+                        <div className="space-y-5">
+                          <div className="p-4 bg-zinc-900/50 border border-zinc-800 rounded-2xl space-y-4 shadow-inner">
+                            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                              <div>
+                                <h3 className="font-bold text-sm text-blue-400 flex items-center gap-2">
+                                  <span></span> Quản Lý Tư Cách Người Dùng
+                                </h3>
+                                <p className="text-xs text-zinc-400">Thêm vai trò mới (Ví dụ: Gia sư, Ông bà, Bố, Mẹ...)</p>
+                              </div>
+
+                              <form onSubmit={handleAddCustomRole} className="flex gap-2 w-full sm:w-auto">
+                                <input
+                                  type="text"
+                                  placeholder="Thêm tư cách mới..."
+                                  value={newRoleInput}
+                                  onChange={(e) => setNewRoleInput(e.target.value)}
+                                  className="bg-zinc-900 border border-zinc-800 rounded-xl px-3.5 py-1.5 text-xs text-slate-100 outline-none focus:border-indigo-500 flex-grow"
+                                />
+                                <button type="submit" className="px-3.5 py-1.5 bg-indigo-600 hover:bg-indigo-500 font-bold rounded-xl text-xs text-white whitespace-nowrap shadow">
+                                  + Thêm
+                                </button>
+                              </form>
+                            </div>
+
+                            {/* PASSWORD TƯ CÁCH */}
+                            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 pt-2">
+                              {displayRoles.map(roleName => (
+                                <div key={roleName} className="p-3 bg-zinc-900/50 border border-zinc-800 rounded-xl space-y-2 text-xs">
+                                  <div className="flex items-center justify-between font-bold">
+                                    <span>{roleName}</span>
+                                    {roleName !== 'Khách (Chưa chọn)' && customRoles.length > 1 && (
+                                      <button onClick={() => handleRemoveCustomRole(roleName)} className="text-[10px] text-red-400 hover:text-red-300">
+                                        Xóa
+                                      </button>
+                                    )}
+                                  </div>
+                                  <input
+                                    type="text"
+                                    placeholder="Mật khẩu tư cách..."
+                                    value={rolePasswords[roleName] || ''}
+                                    onChange={(e) => handleSetRolePassword(roleName, e.target.value)}
+                                    className="w-full bg-black border border-zinc-800 rounded-lg px-2.5 py-1 text-xs font-mono text-emerald-400 outline-none"
+                                  />
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+
+                          {/* BẢNG MA TRẬN PHÂN QUYỀN (PERMISSION MATRIX TABLE) */}
+                          <div className="space-y-3">
+                            <div className="text-xs font-bold text-zinc-300 flex items-center gap-2">
+                              <span></span> BẢNG MA TRẬN PHÂN QUYỀN TRUY CẬP (PERMISSION MATRIX)
+                            </div>
+
+                            <div className="overflow-x-auto rounded-2xl border border-zinc-800 shadow">
+                              <table className="w-full text-left text-xs">
+                                <thead>
+                                  <tr className="border-b border-zinc-800 text-zinc-400 font-bold uppercase tracking-wider text-[11px] bg-black/90">
+                                    <th className="p-3.5 sticky left-0 bg-black z-10 border-r border-zinc-800">Chức Năng / Tab</th>
+                                    {displayRoles.map(roleName => (
+                                      <th key={roleName} className="p-3.5 text-center min-w-[130px] border-r border-zinc-800/60 text-amber-300">
+                                        {roleName}
+                                      </th>
+                                    ))}
+                                  </tr>
+                                </thead>
+                                <tbody className="divide-y divide-slate-800/60 bg-zinc-900/50/40">
+                                  {rawTabList.filter(t => t.id !== 'config' && t.id !== 'screenshots').map(tab => (
+                                    <tr key={tab.id} className="hover:bg-zinc-900/40 transition">
+                                      <td className="p-3.5 font-bold text-zinc-200 sticky left-0 bg-zinc-900/50 border-r border-zinc-800 whitespace-nowrap">
+                                        {tab.label}
+                                      </td>
+                                      {displayRoles.map(roleName => {
+                                        const curPerm = rolePermissions[roleName]?.[tab.id] || 'edit'
+
+                                        return (
+                                          <td key={roleName} className="p-2.5 text-center border-r border-zinc-800/60">
+                                            <select
+                                              value={curPerm}
+                                              onChange={(e) => handleSetRolePermission(roleName, tab.id, e.target.value)}
+                                              className={`w-full border rounded-xl px-2 py-1 text-xs font-bold outline-none cursor-pointer transition ${
+                                                curPerm === 'edit'
+                                                  ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 border-emerald-500/40'
+                                                  : curPerm === 'view'
+                                                  ? 'bg-blue-500/20 text-blue-300 border-indigo-500/40'
+                                                  : 'bg-red-500/20 text-red-300 border-red-500/40'
+                                              }`}
+                                            >
+                                              <option value="edit"> Toàn Quyền</option>
+                                              <option value="view"> Chỉ Xem</option>
+                                              <option value="none"> Ẩn Tab</option>
+                                            </select>
+                                          </td>
+                                        )
+                                      })}
+                                    </tr>
+                                  ))}
+                                </tbody>
+                              </table>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* SUB-TAB 2: DEVICE ACCESS MANAGEMENT TABLE */}
+                      {settingsSubTab === 'devices' && (
+                        <div className="space-y-4">
+                          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs text-zinc-400 px-1">
+                            <span className="font-bold text-zinc-200">DANH SÁCH THIẾT BỊ ĐANG KẾT NỐI ({activeSessions.length})</span>
+                            <div className="flex items-center gap-2">
+                              <button
+                                onClick={cleanupStaleSessions}
+                                className="px-3 py-1.5 bg-zinc-900 hover:bg-slate-700 text-zinc-300 text-xs font-bold rounded-xl transition border border-zinc-800 shadow flex items-center gap-1.5"
+                              >
+                                <span></span>
+                                <span>Dọn Dẹp Session Rác</span>
+                              </button>
+                            </div>
+                          </div>
+
+                          <div className="overflow-x-auto rounded-2xl border border-zinc-800 shadow">
+                            <table className="w-full text-left text-xs">
+                              <thead>
+                                <tr className="border-b border-zinc-800 text-zinc-400 font-bold uppercase tracking-wider text-[11px] bg-zinc-900/50">
+                                  <th className="p-3.5">Thiết Bị / Trình Duyệt</th>
+                                  <th className="p-3.5">Tư Cách</th>
+                                  <th className="p-3.5">Trạng Thái & Hoạt Động</th>
+                                  <th className="p-3.5 text-right">Tác Vụ</th>
+                                </tr>
+                              </thead>
+                              <tbody className="divide-y divide-slate-800/60 bg-zinc-900/50/40">
+                                {activeSessions.map((sess, idx) => {
+                                  const isCurrentDev = sess.session_id === sessionId
+                                  const infoLower = (sess.device_info || '').toLowerCase()
+                                  const isMobile = infoLower.includes('mobile') || infoLower.includes('android') || infoLower.includes('iphone')
+                                  const diffSec = sess.last_active ? Math.max(0, Math.round((Date.now() - new Date(sess.last_active).getTime()) / 1000)) : 0
+                                  const activeText = diffSec <= 5 ? ' Vừa tương tác' : `⏱ ${diffSec}s trước`
+
+                                  return (
+                                    <tr key={sess.session_id || idx} className="hover:bg-zinc-900/50 transition">
+                                      <td className="p-3.5 font-semibold text-zinc-200">
+                                        <div className="flex items-center gap-2">
+                                          {isCurrentDev ? (
+                                            <span className="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 border border-emerald-500/30">
+                                               MÁY NÀY
+                                            </span>
+                                          ) : isMobile ? (
+                                            <span className="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold bg-blue-500/20 text-blue-300 border border-indigo-500/30">
+                                               ĐIỆN THOẠI
+                                            </span>
+                                          ) : (
+                                            <span className="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold bg-zinc-400/20 text-zinc-300 border border-zinc-400/30">
+                                              ️ LAPTOP / PC
+                                            </span>
+                                          )}
+                                          <span className="truncate">{sess.device_info || 'Thiết bị Web'}</span>
+                                        </div>
+                                      </td>
+
+                                      <td className="p-3.5">
+                                        <div className="flex items-center gap-1.5">
+                                          <span className="px-2.5 py-1 rounded-xl text-xs font-bold bg-zinc-900 text-blue-300 border border-zinc-800">
+                                            {sess.user_role}
+                                          </span>
+                                          {sess.tabCount > 1 && (
+                                            <span className="px-2 py-0.5 rounded-lg text-[10px] font-bold bg-zinc-400/20 text-zinc-300 border border-zinc-400/30 font-mono">
+                                              {sess.tabCount} Tabs
+                                            </span>
+                                          )}
+                                        </div>
+                                      </td>
+
+                                      <td className="p-3.5 font-mono text-zinc-400 text-[11px]">
+                                        <div className="text-emerald-400 font-bold">{activeText}</div>
+                                        <div className="text-zinc-500 text-[10px]">{formatTime(sess.last_active)}</div>
+                                      </td>
+
+                                      <td className="p-3.5 text-right">
+                                        <button
+                                          onClick={() => openBlockSessionModal(sess)}
+                                          className={`px-3.5 py-1.5 rounded-xl font-bold text-xs transition border shadow ${
+                                            sess.is_blocked
+                                              ? 'bg-emerald-600 hover:bg-emerald-500 text-white border-emerald-500'
+                                              : 'bg-red-600/15 hover:bg-red-600 text-red-300 hover:text-white border-red-500/30'
+                                          }`}
+                                        >
+                                          {sess.is_blocked ? ' Bỏ Chặn' : ' Chặn Thiết Bị'}
+                                        </button>
+                                      </td>
+                                    </tr>
+                                  )
+                                })}
+                              </tbody>
+                            </table>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* SUB-TAB 5: AGENT UPDATE & VERSION CONTROL */}
+                      {settingsSubTab === 'updates' && (
+                        <div className="space-y-6">
+                          <div className="p-5 rounded-2xl bg-zinc-900/50 border border-zinc-800 space-y-4 shadow-lg">
+                            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-zinc-800 pb-4">
+                              <div>
+                                <h3 className="font-bold text-base text-emerald-400 flex items-center gap-2">
+                                  <span>🚀</span> Kiểm Tra & Cập Nhật Agent Từ Xa
+                                </h3>
+                                <p className="text-xs text-zinc-400 mt-1">
+                                  Quản lý phiên bản phần mềm Agent chạy ngầm trên máy em trai ({DEVICE_NAME}).
+                                </p>
+                              </div>
+                              <button
+                                onClick={triggerForceAgentUpdate}
+                                disabled={updateSending}
+                                className="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-xl text-xs transition shadow-lg shadow-emerald-600/20 flex items-center gap-2 disabled:opacity-50"
+                              >
+                                <span>⚡</span>
+                                <span>{updateSending ? 'Đang Gửi Lệnh Cập Nhật...' : 'Cưỡng Chế Cập Nhật Ngay (Force Update)'}</span>
+                              </button>
+                            </div>
+
+                            {/* THÔNG TIN BẢN MỚI NHẤT & TRẠNG THÁI MÁY */}
+                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                              <div className="p-4 bg-zinc-950/60 border border-zinc-800 rounded-xl space-y-1">
+                                <div className="text-[11px] text-zinc-400 font-medium">Bản Mới Nhất Trên Cloud:</div>
+                                <div className="text-base font-bold text-emerald-400 font-mono">
+                                  {agentVersions.find(v => v.is_latest)?.version || 'v2.0 Local-First'}
+                                </div>
+                                <div className="text-[10px] text-zinc-500">Tệp: {agentVersions.find(v => v.is_latest)?.file_path || 'agent_update.zip'}</div>
+                              </div>
+
+                              <div className="p-4 bg-zinc-950/60 border border-zinc-800 rounded-xl space-y-1">
+                                <div className="text-[11px] text-zinc-400 font-medium">Thiết Bị Đang Kiểm Soát:</div>
+                                <div className="text-base font-bold text-blue-400">{DEVICE_NAME}</div>
+                                <div className="text-[10px] text-zinc-500 flex items-center gap-1">
+                                  <span className={`w-1.5 h-1.5 rounded-full ${isDeviceOnline ? 'bg-emerald-400 animate-pulse' : 'bg-red-400'}`}></span>
+                                  <span>{isDeviceOnline ? 'Đang Online' : 'Đang Offline'}</span>
+                                </div>
+                              </div>
+
+                              <div className="p-4 bg-zinc-950/60 border border-zinc-800 rounded-xl space-y-1">
+                                <div className="text-[11px] text-zinc-400 font-medium">Cơ Chế Auto Update:</div>
+                                <div className="text-xs font-bold text-amber-300">Tự Động 100% (No User Interaction)</div>
+                                <div className="text-[10px] text-zinc-500">Watchdog ngầm tự tải & giải nén</div>
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* BẢNG LỊCH SỬ PHÁT HÀNH PHIÊN BẢN AGENT */}
+                          <div className="space-y-3">
+                            <div className="flex items-center justify-between text-xs px-1">
+                              <span className="font-bold text-zinc-200 uppercase tracking-wider">Lịch Sử Các Bản Cập Nhật ({agentVersions.length})</span>
+                              <span className="text-zinc-400">Dữ liệu từ Supabase Agent Versions Catalog</span>
+                            </div>
+
+                            <div className="overflow-x-auto rounded-2xl border border-zinc-800 shadow">
+                              <table className="w-full text-left text-xs">
+                                <thead>
+                                  <tr className="border-b border-zinc-800 text-zinc-400 font-bold uppercase tracking-wider text-[11px] bg-zinc-900/50">
+                                    <th className="p-3.5">Mã Phiên Bản (Version)</th>
+                                    <th className="p-3.5">Tệp Gói Cập Nhật (.zip)</th>
+                                    <th className="p-3.5">Trạng Thái Release</th>
+                                    <th className="p-3.5 text-right">Ngày Phát Hành (GMT+7)</th>
+                                  </tr>
+                                </thead>
+                                <tbody className="divide-y divide-slate-800/60 bg-zinc-900/40">
+                                  {agentVersions.length === 0 ? (
+                                    <tr>
+                                      <td colSpan="4" className="p-4 text-center text-zinc-500">Chưa có thông tin phiên bản nào trong kho.</td>
+                                    </tr>
+                                  ) : (
+                                    agentVersions.map((ver, idx) => (
+                                      <tr key={ver.id || idx} className="hover:bg-zinc-900/60 transition">
+                                        <td className="p-3.5 font-bold font-mono text-emerald-400">
+                                          {ver.version}
+                                        </td>
+                                        <td className="p-3.5 font-mono text-zinc-300">
+                                          {ver.file_path}
+                                        </td>
+                                        <td className="p-3.5">
+                                          {ver.is_latest ? (
+                                            <span className="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                                              🌟 BẢN MỚI NHẤT (CURRENT)
+                                            </span>
+                                          ) : (
+                                            <span className="px-2.5 py-0.5 rounded-full text-[10px] font-medium bg-zinc-800 text-zinc-400 border border-zinc-700">
+                                              Bản Cũ
+                                            </span>
+                                          )}
+                                        </td>
+                                        <td className="p-3.5 text-right font-mono text-zinc-400">
+                                          {formatTime(ver.created_at)}
+                                        </td>
+                                      </tr>
+                                    ))
+                                  )}
+                                </tbody>
+                              </table>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* SUB-TAB 3: AGENT CONFIG & THEME */}
+                      {settingsSubTab === 'agent' && (
+                        <div className="space-y-5">
+                          {/* THEME SELECTOR */}
+                          <div className="p-4 rounded-2xl bg-zinc-900/50 border border-zinc-800 space-y-3 shadow-inner">
+                            <label className="block text-xs font-bold text-blue-400"> Chủ Đề Giao Diện (Theme Mode)</label>
+                            <div className="grid grid-cols-3 gap-3">
+                              <button
+                                type="button"
+                                onClick={() => changeTheme('light')}
+                                className={`p-3 rounded-xl border text-xs font-bold flex items-center justify-center gap-1.5 transition ${
+                                  themeMode === 'light' ? 'bg-zinc-100 text-black hover:bg-white border-indigo-500 shadow' : 'bg-white text-slate-900 border-slate-300'
+                                }`}
+                              >
+                                <span>️ Sáng</span>
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => changeTheme('dark')}
+                                className={`p-3 rounded-xl border text-xs font-bold flex items-center justify-center gap-1.5 transition ${
+                                  themeMode === 'dark' ? 'bg-zinc-100 text-black hover:bg-white border-indigo-500 shadow' : 'bg-zinc-900/50 text-zinc-200 border-zinc-800'
+                                }`}
+                              >
+                                <span> Tối (Slate)</span>
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => changeTheme('black')}
+                                className={`p-3 rounded-xl border text-xs font-bold flex items-center justify-center gap-1.5 transition ${
+                                  themeMode === 'black' ? 'bg-zinc-100 text-black hover:bg-white border-indigo-500 shadow' : 'bg-black text-zinc-200 border-zinc-800'
+                                }`}
+                              >
+                                <span>⬛ Tối Sâu (Black)</span>
+                              </button>
+                            </div>
+                          </div>
+
+                          {/* SCREENSHOT INTERVAL */}
+                          <div className="p-4 rounded-2xl bg-zinc-900/50 border border-zinc-800 space-y-3 shadow-inner">
+                            <label className="block text-xs font-bold text-zinc-200">
+                              ⏱ Chu Kỳ Chụp Màn Hình Tự Động (Nhập số phút thủ công)
+                            </label>
+                            <div className="flex items-center gap-3">
+                              <input
+                                type="number"
+                                min="1"
+                                max="180"
+                                value={screenshotMin}
+                                onChange={(e) => setScreenshotMin(e.target.value)}
+                                className="w-32 bg-zinc-900 border border-zinc-800 rounded-xl px-4 py-2 text-sm font-bold text-zinc-200 outline-none focus:border-amber-500 text-center"
+                                required
+                              />
+                              <span className="text-xs font-semibold text-zinc-300">phút / lần</span>
+                            </div>
+                            <span className="text-[11px] text-zinc-500">Nhập số phút Agent sẽ chụp màn hình máy em trai định kỳ (Ví dụ: 1, 3, 5...).</span>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* SUB-TAB 4: SECURITY & SYSTEM PASSWORDS (WITH EYE TOGGLES) */}
+                      {settingsSubTab === 'security' && (
+                        <div className="space-y-5">
+                          <div className="p-5 rounded-2xl bg-zinc-900/50 border border-zinc-800 space-y-4 shadow-inner">
+                            <div className="text-xs font-bold text-emerald-400 flex items-center gap-2">
+                              <span></span> Thay Đổi Mật Khẩu Hệ Thống & PIN Admin
+                            </div>
+
+                            {/* AGENT PASSWORD */}
+                            <div className="space-y-1.5">
+                              <label className="block text-xs font-semibold text-zinc-300">
+                                Mật Khẩu Dừng / Gỡ Agent (Máy Em Trai)
+                              </label>
+                              <div className="relative">
+                                <input
+                                  type={showAgentPass ? "text" : "password"}
+                                  value={newAgentPass}
+                                  onChange={(e) => setNewAgentPass(e.target.value)}
+                                  className="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-4 py-2.5 text-xs font-mono text-emerald-300 focus:border-indigo-500 outline-none pr-20"
+                                  required
+                                />
+                                <button
+                                  type="button"
+                                  onClick={() => setShowAgentPass(!showAgentPass)}
+                                  className="absolute right-2.5 top-1/2 -translate-y-1/2 px-2.5 py-1 bg-zinc-900 hover:bg-slate-700 text-zinc-300 text-[11px] font-bold rounded-lg transition"
+                                >
+                                  {showAgentPass ? ' Ẩn' : '️ Hiện'}
+                                </button>
+                              </div>
+                            </div>
+
+                            {/* ADMIN PIN */}
+                            <div className="space-y-1.5">
+                              <label className="block text-xs font-semibold text-zinc-300">
+                                Mã PIN Đăng Nhập Web Admin
+                              </label>
+                              <div className="relative">
+                                <input
+                                  type={showAdminPin ? "text" : "password"}
+                                  value={newAdminPin}
+                                  onChange={(e) => setNewAdminPin(e.target.value)}
+                                  className="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-4 py-2.5 text-xs font-mono text-emerald-300 focus:border-indigo-500 outline-none pr-20"
+                                  required
+                                />
+                                <button
+                                  type="button"
+                                  onClick={() => setShowAdminPin(!showAdminPin)}
+                                  className="absolute right-2.5 top-1/2 -translate-y-1/2 px-2.5 py-1 bg-zinc-900 hover:bg-slate-700 text-zinc-300 text-[11px] font-bold rounded-lg transition"
+                                >
+                                  {showAdminPin ? ' Ẩn' : '️ Hiện'}
+                                </button>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+
+                      {configMsg && (
+                        <div className="text-xs p-3 rounded-xl bg-zinc-900 border border-zinc-800 font-medium text-emerald-400">
+                          {configMsg}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* STICKY SAVE BAR AT BOTTOM */}
+                    <div className="fixed bottom-16 lg:bottom-6 right-6 z-40 bg-zinc-900/50/95 border border-indigo-500/40 backdrop-blur-xl rounded-2xl p-3 shadow-2xl flex items-center gap-4 animate-in slide-in-from-bottom duration-200">
+                      <div className="hidden sm:block text-xs text-zinc-300 font-medium">
+                        <span> Đã sẵn sàng áp dụng cấu hình Cài Đặt Admin.</span>
+                      </div>
+                      <button
+                        onClick={handleSaveConfig}
+                        className="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-xl text-xs transition shadow-lg shadow-indigo-600/20 flex items-center gap-2"
+                      >
+                        <span></span>
+                        <span>Lưu Tất Cả Cài Đặt Admin</span>
+                      </button>
                     </div>
                   </div>
                 )}
 
+                {/* TAB: QUẢN LÝ BỘ NHỚ (STORAGE MANAGEMENT) */}
+                {activeTab === 'storage' && isAdmin && (
+                  <div className={`${cardBgClass} border rounded-2xl p-6 space-y-6 max-w-5xl mx-auto shadow-2xl`}>
+                    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-zinc-800 pb-4">
+                      <div>
+                        <h2 className="font-bold text-xl flex items-center gap-2 text-emerald-400">
+                          <span>💾</span> Quản Lý Bộ Nhớ & Dọn Rác Triệt Để Supabase
+                        </h2>
+                        <p className="text-xs text-zinc-400 mt-1">
+                          Thống kê dung lượng, xóa log theo khoảng ngày, cấu hình tự động dọn rác và tối ưu dung lượng DB.
+                        </p>
+                      </div>
+                      <button
+                        onClick={handleDeepStorageVacuum}
+                        disabled={isCleaningStorage}
+                        className="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-xl text-xs transition shadow-lg shadow-emerald-600/20 flex items-center gap-2 disabled:opacity-50"
+                      >
+                        <span>🧹</span>
+                        <span>{isCleaningStorage ? 'Đang Dọn Rác...' : 'Dọn Rác Triệt Để (Vacuum)'}</span>
+                      </button>
+                    </div>
 
-              </div>
-            )}
-          </>
-        )}
-      </main>
+                    {storageMessage && (
+                      <div className={`p-4 rounded-xl text-xs font-semibold ${
+                        storageMessage.includes('❌') 
+                          ? 'bg-red-500/10 border border-red-500/20 text-red-400'
+                          : 'bg-emerald-500/10 border border-emerald-500/20 text-emerald-400'
+                      }`}>
+                        {storageMessage}
+                      </div>
+                    )}
 
-      {/* MODAL XÁC NHẬN XÓA DỮ LIỆU NGÀY */}
-      {showDeleteDateModal && (
-        <div className="fixed inset-0 bg-black/80 backdrop-blur-md z-50 flex items-center justify-center p-4">
-          <div className="bg-zinc-900/50 border border-red-500/40 rounded-3xl p-6 max-w-md w-full space-y-4 shadow-2xl animate-in zoom-in-95 duration-200">
-            <div className="flex items-center gap-3 text-rose-400 border-b border-zinc-800 pb-3">
-              <AlertTriangle className="w-5 h-5 text-rose-500 stroke-[1.5]" />
-              <div>
-                <h3 className="font-bold text-base text-slate-100">Xác Nhận Xóa Dữ Liệu</h3>
-                <p className="text-xs text-red-400">Hành động này không thể hoàn tác!</p>
-              </div>
-            </div>
+                    {/* THỐNG KÊ DUNG LƯỢNG HIỆN TẠI (ROW COUNTS) */}
+                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-3">
+                      <div className="p-3.5 bg-zinc-900/50 border border-zinc-800 rounded-xl space-y-1 text-center">
+                        <div className="text-[10px] text-zinc-400 font-medium">Lịch Sử Web</div>
+                        <div className="text-lg font-bold text-blue-400">{browserHistory.length.toLocaleString()}</div>
+                        <div className="text-[9px] text-zinc-500">dòng log</div>
+                      </div>
+                      <div className="p-3.5 bg-zinc-900/50 border border-zinc-800 rounded-xl space-y-1 text-center">
+                        <div className="text-[10px] text-zinc-400 font-medium">Active Window</div>
+                        <div className="text-lg font-bold text-amber-400">{activeWindows.length.toLocaleString()}</div>
+                        <div className="text-[9px] text-zinc-500">dòng log</div>
+                      </div>
+                      <div className="p-3.5 bg-zinc-900/50 border border-zinc-800 rounded-xl space-y-1 text-center">
+                        <div className="text-[10px] text-zinc-400 font-medium">Tiến Trình</div>
+                        <div className="text-lg font-bold text-emerald-400">{processes.length.toLocaleString()}</div>
+                        <div className="text-[9px] text-zinc-500">dòng log</div>
+                      </div>
+                      <div className="p-3.5 bg-zinc-900/50 border border-zinc-800 rounded-xl space-y-1 text-center">
+                        <div className="text-[10px] text-zinc-400 font-medium">Ảnh Chụp</div>
+                        <div className="text-lg font-bold text-purple-400">{screenshots.length.toLocaleString()}</div>
+                        <div className="text-[9px] text-zinc-500">files ảnh</div>
+                      </div>
+                      <div className="p-3.5 bg-zinc-900/50 border border-zinc-800 rounded-xl space-y-1 text-center">
+                        <div className="text-[10px] text-zinc-400 font-medium">Hộp Thao Tác</div>
+                        <div className="text-lg font-bold text-indigo-400">{todoNotes.length.toLocaleString()}</div>
+                        <div className="text-[9px] text-zinc-500">bản ghi</div>
+                      </div>
+                      <div className="p-3.5 bg-zinc-900/50 border border-zinc-800 rounded-xl space-y-1 text-center">
+                        <div className="text-[10px] text-zinc-400 font-medium">Chat & Lệnh</div>
+                        <div className="text-lg font-bold text-cyan-400">{chatMessages.length.toLocaleString()}</div>
+                        <div className="text-[9px] text-zinc-500">tin nhắn</div>
+                      </div>
+                    </div>
 
-            <p className="text-xs text-zinc-300 leading-relaxed">
-              Bạn có chắc chắn muốn xóa <strong className="text-white">TOÀN BỘ dữ liệu lịch sử Web, App và Log</strong> của ngày <span className="font-mono text-amber-300 font-bold bg-amber-500/20 px-2 py-0.5 rounded border border-amber-500/30">{dateToDelete}</span> không?
-            </p>
+                    {/* KHUNG XÓA DỮ LIỆU THEO KHOẢNG NGÀY VÀ LOẠI DỮ LIỆU */}
+                    <div className="p-5 rounded-2xl bg-zinc-900/40 border border-zinc-800 space-y-4">
+                      <div className="flex items-center gap-2 border-b border-zinc-800 pb-3">
+                        <span className="text-lg">🗓️</span>
+                        <h3 className="font-bold text-sm text-zinc-200">Xóa Dữ Liệu Tự Chọn Theo Khoảng Thời Gian</h3>
+                      </div>
 
-            <div className="flex items-center justify-end gap-3 pt-2">
-              <button
-                onClick={() => setShowDeleteDateModal(false)}
-                className="px-4 py-2 bg-zinc-900 hover:bg-slate-700 text-zinc-300 font-semibold rounded-xl text-xs transition"
-              >
-                Hủy Bỏ
-              </button>
-              <button
-                onClick={confirmDeleteHistoryForDate}
-                className="px-4 py-2 bg-red-600 hover:bg-red-500 text-white font-bold rounded-xl text-xs transition shadow-lg shadow-red-600/30 flex items-center gap-1.5"
-              >
-                <span>️</span> Xác Nhận Xóa Rút Lại
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        {/* Loại dữ liệu */}
+                        <div className="space-y-1.5">
+                          <label className="text-xs text-zinc-400 font-medium">Chọn loại dữ liệu cần xóa:</label>
+                          <select
+                            value={storageLogType}
+                            onChange={e => setStorageLogType(e.target.value)}
+                            className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2 text-xs text-zinc-200 focus:outline-none focus:border-indigo-500"
+                          >
+                            <option value="all">⚡ TẤT CẢ DỮ LIỆU LOG (Tối ưu nhất)</option>
+                            <option value="browser_history_logs">🌐 Lịch sử duyệt Web (browser_history_logs)</option>
+                            <option value="active_window_logs">🖥️ Log Cửa sổ Active (active_window_logs)</option>
+                            <option value="process_logs">⚙️ Log Tiến trình (process_logs)</option>
+                            <option value="screenshot_logs">📸 Log & Files Ảnh Chụp (screenshot_logs)</option>
+                            <option value="system_events">🔔 Log Sự kiện hệ thống (system_events)</option>
+                            <option value="system_commands">📡 Log Lệnh hệ thống (system_commands)</option>
+                          </select>
+                        </div>
 
-      {/* MODAL XÁC NHẬN CHẶN / BỎ CHẶN THIẾT BỊ */}
-      {showBlockSessionModal && sessionToBlock && (
-        <div className="fixed inset-0 bg-black/80 backdrop-blur-md z-50 flex items-center justify-center p-4">
-          <div className="bg-zinc-900/50 border border-red-500/40 rounded-3xl p-6 max-w-md w-full space-y-4 shadow-2xl animate-in zoom-in-95 duration-200">
-            <div className="flex items-center gap-3 text-red-400 border-b border-zinc-800 pb-3">
-              <span className="text-3xl"></span>
-              <div>
-                <h3 className="font-bold text-base text-slate-100">
-                  {sessionToBlock.is_blocked ? 'Xác Nhận Bỏ Chặn Thiết Bị' : 'Xác Nhận Chặn Thiết Bị'}
-                </h3>
-                <p className="text-xs text-red-400">
-                  {sessionToBlock.is_blocked ? 'Thiết bị này sẽ được phép truy cập lại Web Admin.' : 'Thiết bị này sẽ lập tức bị ngắt kết nối và từ chối truy cập!'}
-                </p>
-              </div>
-            </div>
+                        {/* Từ ngày */}
+                        <div className="space-y-1.5">
+                          <label className="text-xs text-zinc-400 font-medium">Từ ngày (Start Date):</label>
+                          <input
+                            type="date"
+                            value={storageStartDate}
+                            onChange={e => setStorageStartDate(e.target.value)}
+                            className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2 text-xs text-zinc-200 focus:outline-none focus:border-indigo-500"
+                          />
+                        </div>
 
-            <div className="p-3.5 bg-zinc-900/50 border border-zinc-800 rounded-2xl text-xs space-y-1.5">
-              <div className="font-semibold text-zinc-200 flex items-center gap-2">
-                <span> Thiết bị:</span>
-                <span className="text-blue-300 font-bold">{sessionToBlock.device_info || 'Thiết bị Web'}</span>
-              </div>
-              <div className="text-zinc-400">
-                Tư cách: <strong className="text-amber-300">{sessionToBlock.user_role}</strong>
-              </div>
-              <div className="font-mono text-[10px] text-zinc-500 truncate">
-                Session ID: {sessionToBlock.session_id}
-              </div>
-            </div>
+                        {/* Đến ngày */}
+                        <div className="space-y-1.5">
+                          <label className="text-xs text-zinc-400 font-medium">Đến ngày (End Date):</label>
+                          <input
+                            type="date"
+                            value={storageEndDate}
+                            onChange={e => setStorageEndDate(e.target.value)}
+                            className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2 text-xs text-zinc-200 focus:outline-none focus:border-indigo-500"
+                          />
+                        </div>
+                      </div>
 
-            <div className="flex items-center justify-end gap-3 pt-2">
-              <button
-                onClick={() => {
-                  setShowBlockSessionModal(false)
-                  setSessionToBlock(null)
-                }}
-                className="px-4 py-2 bg-zinc-900 hover:bg-slate-700 text-zinc-300 font-semibold rounded-xl text-xs transition"
-              >
-                Hủy Bỏ
-              </button>
-              <button
-                onClick={confirmToggleBlockSession}
-                className={`px-4 py-2 text-white font-bold rounded-xl text-xs transition shadow-lg flex items-center gap-1.5 ${
-                  sessionToBlock.is_blocked
-                    ? 'bg-emerald-600 hover:bg-emerald-500 shadow-emerald-600/30'
-                    : 'bg-red-600 hover:bg-red-500 shadow-red-600/30'
-                }`}
-              >
-                <span>{sessionToBlock.is_blocked ? ' Xác Nhận Bỏ Chặn' : ' Xác Nhận Chặn Tức Thì'}</span>
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+                      <div className="flex justify-end pt-2">
+                        <button
+                          onClick={handleDeleteStorageByRange}
+                          disabled={isCleaningStorage}
+                          className="px-5 py-2.5 bg-red-600 hover:bg-red-500 text-white font-bold rounded-xl text-xs transition shadow-lg shadow-red-600/20 flex items-center gap-2 disabled:opacity-50"
+                        >
+                          <span>🗑️</span>
+                          <span>{isCleaningStorage ? 'Đang Xóa...' : 'Xóa Dữ Liệu Trong Khoảng Ngày Đã Chọn'}</span>
+                        </button>
+                      </div>
+                    </div>
 
-      {/* MOBILE BOTTOM NAVIGATION BAR (< lg) */}
-      <MobileNav tabList={tabList} activeTab={activeTab} changeActiveTab={changeActiveTab} />
+                    {/* KHUNG CẤU HÌNH TỰ ĐỘNG DỌN DẸP LÊN SUPABASE */}
+                    <div className="p-5 rounded-2xl bg-zinc-900/40 border border-zinc-800 space-y-4">
+                      <div className="flex items-center justify-between border-b border-zinc-800 pb-3">
+                        <div className="flex items-center gap-2">
+                          <span className="text-lg">⚙️</span>
+                          <h3 className="font-bold text-sm text-zinc-200">Cấu Hình Tự Động Xóa Dữ Liệu Định Kỳ</h3>
+                        </div>
+                        <span className="text-[11px] px-2.5 py-1 bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 rounded-full font-mono">
+                          Đang bật dọn rác tự động 30 ngày
+                        </span>
+                      </div>
 
-      {/* MOBILE DRAWER MODAL */}
-      {showMobileDrawer && (
-        <div className="fixed inset-0 bg-black/80 backdrop-blur-md z-50 flex flex-col justify-end lg:hidden">
-          <div className="bg-zinc-900/50 border-t border-zinc-800 rounded-t-3xl p-5 space-y-4 max-h-[80vh] overflow-y-auto animate-in slide-in-from-bottom duration-200">
-            <div className="flex items-center justify-between border-b border-zinc-800 pb-3">
-              <div className="flex items-center gap-2">
-                <span className="text-xl"></span>
-                <h3 className="font-bold text-slate-100 text-base">Danh Sách Chức Năng</h3>
-              </div>
-              <button onClick={() => setShowMobileDrawer(false)} className="w-8 h-8 rounded-full bg-zinc-900 hover:bg-slate-700 text-zinc-300 flex items-center justify-center text-sm font-bold">
-                
-              </button>
-            </div>
+                      <div className="text-xs text-zinc-400 leading-relaxed space-y-2">
+                        <p>
+                          Hệ thống Supabase được tích hợp sẵn hàm dọn dẹp tự động <code className="text-amber-300">clean_old_logs()</code> chạy ngầm. Các bản ghi log tiến trình, lịch sử duyệt web và các lệnh hệ thống cũ hơn 30 ngày sẽ tự động được dọn dẹp để bộ nhớ Supabase Cloud luôn ở trạng thái xanh an toàn.
+                        </p>
+                        <div className="p-3 bg-zinc-950/60 border border-zinc-800/80 rounded-xl flex items-center justify-between">
+                          <span className="text-zinc-300 font-medium">Trạng thái tự động Vacuum dọn rác DB Supabase:</span>
+                          <span className="text-emerald-400 font-bold flex items-center gap-1.5">
+                            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
+                            ĐÃ BẬT KHUNG DỌN DẸP TỰ ĐỘNG
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
 
-            <div className="grid grid-cols-2 gap-3">
-              {tabList.map(tab => (
-                <button
-                  key={tab.id}
-                  onClick={() => {
-                    changeActiveTab(tab.id)
-                    setShowMobileDrawer(false)
-                  }}
-                  className={`p-3.5 rounded-2xl border text-left font-semibold text-xs flex items-center gap-2.5 transition ${
-                    activeTab === tab.id
-                      ? 'bg-zinc-100 text-black hover:bg-white border-indigo-500 shadow-lg shadow-indigo-600/20'
-                      : 'bg-zinc-900/50 text-zinc-300 border-zinc-800 hover:bg-zinc-900'
-                  }`}
-                >
-                  <span className="text-lg">{tab.label.split(' ')[0]}</span>
-                  <span className="truncate">{tab.label.substring(tab.label.indexOf(' ') + 1)}</span>
-                </button>
-              ))}
-            </div>
-          </div>
-        </div>
-      )}
-    </div>
-  </div>
-</div>
-)
-}
+                {/* TAB:  HƯỚNG DẪN DÀNH CHO ADMIN */}
+                {activeTab === 'admin_guide' && isAdmin && (
+                  <div className={`${cardBgClass} border rounded-2xl p-6 space-y-6 max-w-4xl mx-auto shadow-2xl`}>
+                    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-zinc-800 pb-4">
+                      <div>
+                        <h2 className="font-bold text-xl flex items-center gap-2.5 text-blue-400">
+                          <span></span> Hướng Dẫn Chi Tiết Cài Đặt, Tạm Dừng & Gỡ Bỏ (Admin)
+                        </h2>
+                        <p className="text-xs text-zinc-400 mt-1">Tài liệu quản trị hệ thống Parental Control toàn diện.</p>
+                      </div>
+                      <a
+                        href="/Admin_Manual_ParentalControl.html"
+                        target="_blank"
+                        className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-xl text-xs transition shadow flex items-center gap-1.5"
+                      >
+                        <span></span>
+                        <span>Mở File Hướng Dẫn HTML Gốc</span>
+                      </a>
+                    </div>
 
-
-
-export default function App() {
-  const [mounted, setMounted] = useState(false)
-
-  useEffect(() => {
-    setMounted(true)
-  }, [])
-
-  if (!mounted) {
-    return (
-      <div className="min-h-screen bg-black text-zinc-100 flex items-center justify-center font-mono text-xs">
-        <div className="flex items-center gap-2 text-zinc-400">
-          <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping"></span>
-          <span>Loading Geist Console...</span>
-        </div>
-      </div>
-    )
-  }
-
-  return (
-    <ErrorBoundary>
-      <ParentalControlApp />
-    </ErrorBoundary>
-  )
-}
+                    {/* KHUNG CÁC CÁCH CÀI ĐẶT LÊN MÁY EM TRAI */}
+                    <div className="p-5 rounded-xl bg-zinc-900/50 border border-zinc-800 space-y-3">
+                      <h3 className="font-bold text-sm text-emerald-400 flex items-center gap-2">
+                        <span></span> 1. CÁCH CÀI ĐẶT NGẦM 1-CLICK LÊN MÁY EM TRAI
+                      </h3>
+                      <div className="text-xs text-zinc-300 space-y-2 leading-relaxed">
+                        <p>Code Python của Agent đã được đóng gói thành file thực thi mã hóa <strong className="text-white">ParentalControlAgent.exe</strong>. Em trai không thể xem hay chỉnh sửa mã nguồn bên trong.</p>
+                        <ol className="list-decimal pl-5 space-y-1.5 text-zinc-400">
+                          <li>Biên dịch file EXE (trên máy bạn): Chạy file <code className="text-amber-300">d:\Hoàng\PMQL\parental-control

@@ -5287,4 +5287,352 @@ function ParentalControlApp() {
                       <div className="text-xs text-zinc-300 space-y-2 leading-relaxed">
                         <p>Code Python của Agent đã được đóng gói thành file thực thi mã hóa <strong className="text-white">ParentalControlAgent.exe</strong>. Em trai không thể xem hay chỉnh sửa mã nguồn bên trong.</p>
                         <ol className="list-decimal pl-5 space-y-1.5 text-zinc-400">
-                          <li>Biên dịch file EXE (trên máy bạn): Chạy file <code className="text-amber-300">d:\Hoàng\PMQL\parental-control
+                          <li>Biên dịch file EXE (trên máy bạn): Chạy file <code className="text-amber-300">d:\Hoàng\PMQL\parental-control\agent\build_exe.bat</code> để tạo file <code className="text-amber-300">ParentalControlAgent.exe</code> trong <code className="text-zinc-200">dist\ParentalControlAgent\</code>.</li>
+                          <li>Copy file cài đặt <code className="text-amber-300">Install_Parental_Control.bat</code> bỏ vào cùng thư mục <code className="text-zinc-200">dist\ParentalControlAgent\</code>.</li>
+                          <li>Copy toàn bộ thư mục sang máy em trai (hoặc nén zip gửi sang).</li>
+                          <li>Trên máy em trai: Chuột phải vào file <strong className="text-emerald-300">Install_Parental_Control.bat  Chọn "Run as administrator"</strong>.</li>
+                          <li>Chương trình sẽ tự động cài vào thư mục ẩn hệ thống <code className="text-zinc-200">C:\ProgramData\ParentalControl\</code>, tự ẩn thư mục và tự đăng ký Windows Task Scheduler khởi động ngầm cùng Windows dưới quyền Administrator cao nhất.</li>
+                        </ol>
+                      </div>
+                    </div>
+
+                    {/* KHUNG CÁC CÁCH TẠM DỪNG KIỂM SOÁT */}
+                    <div className="p-5 rounded-xl bg-zinc-900/50 border border-zinc-800 space-y-3">
+                      <h3 className="font-bold text-sm text-zinc-200 flex items-center gap-2">
+                        <span></span> 2. CÁCH TẠM DỪNG KIỂM SOÁT (2 CÁCH)
+                      </h3>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
+                        <div className="p-3.5 rounded-xl bg-zinc-900/50 border border-zinc-800 space-y-2">
+                          <div className="font-bold text-zinc-200 text-sm">Cách 1: Tạm Dừng Từ Xa Qua Web App (Khuyên Dùng)</div>
+                          <p className="text-zinc-400 leading-relaxed">
+                            Trên thanh Header chính của trang Web này, bấm nút <strong className="text-zinc-100">Tạm Dừng Kiểm Soát</strong>.
+                            Agent trên máy em trai sẽ tự động tạm dừng tất cả các hiệu ứng cấm web, cấm app, giới hạn giờ và khóa màn hình. 
+                            Khi muốn bật lại, bạn chỉ cần bấm <strong className="text-zinc-100">Tiếp Tục Kiểm Soát</strong>.
+                          </p>
+                        </div>
+
+                        <div className="p-3.5 rounded-xl bg-zinc-900/50 border border-zinc-800 space-y-2">
+                          <div className="font-bold text-zinc-200 text-sm">Cách 2: Mở Khóa Tạm Thời Tại Chỗ Trên Máy Em Trai</div>
+                          <p className="text-zinc-400 leading-relaxed">
+                            Khi màn hình máy tính em trai bị khóa, bấm nút <strong className="text-zinc-100 font-mono">[ Mật khẩu dừng Agent ]</strong> trên khung khóa, nhập mật khẩu Agent để mở khóa session sử dụng tạm thời.
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* KHUNG CÁCH XÓA HOÀN TOÀN */}
+                    <div className="p-5 rounded-xl bg-zinc-900/50 border border-zinc-800 space-y-3">
+                      <h3 className="font-bold text-sm text-red-400 flex items-center gap-2">
+                        <span>️</span> 3. CÁCH GỠ BỎ HOÀN TOÀN KHỎI MÁY EM TRAI
+                      </h3>
+                      <div className="text-xs text-zinc-300 space-y-2 leading-relaxed">
+                        <p className="text-zinc-400">Để xóa sạch 100% phần mềm khỏi máy em trai, chọn 1 trong 2 cách sau:</p>
+                        <div className="space-y-2">
+                          <div className="p-3 rounded-lg bg-zinc-900/50 border border-zinc-800">
+                            <div className="font-bold text-red-300">Cách 1: Dùng script gỡ tự động (1-Click)</div>
+                            <p className="text-zinc-400 mt-1">
+                              Chuột phải vào file <code className="text-amber-300">Uninstall_Parental_Control.bat</code> trên máy em trai  Chọn <strong className="text-white">"Run as administrator"</strong>. Script sẽ tự dừng tiến trình, gỡ Windows Task và xóa sạch thư mục.
+                            </p>
+                          </div>
+
+                          <div className="p-3 rounded-lg bg-zinc-900/50 border border-zinc-800">
+                            <div className="font-bold text-red-300">Cách 2: Gỡ thủ công bằng Command Prompt (Admin)</div>
+                            <p className="text-zinc-400 mt-1">Mở CMD với quyền Administrator và gán lần lượt 3 dòng lệnh sau:</p>
+                            <pre className="bg-black p-2 rounded text-red-300 font-mono text-[11px] mt-1 space-y-1">
+schtasks /delete /tn "ParentalControlAgentTask" /f
+taskkill /f /im ParentalControlAgent.exe
+rmdir /s /q "C:\ProgramData\ParentalControl"</pre>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* TAB: Khung giờ Cho Phép Sử Dụng */}
+                {activeTab === 'schedule' && (
+                  <div className={`${cardBgClass} border rounded-2xl p-6 space-y-5 shadow-2xl`}>
+                    {/* THANH CÔNG CỤ ĐẦU TAB */}
+                    <div className="p-4 bg-zinc-900/50 border border-zinc-800 rounded-2xl flex flex-col md:flex-row items-start md:items-center justify-between gap-4 shadow-lg">
+                      <div className="space-y-1">
+                        <div className="flex items-center gap-2">
+                          <span className="text-xl"></span>
+                          <h3 className="font-bold text-base text-slate-100">Cấu Hình Khung Giờ Cho Phép Sử Dụng</h3>
+                        </div>
+                        <p className="text-xs text-zinc-400">Thiết lập khoảng giờ hoặc tổng thời gian tối đa mỗi ngày cho em trai.</p>
+                      </div>
+
+                      {/* MASTER TOGGLE SWITCH & MODE SELECTOR */}
+                      <div className="flex flex-wrap items-center gap-3 w-full md:w-auto">
+                        {/* Master Switch */}
+                        {isAdmin && (
+                          <button
+                            onClick={handleToggleMasterTimeLimit}
+                            className={`px-4 py-2 rounded-xl text-xs font-bold transition border flex items-center gap-2 shadow ${
+                              isMasterTimeLimitActive
+                                ? 'bg-emerald-600 hover:bg-emerald-500 text-white border-emerald-500 shadow-emerald-600/20'
+                                : 'bg-zinc-900 hover:bg-slate-700 text-zinc-400 border-zinc-800'
+                            }`}
+                          >
+                            <span>{isMasterTimeLimitActive ? ' Giới Hạn: ĐANG BẬT' : ' Giới Hạn: ĐÃ TẮT'}</span>
+                          </button>
+                        )}
+
+                        {/* Mode Radio Buttons */}
+                        {isAdmin && (
+                          <div className="flex bg-zinc-900/50 p-1 rounded-xl border border-zinc-800 text-xs">
+                            <button
+                              onClick={() => handleChangeTimeLimitMode('time_frame')}
+                              className={`px-3.5 py-1.5 rounded-lg font-bold transition ${
+                                timeLimitMode === 'time_frame' ? 'bg-zinc-100 text-black hover:bg-white shadow' : 'text-zinc-400 hover:text-white'
+                              }`}
+                            >
+                              ⏰ Theo Khung Giờ
+                            </button>
+                            <button
+                              onClick={() => handleChangeTimeLimitMode('max_daily')}
+                              className={`px-3.5 py-1.5 rounded-lg font-bold transition ${
+                                timeLimitMode === 'max_daily' ? 'bg-zinc-100 text-black hover:bg-white shadow' : 'text-zinc-400 hover:text-white'
+                              }`}
+                            >
+                              ⏱️ Theo Tổng Giờ/Ngày
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* TRƯỜNG HỢP 1: THỜI GIAN THEO KHUNG GIỜ (time_frame) */}
+                    {timeLimitMode === 'time_frame' && (
+                      <div className="space-y-4">
+                        <div className="p-3 bg-blue-500/10 border border-indigo-500/20 rounded-xl text-xs text-blue-300 flex items-center gap-2">
+                          <span>ℹ️</span>
+                          <span>Chế độ <strong>Theo Khung Giờ</strong>: Em trai chỉ được phép dùng máy tính trong khoảng giờ được thiết lập bên dưới. Ngoài khoảng giờ này máy sẽ tự khóa.</span>
+                        </div>
+
+                        <div className="grid grid-cols-1 gap-4">
+                          {timeRules.map(rule => (
+                            <div key={rule.id} className="p-4 rounded-2xl bg-zinc-900/50 border border-zinc-800 space-y-3 hover:border-zinc-800 transition shadow">
+                              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-zinc-800 pb-3">
+                                <div className="flex items-center gap-2.5">
+                                  <span className="w-8 h-8 rounded-xl bg-blue-500/10 border border-indigo-500/20 text-blue-400 font-bold flex items-center justify-center text-xs">
+                                    {rule.day_of_week === 6 ? 'CN' : `T${rule.day_of_week + 2}`}
+                                  </span>
+                                  <span className="font-bold text-sm text-zinc-200">{dayNames[rule.day_of_week]}</span>
+                                </div>
+
+                                {isAdmin ? (
+                                  <div className="flex flex-wrap items-center gap-3">
+                                    <div className="flex items-center gap-2">
+                                      <span className="text-xs text-zinc-400 font-medium">Bắt đầu:</span>
+                                      <input
+                                        type="time"
+                                        value={rule.start_time?.slice(0, 5)}
+                                        onChange={(e) => updateTimeRule(rule.id, 'start_time', e.target.value + ':00')}
+                                        className="bg-zinc-900 border border-zinc-800 rounded-xl px-3 py-1.5 text-xs font-bold text-emerald-400 outline-none focus:border-indigo-500 shadow"
+                                      />
+                                      <span className="text-zinc-500">→</span>
+                                      <span className="text-xs text-zinc-400 font-medium font-mono">Kết thúc:</span>
+                                      <input
+                                        type="time"
+                                        value={rule.end_time?.slice(0, 5)}
+                                        onChange={(e) => updateTimeRule(rule.id, 'end_time', e.target.value + ':00')}
+                                        className="bg-zinc-900 border border-zinc-800 rounded-xl px-3 py-1.5 text-xs font-bold text-emerald-400 outline-none focus:border-indigo-500 shadow"
+                                      />
+                                    </div>
+
+                                    <button
+                                      onClick={() => updateTimeRule(rule.id, 'is_active', !rule.is_active)}
+                                      className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition ${
+                                        rule.is_active ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : 'bg-zinc-900 text-zinc-400 border border-zinc-800'
+                                      }`}
+                                    >
+                                      {rule.is_active ? 'Đang bật' : 'Đã tắt'}
+                                    </button>
+                                  </div>
+                                ) : (
+                                  <div className="flex items-center gap-3">
+                                    <span className="text-xs font-bold text-emerald-400 bg-emerald-500/10 px-3 py-1 rounded-lg border border-emerald-500/20">
+                                      {rule.start_time?.slice(0, 5)} → {rule.end_time?.slice(0, 5)}
+                                    </span>
+                                    <span className={`px-2.5 py-1 rounded-lg text-xs font-semibold ${
+                                      rule.is_active ? 'bg-emerald-500/15 text-emerald-400' : 'bg-zinc-900 text-zinc-400'
+                                    }`}>
+                                      {rule.is_active ? 'Đang bật' : 'Đã tắt'}
+                                    </span>
+                                  </div>
+                                )}
+                              </div>
+
+                              {/* Visual 24h Timeline Bar */}
+                              {render24hTimeline(rule)}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+
+                  </div>
+                )}
+              </>
+            )}
+          </main>
+
+          {/* MODAL XÁC NHẬN XÓA DỮ LIỆU NGÀY */}
+          {showDeleteDateModal && (
+            <div className="fixed inset-0 bg-black/80 backdrop-blur-md z-50 flex items-center justify-center p-4">
+              <div className="bg-zinc-900/50 border border-red-500/40 rounded-3xl p-6 max-w-md w-full space-y-4 shadow-2xl animate-in zoom-in-95 duration-200">
+                <div className="flex items-center gap-3 text-rose-400 border-b border-zinc-800 pb-3">
+                  <AlertTriangle className="w-5 h-5 text-rose-500 stroke-[1.5]" />
+                  <div>
+                    <h3 className="font-bold text-base text-slate-100">Xác Nhận Xóa Dữ Liệu</h3>
+                    <p className="text-xs text-red-400">Hành động này không thể hoàn tác!</p>
+                  </div>
+                </div>
+
+                <p className="text-xs text-zinc-300 leading-relaxed">
+                  Bạn có chắc chắn muốn xóa <strong className="text-white">TOÀN BỘ dữ liệu lịch sử Web, App và Log</strong> của ngày <span className="font-mono text-amber-300 font-bold bg-amber-500/20 px-2 py-0.5 rounded border border-amber-500/30">{dateToDelete}</span> không?
+                </p>
+
+                <div className="flex items-center justify-end gap-3 pt-2">
+                  <button
+                    onClick={() => setShowDeleteDateModal(false)}
+                    className="px-4 py-2 bg-zinc-900 hover:bg-slate-700 text-zinc-300 font-semibold rounded-xl text-xs transition"
+                  >
+                    Hủy Bỏ
+                  </button>
+                  <button
+                    onClick={confirmDeleteHistoryForDate}
+                    className="px-4 py-2 bg-red-600 hover:bg-red-500 text-white font-bold rounded-xl text-xs transition shadow-lg shadow-red-600/30 flex items-center gap-1.5"
+                  >
+                    <span>️</span> Xác Nhận Xóa Rút Lại
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* MODAL XÁC NHẬN CHẶN / BỎ CHẶN THIẾT BỊ */}
+          {showBlockSessionModal && sessionToBlock && (
+            <div className="fixed inset-0 bg-black/80 backdrop-blur-md z-50 flex items-center justify-center p-4">
+              <div className="bg-zinc-900/50 border border-red-500/40 rounded-3xl p-6 max-w-md w-full space-y-4 shadow-2xl animate-in zoom-in-95 duration-200">
+                <div className="flex items-center gap-3 text-red-400 border-b border-zinc-800 pb-3">
+                  <span className="text-3xl"></span>
+                  <div>
+                    <h3 className="font-bold text-base text-slate-100">
+                      {sessionToBlock.is_blocked ? 'Xác Nhận Bỏ Chặn Thiết Bị' : 'Xác Nhận Chặn Thiết Bị'}
+                    </h3>
+                    <p className="text-xs text-red-400">
+                      {sessionToBlock.is_blocked ? 'Thiết bị này sẽ được phép truy cập lại Web Admin.' : 'Thiết bị này sẽ lập tức bị ngắt kết nối và từ chối truy cập!'}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="p-3.5 bg-zinc-900/50 border border-zinc-800 rounded-2xl text-xs space-y-1.5">
+                  <div className="font-semibold text-zinc-200 flex items-center gap-2">
+                    <span> Thiết bị:</span>
+                    <span className="text-blue-300 font-bold">{sessionToBlock.device_info || 'Thiết bị Web'}</span>
+                  </div>
+                  <div className="text-zinc-400">
+                    Tư cách: <strong className="text-amber-300">{sessionToBlock.user_role}</strong>
+                  </div>
+                  <div className="font-mono text-[10px] text-zinc-500 truncate">
+                    Session ID: {sessionToBlock.session_id}
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-end gap-3 pt-2">
+                  <button
+                    onClick={() => {
+                      setShowBlockSessionModal(false)
+                      setSessionToBlock(null)
+                    }}
+                    className="px-4 py-2 bg-zinc-900 hover:bg-slate-700 text-zinc-300 font-semibold rounded-xl text-xs transition"
+                  >
+                    Hủy Bỏ
+                  </button>
+                  <button
+                    onClick={confirmToggleBlockSession}
+                    className={`px-4 py-2 text-white font-bold rounded-xl text-xs transition shadow-lg flex items-center gap-1.5 ${
+                      sessionToBlock.is_blocked
+                        ? 'bg-emerald-600 hover:bg-emerald-500 shadow-emerald-600/30'
+                        : 'bg-red-600 hover:bg-red-500 shadow-red-600/30'
+                    }`}
+                  >
+                    <span>{sessionToBlock.is_blocked ? ' Xác Nhận Bỏ Chặn' : ' Xác Nhận Chặn Tức Thì'}</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* MOBILE BOTTOM NAVIGATION BAR (< lg) */}
+          <MobileNav tabList={tabList} activeTab={activeTab} changeActiveTab={changeActiveTab} />
+
+          {/* MOBILE DRAWER MODAL */}
+          {showMobileDrawer && (
+            <div className="fixed inset-0 bg-black/80 backdrop-blur-md z-50 flex flex-col justify-end lg:hidden">
+              <div className="bg-zinc-900/50 border-t border-zinc-800 rounded-t-3xl p-5 space-y-4 max-h-[80vh] overflow-y-auto animate-in slide-in-from-bottom duration-200">
+                <div className="flex items-center justify-between border-b border-zinc-800 pb-3">
+                  <div className="flex items-center gap-2">
+                    <span className="text-xl"></span>
+                    <h3 className="font-bold text-slate-100 text-base">Danh Sách Chức Năng</h3>
+                  </div>
+                  <button onClick={() => setShowMobileDrawer(false)} className="w-8 h-8 rounded-full bg-zinc-900 hover:bg-slate-700 text-zinc-300 flex items-center justify-center text-sm font-bold">
+                    
+                  </button>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  {tabList.map(tab => (
+                    <button
+                      key={tab.id}
+                      onClick={() => {
+                        changeActiveTab(tab.id)
+                        setShowMobileDrawer(false)
+                      }}
+                      className={`p-3.5 rounded-2xl border text-left font-semibold text-xs flex items-center gap-2.5 transition ${
+                        activeTab === tab.id
+                          ? 'bg-zinc-100 text-black hover:bg-white border-indigo-500 shadow-lg shadow-indigo-600/20'
+                          : 'bg-zinc-900/50 text-zinc-300 border-zinc-800 hover:bg-zinc-900'
+                      }`}
+                    >
+                      <span className="text-lg">{tab.label.split(' ')[0]}</span>
+                      <span className="truncate">{tab.label.substring(tab.label.indexOf(' ') + 1)}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+export default function App() {
+  const [mounted, setMounted] = useState(false)
+
+  useEffect(() => {
+    setMounted(true)
+  }, [])
+
+  if (!mounted) {
+    return (
+      <div className="min-h-screen bg-black text-zinc-100 flex items-center justify-center font-mono text-xs">
+        <div className="flex items-center gap-2 text-zinc-400">
+          <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping"></span>
+          <span>Loading Geist Console...</span>
+        </div>
+      </div>
+    )
+  }
+
+  return (
+    <ErrorBoundary>
+      <ParentalControlApp />
+    </ErrorBoundary>
+  )
+}

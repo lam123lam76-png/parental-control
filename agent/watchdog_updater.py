@@ -18,8 +18,8 @@ INSTALL_DIR = Path(r'C:\ProgramData\ParentalControl')
 BACKUP_DIR = INSTALL_DIR / 'backup'
 FLAG_FILE = INSTALL_DIR / 'shutdown.flag'
 CORE_SCRIPT = 'core_agent.py'
-HEALTH_CHECK_INTERVAL = 30  # seconds
-UPDATE_CHECK_INTERVAL = 60  # seconds
+HEALTH_CHECK_INTERVAL = 15  # seconds
+UPDATE_CHECK_INTERVAL = 5  # 5s interval for fast update check
 MAX_CRASH_COUNT = 3
 CRASH_WINDOW = 300  # 5 minutes
 
@@ -196,7 +196,7 @@ class WatchdogUpdater:
         if self.supabase:
             try:
                 self.supabase.table('system_commands') \
-                    .update({'status': status, 'updated_at': datetime.utcnow().isoformat()}) \
+                    .update({'status': status}) \
                     .eq('device_name', DEVICE_NAME) \
                     .eq('command', 'force_update') \
                     .in_('status', ['pending', 'in_progress']) \

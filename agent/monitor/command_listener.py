@@ -86,20 +86,25 @@ def process_pending_commands(supabase):
             cmd_id = cmd["id"]
             cmd_type = cmd.get("command")
 
-            # 1. LƯU Ý ĐẶC BIỆT DÀNH CHO force_update:
+            # 1. TỰ ĐỘNG XỬ LÝ force_update TỨC THỜI CHUẨN XÁC
             if cmd_type == "force_update":
-                print("[CMD] Core nhận lệnh force_update -> Ghi log system_events và nhường Watchdog xử lý...")
-                try:
-                    from storage.sync_worker import SyncWorker
-                    sync = SyncWorker(supabase)
-                    sync.pull_rules()
-                    supabase.table("system_events").insert({
-                        "device_name": DEVICE_NAME,
-                        "event_type": "force_update_received",
-                        "message": "Core agent received force_update. Left status as pending for Watchdog."
-                    }).execute()
-                except Exception as e:
-                    log_debug(f"[ERR] force_update event log failed: {e}")
+                print("[CMD] Core nhận lệnh force_update -> Kích hoạt WatchdogUpdater thực thi ngay...")
+                def _do_update_async():
+                    try:
+                        from watchdog_updater import WatchdogUpdater
+                        updater = WatchdogUpdater()
+                        updater.perform_update()
+                    except Exception as ex:
+                        log_debug(f"[ERR] Fallback force_update failed: {ex}")
+                        try:
+                            supabase.table("system_commands").update({
+                                "status": "failed",
+                                "error_message": str(ex)
+                            }).eq("id", cmd_id).execute()
+                        except Exception:
+                            pass
+
+                high_priority_executor.submit(_do_update_async)
                 continue
 
             if cmd_id in _processed_command_ids:

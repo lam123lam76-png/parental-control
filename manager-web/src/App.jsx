@@ -1429,12 +1429,21 @@ function ParentalControlApp() {
     if (!confirm('Bạn có chắc chắn muốn gửi lệnh cưỡng chế cập nhật phần mềm Agent trên máy em trai? Agent sẽ tự khởi động lại bản mới nhất.')) return
     setUpdateSending(true)
     try {
+      // 1. Tự động hủy các lệnh pending rác trùng lặp cũ
+      await supabase.from('system_commands')
+        .update({ status: 'cancelled' })
+        .eq('device_name', DEVICE_NAME)
+        .eq('command', 'force_update')
+        .eq('status', 'pending')
+
+      // 2. Gửi lệnh force_update mới
       await supabase.from('system_commands').insert({
         device_name: DEVICE_NAME,
         command: 'force_update',
         status: 'pending'
       })
-      alert(' Đã gửi lệnh Cưỡng chế cập nhật thành công! Agent sẽ tự động cập nhật và khởi động lại ngay.')
+      alert('⚡ Đã gửi lệnh Cưỡng chế cập nhật thành công! Agent sẽ tự động cập nhật và khởi động lại ngay.')
+      loadData(false)
     } catch (e) {
       alert('Lỗi gửi lệnh cập nhật: ' + e.message)
     } finally {

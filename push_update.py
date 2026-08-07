@@ -4,7 +4,7 @@ from datetime import datetime
 from supabase import create_client
 
 # Add agent path to sys.path
-sys.path.append(os.path.join(os.path.dirname(__file__), "agent"))
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), "agent"))
 from utils.config import SUPABASE_URL, SUPABASE_KEY, DEVICE_NAME
 
 def push_update():
@@ -24,11 +24,7 @@ def push_update():
         
     try:
         # Upload file
-        supabase.storage.from_("agent-updates").upload(
-            file_name,
-            file_bytes,
-            file_options={"content-type": "application/zip", "x-upsert": "true"}
-        )
+        supabase.storage.from_("agent-updates").upload(path=file_name, file=file_bytes, file_options={"content-type": "application/zip", "x-upsert": "true"})
         print(f"[OK] Da tai file len Storage: {file_name}")
     except Exception as e:
         print(f"[!] Thong bao upload: {e}")
@@ -60,3 +56,4 @@ def push_update():
 
 if __name__ == "__main__":
     push_update()
+

@@ -20,6 +20,16 @@ agent/*.log
 *.env.local
 *.log
 
+# Database & Updates
+backend_api/postgres_data/
+update_ver/
+agent-release/
+
+# Temporary / Inspection
+.inspect*.py
+
 # OS
 .DS_Store
 Thumbs.db
+
+

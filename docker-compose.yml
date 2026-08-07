@@ -1,0 +1,42 @@
+services:
+  backend:
+    build:
+      context: ./backend_api
+    container_name: parental-control-backend
+    depends_on:
+      - db
+    env_file:
+      - ./backend_api/.env
+    ports:
+      - '8000:8000'
+    volumes:
+      - ./backend_api/data:/app/data
+      - ./backend_api/storage:/app/storage
+    restart: unless-stopped
+
+  db:
+    image: postgres:15-alpine
+    container_name: parental-control-db
+    environment:
+      POSTGRES_USER: pcuser
+      POSTGRES_PASSWORD: pcpass
+      POSTGRES_DB: parental_control
+    ports:
+      - '5432:5432'
+    volumes:
+      - ./backend_api/postgres_data:/var/lib/postgresql/data
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ./manager-web
+      dockerfile: Dockerfile
+      args:
+        VITE_API_BASE_URL: ''
+        VITE_API_KEY: 732F636DF7E2E6A0B95AAB8C139AB375D5B65D82241661C7
+    container_name: parental-control-frontend
+    depends_on:
+      - backend
+    ports:
+      - '4173:80'
+    restart: unless-stopped

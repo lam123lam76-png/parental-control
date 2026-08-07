@@ -8,6 +8,18 @@ export default defineConfig({
     tailwindcss(),
     // ❌ Xóa toàn bộ VitePWA khỏi đây
   ],
+  server: {
+    proxy: {
+      '/api': {
+        target: 'http://localhost:8000',
+        changeOrigin: true,
+      },
+      '/storage': {
+        target: 'http://localhost:8000',
+        changeOrigin: true,
+      },
+    },
+  },
   build: {
     chunkSizeWarningLimit: 1000,
     rollupOptions: {

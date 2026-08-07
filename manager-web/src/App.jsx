@@ -736,7 +736,8 @@ function ParentalControlApp() {
         schedRes,
         chatRes,
         todosRes,
-        cfgRes
+        cfgRes,
+        versionsRes
       ] = await Promise.all([
         supabase.from('devices').select('*').eq('device_name', DEVICE_NAME).maybeSingle(),
         supabase.from('process_logs').select('*').eq('device_name', DEVICE_NAME).order('created_at', { ascending: false }).limit(30),
@@ -794,8 +795,7 @@ function ParentalControlApp() {
       if (!todosRes.error && todosRes.data) setTodoNotes(todosRes.data)
       else if (todosRes.error) console.error('[Supabase Error] todo_notes:', todosRes.error)
 
-      const versionsRes = PromiseResults[14]
-      if (versionsRes && !versionsRes.error && versionsRes.data) setAgentVersions(versionsRes.data)
+      if (!versionsRes.error && versionsRes.data) setAgentVersions(versionsRes.data)
 
       if (!chatRes.error && chatRes.data) {
         const dbChats = chatRes.data

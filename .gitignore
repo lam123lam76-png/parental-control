@@ -25,13 +25,7 @@ dist/
 # Local tooling and backup artifacts
 .vercel/
 .ua/
-.agents/
-.claude/
 backups/
 temp_zip/
 backup_*/
 *.zip
-
-# Local runtime data
-backend_api/postgres_data/
-backend_api/storage/

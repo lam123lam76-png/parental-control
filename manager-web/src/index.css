@@ -1,0 +1,93 @@
+@import "tailwindcss";
+
+@layer base {
+  :root {
+    /* LIGHT MODE — Champagne Background + Emerald Ink Primary */
+    --background: #F8E7C9;
+    --foreground: #064E3B;
+    
+    --card: #FFFFFF;
+    --card-foreground: #064E3B;
+    
+    --primary: #064E3B;
+    --primary-foreground: #F8E7C9;
+    
+    --secondary: #EEDCBA;
+    --secondary-foreground: #064E3B;
+    
+    --muted: #EAD6B2;
+    --muted-foreground: #0A6950;
+    
+    --accent: #E5CF9F;
+    --accent-foreground: #064E3B;
+    
+    --border: #DECC9F;
+    --input: #DECC9F;
+    --ring: #064E3B;
+
+    --emerald-ink: #064E3B;
+    --champagne: #F8E7C9;
+  }
+
+  .dark {
+    /* DARK MODE — Deep Dark Emerald Obsidian Background + Emerald Ink Accent & Champagne Text */
+    --background: #080C0A;
+    --foreground: #F8E7C9;
+    
+    --card: #101614;
+    --card-foreground: #F8E7C9;
+    
+    --primary: #064E3B;
+    --primary-foreground: #F8E7C9;
+    
+    --secondary: #16241E;
+    --secondary-foreground: #F8E7C9;
+    
+    --muted: #172620;
+    --muted-foreground: #94A3B8;
+    
+    --accent: #1C332A;
+    --accent-foreground: #F8E7C9;
+    
+    --border: #1E382E;
+    --input: #1E382E;
+    --ring: #059669;
+
+    --emerald-ink: #064E3B;
+    --champagne: #F8E7C9;
+  }
+}
+
+body {
+  background-color: var(--background);
+  color: var(--foreground);
+  font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  overflow-x: hidden;
+  transition: background-color 0.25s ease, color 0.25s ease;
+}
+
+/* Custom Scrollbar in Shadcn Style */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(6, 78, 59, 0.3);
+  border-radius: 9999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(6, 78, 59, 0.6);
+}
+
+@keyframes pulse-ring {
+  0% { transform: scale(0.95); opacity: 0.8; }
+  50% { transform: scale(1.4); opacity: 0; }
+  100% { transform: scale(0.95); opacity: 0; }
+}
+
+.animate-pulse-ring {
+  animation: pulse-ring 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}

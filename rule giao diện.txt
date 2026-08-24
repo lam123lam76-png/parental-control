@@ -1,0 +1,58 @@
+==============================================================================
+QUY TẮC VÀ NGUYÊN TẮC THIẾT KẾ GIAO DIỆN (UI/UX DESIGN SYSTEM RULES)
+Parental Control Manager Web UI v2.0
+==============================================================================
+
+1. BẢNG MÀU CHỦ ĐẠO & THUỘC TÍNH NGUYÊN BẢN (CENTRALIZED DESIGN TOKENS)
+------------------------------------------------------------------------------
+Toàn bộ màu sắc, thẻ, nút bấm, ô nhập liệu và font chữ được quy định tập trung 
+tại tệp: `manager-web/src/lib/theme.js` (Export hàm `getThemeStyles(theme)`).
+
+- Emerald Ink (Xanh ngọc lục bảo đậm): #064E3B
+- Champagne (Vàng kem Champagne):        #F8E7C9
+
+[A] LIGHT MODE TOKENS (Chế độ sáng):
+    - Background (Màu nền):             bg-[#F8E7C9] text-[#064E3B]
+    - Card Container (Màu thẻ):         bg-[#FFFFFF] border-[#DECC9F] shadow-sm
+    - Text Main (Màu chữ chính):        text-[#064E3B] font-bold
+    - Text Muted (Màu chữ mô tả):       text-[#064E3B] font-medium opacity-90
+    - Button Primary (Màu nút chính):   bg-[#064E3B] text-[#F8E7C9] hover:opacity-90 active:scale-[0.98]
+    - Button Secondary (Nút phụ):       bg-[#EEDCBA] text-[#064E3B] hover:bg-[#E5CF9F]
+    - Button Danger (Nút Khóa):         bg-[#3f121a] text-[#F8E7C9] hover:bg-[#521722]
+    - Button Success (Nút Mở khóa):     bg-[#0e3325] text-[#F8E7C9] hover:bg-[#154633]
+    - Input Field (Màu ô nhập liệu):    bg-[#FFFFFF] border-[#DECC9F] text-[#064E3B] placeholder-[#064E3B]/60
+    - Badge (Màu nhãn):                 bg-[#064E3B] text-[#F8E7C9] font-bold
+
+[B] DARK MODE TOKENS (Chế độ tối):
+    - Background (Màu nền):             bg-[#080C0A] text-[#F8E7C9]
+    - Card Container (Màu thẻ):         bg-[#101614] border-[#1E382E] shadow-sm
+    - Text Main (Màu chữ chính):        text-[#F8E7C9] font-bold
+    - Text Muted (Màu chữ mô tả):       text-[#F8E7C9]/85 font-medium
+    - Button Primary (Màu nút chính):   bg-[#064E3B] text-[#F8E7C9] hover:opacity-90 active:scale-[0.98]
+    - Button Secondary (Nút phụ):       bg-[#16241E] text-[#F8E7C9] hover:bg-[#1C332A]
+    - Button Danger (Nút Khóa):         bg-[#3f121a] text-[#F8E7C9] hover:bg-[#521722]
+    - Button Success (Nút Mở khóa):     bg-[#0e3325] text-[#F8E7C9] hover:bg-[#154633]
+    - Input Field (Màu ô nhập liệu):    bg-[#080C0A] border-[#1E382E] text-[#F8E7C9] placeholder-[#F8E7C9]/60
+    - Badge (Màu nhãn):                 bg-[#064E3B] text-[#F8E7C9] font-bold
+
+2. QUY TẮC MỞ RỘNG GIAO DIỆN & TÍNH NĂNG MỚI (FUTURE EXTENSION RULE)
+------------------------------------------------------------------------------
+KHI THÊM BẤT KỲ THẺ (CARD), NÚT (BUTTON), FORM HOẶC BẢNG NÀO VÀO ỨNG DỤNG:
+1. Import hàm `getThemeStyles`:
+   import { getThemeStyles } from "../lib/theme";
+2. Lấy đối tượng styles trong component:
+   const styles = getThemeStyles(theme);
+3. Áp dụng chuẩn các class token đã định nghĩa:
+   <div className={`p-5 rounded-xl border ${styles.card}`}>
+     <h3 className={`text-sm font-bold ${styles.textBold}`}>Tiêu đề</h3>
+     <p className={`text-xs ${styles.textMuted}`}>Mô tả</p>
+     <button className={`px-4 py-2 ${styles.buttonPrimary}`}>Hành động</button>
+   </div>
+
+TUYỆT ĐỐI KHÔNG TỰ VIẾT MÃ MÀU AD-HOC (NHƯ bg-gray-100, text-zinc-500) TRONG CÁC COMPONENT.
+
+3. CẤU TRÚC BỐ CỤC & NGUYÊN TẮC THIẾT KẾ
+------------------------------------------------------------------------------
+- Top Header Navigation & Left Sidebar Navigation & Mobile Bottom Navigation Bar.
+- Iconography: 100% sử dụng Lucide-React minimalist stroke SVG icons (stroke-[1.75]), KHÔNG dùng emoji.
+==============================================================================

@@ -1,0 +1,16 @@
+# Core
+psutil==5.9.8
+requests==2.32.3
+python-dotenv==1.0.1
+websocket-client==1.8.0
+
+# Windows specific
+pywin32==306
+wmi==1.5.1
+
+# Imaging & UI (Optional/Future)
+Pillow==10.3.0
+mss==9.0.1
+
+# Utils
+schedule==1.2.2

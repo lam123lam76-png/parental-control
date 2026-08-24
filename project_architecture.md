@@ -1,0 +1,102 @@
+# ARCHITECTURE & SYSTEM PROCESS DOCUMENTATION
+## Dự án: Parental Control System (Quản Lý Máy Tính Em Trai)
+
+---
+
+## 1. TỔNG QUAN KIẾN TRÚC HỆ THỐNG
+
+Hệ thống được thiết kế theo mô hình **Agent-Server-Client (Thực thi ngầm - Backend FastAPI - Web App quản lý)**:
+
+```mermaid
+graph TD
+    A[Python Agent trên máy em] <-->|REST API/WebSocket| B[(Backend FastAPI & Postgres)]
+    C[Web App Quản lý - React/Vite] <-->|REST API| B
+    C -->|Nginx Proxy| E[Trình duyệt Admin / Điện thoại]
+```
+
+---
+
+## 2. QUY TRÌNH HOẠT ĐỘNG CHÍNH (SYSTEM PROCESSES)
+
+### Process 1: Chu kỳ Thực thi Ngầm của Agent (Main Polling Loop - 60s)
+Mỗi chu kỳ (mặc định 60s), Python Agent trên máy khách thực hiện tuần tự các bước:
+1. **Lắng nghe lệnh tức thì (`process_pending_commands`):**
+   - Kiểm tra bảng `system_commands`. Nếu có lệnh `take_screenshot` -> Chụp ảnh ngay & đẩy lên bucket `screenshots`.
+   - Nếu có lệnh `force_update` -> Tự động nạp bản cập nhật mới từ Backend Storage, giải nén đè và khởi động lại.
+2. **Kiểm tra Tin nhắn Chat (`check_unread_messages`):**
+   - Đọc tin nhắn mới từ Admin gửi qua Web App.
+3. **Kiểm tra Trạng thái Tạm dừng (`is_control_paused`):**
+   - Nếu Admin bật **Pause Control**, bỏ qua toàn bộ việc khóa máy và giới hạn giờ.
+4. **Xác nhận Quyền mở máy (`check_device_permission`):**
+   - Đọc `app_config.is_allowed`. Nếu `is_allowed == False`, bật ngay màn hình khóa `Blocker`.
+5. **Kiểm tra Giới hạn Giờ (`is_within_allowed_time`):**
+   - Chế độ `time_frame`: Kiểm tra thời gian hiện tại có nằm trong khoảng `start_time` ~ `end_time` của thứ trong tuần.
+   - Chế độ `max_daily`: Tính tổng số phút đã dùng trong ngày từ `active_window_logs`. Nếu quá `max_hours`, bật màn hình khóa `Blocker`.
+6. **Quét & Xử lý Quy tắc App & Web (`check_app_rules`, `check_web_rules`):**
+   - Nếu app/web thuộc danh mục `forbidden` -> Diệt tiến trình app (`taskkill`) hoặc chặn trình duyệt.
+   - Nếu thuộc danh mục `limited` -> Đếm thời gian sử dụng tích lũy và cảnh báo/khóa khi hết quota.
+7. **Chụp màn hình Định kỳ (`take_screenshot`):**
+   - Chụp toàn bộ màn hình, vẽ Timestamp (Giờ:Phút:Giây) màu đỏ lên ảnh, upload lên Backend Storage.
+8. **Cập nhật Nhật ký & Heartbeat:**
+   - Ghi dữ liệu vào `active_window_logs`, `browser_history_logs`, `app_usage_logs`, `web_usage_logs`.
+   - Cập nhật trạng thái `online` trong bảng `devices`.
+
+---
+
+### Process 2: Màn hình Khóa Đa Màn Hình (`Blocker`)
+- Tự động phát hiện số lượng màn hình qua `win32api.EnumDisplayMonitors()`.
+- Phủ màn hình khóa Fullscreen đen tràn viền trên **TẤT CẢ** các màn hình (ngăn em trai kéo cửa sổ sang màn hình phụ).
+- Tích hợp 2 cơ chế mở khóa:
+  - **Mật khẩu trực tiếp:** Nhập đúng `AGENT_PASSWORD`.
+  - **Mở khóa từ xa:** Mỗi 10s tự kiểm tra thông qua kết nối WebSocket, nếu Admin bật Tạm dừng/Cho phép mở máy -> Tự đóng màn hình khóa.
+- Tích hợp nút **Tắt máy (Shutdown)** để em trai có thể tắt máy nếu đã hết giờ.
+
+---
+
+3. Quy trình Cập Nhật Từ Xa (Remote Auto Update)
+1. Chạy file `build_and_pack_agent.bat` trên Server:
+   - Tự động build ra `ParentalControlAgent.exe` và `ParentalControlWatchdog.exe` mới.
+   - Nén chúng vào file `agent-update.zip` nằm trong thư mục `storage/updates` của backend.
+2. Manager Web gửi lệnh `force_update` qua API.
+3. Agent trên máy em trai nhận lệnh `force_update` -> Gọi tới `/api/storage/updates/download` để lấy tệp ZIP.
+4. Agent giải nén đè và Khởi động lại Watchdog.
+
+---
+
+### Process 4: Giao diện Web Quản lý (React Web App)
+- **Tổng quan & Điều khiển:** Khóa/Mở máy nhanh, Tạm dừng từ xa, Chụp ảnh tức thì, Cưỡng chế cập nhật Agent.
+- **Quá trình sử dụng:**
+  - Date Picker dùng chung toàn bộ tab + Nút xóa dữ liệu theo ngày.
+  - **App & Quy tắc:** Hiển thị thẻ từng app + tổng số phút đếm động + chọn Cho phép/Giới hạn/Cấm.
+  - **Web & Quy tắc:** Hiển thị thẻ từng tên miền + tổng số phút đếm động + chọn Cho phép/Giới hạn/Cấm.
+  - **📄 Log File:** Giao diện Terminal/Console kết hợp mốc thời gian thực của cả App và Web.
+- **🤖 AI Phân Tích:** Tự động phân loại tiêu đề cửa sổ / URL thành Học tập vs Giải trí và tính điểm tập trung.
+- **🖼️ Hình ảnh tự động:** Xem tất cả ảnh chụp màn hình theo ngày, hiển thị chính xác giờ phút chụp, xóa hàng loạt.
+
+---
+
+## 3. DANH SÁCH FILE BẠN CÓ THỂ CHỈNH SỬA & SO SÁNH
+
+Bạn có thể chỉnh sửa trực tiếp các file trong dự án tại các vị trí sau:
+
+| Thành phần | Đường dẫn File | Mục đích / Chức năng có thể chỉnh sửa |
+| :--- | :--- | :--- |
+| **Agent Core** | `agent/main.py` | Vòng lặp chính, chu kỳ gửi dữ liệu, logic phân luồng kiểm tra. |
+| **Màn hình khóa** | `agent/enforcement/blocker.py` | Giao diện màn hình khóa, số lượng nút bấm, logic mở khóa/tắt máy. |
+| **Quy tắc App/Web** | `agent/enforcement/...` | Danh sách app/web cấm, thuật toán quét và diệt tiến trình. |
+| **Bảo vệ Agent** | `agent/protection/watchdog.py` | Đảm bảo Agent luôn chạy, ngăn ngừa bị tắt trái phép. |
+| **Backend API** | `backend_api/main.py` | Khởi tạo server, phân tuyến (routing) API. |
+| **Web App UI** | `manager-web/src/App.jsx` | Giao diện quản lý, các bảng thống kê, nút bấm điều khiển, layout. |
+| **Triển khai Server**| `docker-compose.yml` | Cấu hình Docker để khởi động Postgres, Backend và Frontend. |
+
+---
+
+## 4. HƯỚNG DẪN ĐỐI CHIẾU & ĐỀ XUẤT THAY ĐỔI
+
+File này đã được lưu trực tiếp tại dự án của bạn:  
+`d:\Hoàng\PMQL\parental-control\project_architecture.md`
+
+**Quy trình làm việc tiếp theo:**
+1. Bạn hãy mở và xem qua file `project_architecture.md`.
+2. Bạn có thể nêu ra các ý tưởng / mong muốn thay đổi (ví dụ: bổ sung thêm tính năng mới, đổi thuật toán đếm giờ, đổi giao diện khóa máy, v.v.).
+3. Chúng ta sẽ cùng so sánh giữa **Bản bạn muốn sửa** với **Bản mã nguồn hiện tại** để đánh giá tính khả thi và tiến hành cập nhật!

@@ -1,0 +1,54 @@
+version: '3.8'
+
+services:
+  # 1. PostgreSQL 16 Database
+  postgres:
+    image: postgres:16-alpine
+    container_name: parental_control_db
+    restart: always
+    environment:
+      POSTGRES_USER: parental_admin
+      POSTGRES_PASSWORD: ParentalSecurePassword2026!
+      POSTGRES_DB: parental_control_db
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U parental_admin -d parental_control_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # 2. FastAPI Backend Application
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: parental_control_backend
+    restart: always
+    environment:
+      DATABASE_URL: postgresql://parental_admin:ParentalSecurePassword2026!@postgres:5432/parental_control_db
+    volumes:
+      - screenshot_storage:/app/backend_api/storage/screenshots
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  # 3. Frontend Build & Nginx Web Proxy
+  nginx:
+    build:
+      context: ./manager-web
+      dockerfile: Dockerfile
+    container_name: parental_control_web
+    restart: always
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/conf.d/default.conf
+    depends_on:
+      - backend
+
+volumes:
+  postgres_data:
+  screenshot_storage:

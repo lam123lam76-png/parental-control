@@ -2,6 +2,7 @@
   "name": "manager-web",
   "private": true,
   "version": "0.0.0",
+  "packageManager": "pnpm@11.23.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -10,7 +11,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "@builder.io/react": "^3.3.0",
+    "@builder.io/react": "^3.2.12",
     "class-variance-authority": "^0.7.0",
     "clsx": "^2.0.0",
     "lucide-react": "^1.28.0",

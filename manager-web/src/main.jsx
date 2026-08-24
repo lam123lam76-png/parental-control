@@ -2,8 +2,10 @@
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import './index.css'
-import './builder/DashboardPreview.jsx'
+import { registerBuilderDashboardComponents } from './builder/DashboardPreview.jsx'
 import App from './App.jsx'
+
+registerBuilderDashboardComponents();
 
 // DIAGNOSTIC MOUNT & GLOBAL ERROR HANDLER (CHỐNG MÀN HÌNH ĐEN HOÀN TOÀN)
 function renderDiagnosticError(errorMsg, stackInfo = '') {
@@ -36,7 +38,6 @@ function renderDiagnosticError(errorMsg, stackInfo = '') {
   }
 }
 
-// Bắt lỗi toàn cục window.onerror & unhandledrejection
 if (typeof window !== 'undefined') {
   window.addEventListener('error', (event) => {
     console.error('Global Error Captured:', event.error);
@@ -51,7 +52,6 @@ if (typeof window !== 'undefined') {
     );
   });
 
-  // Tự động Unregister Service Worker cũ để bust stale PWA cache
   if ('serviceWorker' in navigator) {
     navigator.serviceWorker.getRegistrations().then((registrations) => {
       for (let registration of registrations) {
@@ -63,7 +63,6 @@ if (typeof window !== 'undefined') {
   }
 }
 
-// KIỂM TRA PHẦN TỬ #ROOT AN TOÀN
 let rootElement = document.getElementById('root');
 if (!rootElement) {
   rootElement = document.createElement('div');

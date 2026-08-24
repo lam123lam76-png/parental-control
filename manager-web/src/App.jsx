@@ -1,7 +1,6 @@
+'use client';
 import React, { Component } from 'react';
 import FastAPIDashboard from './components/FastAPIDashboard';
-import { isBuilderEditMode } from './builder/mode';
-import { AdminDashboardPreview } from './builder/DashboardPreview';
 
 class ErrorBoundary extends Component {
   constructor(props) {
@@ -46,7 +45,7 @@ class ErrorBoundary extends Component {
 export default function App() {
   return (
     <ErrorBoundary>
-      {isBuilderEditMode() ? <AdminDashboardPreview /> : <FastAPIDashboard />}
+      <FastAPIDashboard />
     </ErrorBoundary>
   );
 }

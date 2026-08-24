@@ -2,7 +2,6 @@
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import './index.css'
-import './builder/DashboardPreview.jsx'
 import App from './App.jsx'
 
 // DIAGNOSTIC MOUNT & GLOBAL ERROR HANDLER (CHỐNG MÀN HÌNH ĐEN HOÀN TOÀN)

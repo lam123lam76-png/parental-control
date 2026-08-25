@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from typing import List, Optional, Any
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, conint
 import uuid
 
 from database import get_db
@@ -242,13 +242,13 @@ async def toggle_focus_mode(
 # TIME CONTROL & RESTRICTIONS (ALLOWED HOURS & APP/WEB RESTRICTIONS)
 # ==========================================
 class ScheduleItem(BaseModel):
-    days: List[int]
-    start: str = Field(..., max_length=5)  # "07:00"
-    end: str = Field(..., max_length=5)    # "22:00"
+    days: List[conint(ge=0, le=6)] = Field(..., min_length=1)
+    start: str = Field(..., min_length=5, max_length=5, pattern=r"^([01]\d|2[0-3]):[0-5]\d$")  # "07:00"
+    end: str = Field(..., min_length=5, max_length=5, pattern=r"^([01]\d|2[0-3]):[0-5]\d$")    # "22:00"
 
 class TimeControlRequest(BaseModel):
     device_id: Optional[str] = None
-    schedules: List[ScheduleItem] = []
+    schedules: List[ScheduleItem] = Field(default_factory=list)
 
 
 @router.get("/api/settings/time-control/allowed-hours", response_model=schemas.StandardResponse)
@@ -265,15 +265,33 @@ async def get_time_control(device_id: Optional[str] = None, db: Session = Depend
     
     # Group rules by start and end time to reconstruct schedules array
     schedules_dict = {}
+    
+    def format_time(t):
+        if hasattr(t, 'strftime'):
+            return t.strftime('%H:%M')
+        # Fallback for string or other types
+        s = str(t)
+        parts = s.split(':')
+        if len(parts) >= 2:
+            try:
+                return f"{int(parts[0]):02d}:{int(parts[1]):02d}"
+            except ValueError:
+                pass
+        return s[:5]
+
     for r in rules:
         if r.allowed_start is None or r.allowed_end is None or r.day_of_week is None:
             continue
-        key = f"{r.allowed_start.strftime('%H:%M')}-{r.allowed_end.strftime('%H:%M')}"
+            
+        start_str = format_time(r.allowed_start)
+        end_str = format_time(r.allowed_end)
+        
+        key = f"{start_str}-{end_str}"
         if key not in schedules_dict:
             schedules_dict[key] = {
                 "days": [],
-                "start": r.allowed_start.strftime('%H:%M'),
-                "end": r.allowed_end.strftime('%H:%M')
+                "start": start_str,
+                "end": end_str
             }
         schedules_dict[key]["days"].append(r.day_of_week)
     

@@ -29,3 +29,6 @@ backups/
 temp_zip/
 backup_*/
 *.zip
+
+backend_api/postgres_data/
+backend_api/storage/

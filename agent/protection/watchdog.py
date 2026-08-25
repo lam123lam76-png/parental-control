@@ -100,9 +100,13 @@ def run_watchdog(target_cmd: list[str] | None = None) -> None:
     """
     ensure_single_instance("Global\\ParentalControlWatchdog_SingleInstance_Mutex")
 
-    # Ensure Windows Registry autostart is active
+    # Ensure Windows Registry autostart is active (never crash the supervisor
+    # if HKLM writes are denied on a non-elevated token)
     if install_autostart:
-        install_autostart()
+        try:
+            install_autostart()
+        except Exception as _e:
+            logger.debug(f"Autostart repair error at startup: {_e}")
 
     if not target_cmd:
         is_frozen = getattr(sys, 'frozen', False)

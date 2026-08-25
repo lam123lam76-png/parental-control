@@ -13,6 +13,24 @@ from core.config import SCREENSHOTS_DIR
 # Note: format_local_time can be moved to a utils module, for now defining inline to avoid circular imports.
 from datetime import timezone, timedelta
 VIETNAM_TZ = timezone(timedelta(hours=7))
+
+# A device is "online" if its last heartbeat was within this many seconds.
+# `manager.active_connections` is in-memory and is lost on backend restart /
+# reload, so we fall back to `last_seen_at` (written by every 15s heartbeat).
+ONLINE_HEARTBEAT_THRESHOLD_SECONDS = 45
+
+
+def _is_online(device) -> bool:
+    """True if the device has an active WS connection OR a fresh heartbeat."""
+    if manager.is_online(str(device.id)):
+        return True
+    last_seen = device.last_seen_at
+    if not last_seen:
+        return False
+    # last_seen_at is stored in UTC (naive after SQLite round-trip).
+    if last_seen.tzinfo is None:
+        last_seen = last_seen.replace(tzinfo=timezone.utc)
+    return (datetime.now(timezone.utc) - last_seen).total_seconds() <= ONLINE_HEARTBEAT_THRESHOLD_SECONDS
 def _resolve_device_uuid(device_id_str: str | None, db: Session) -> uuid.UUID | None:
     if device_id_str:
         try:
@@ -33,7 +51,7 @@ def get_all_devices(db: Session = Depends(get_db)):
         {
             "device_id": str(d.id),
             "device_name": d.device_name,
-            "is_online": manager.is_online(str(d.id)),
+            "is_online": _is_online(d),
             "is_locked": bool(d.is_locked),
             "last_seen_at": d.last_seen_at.isoformat() if d.last_seen_at else None
         }
@@ -58,7 +76,7 @@ def get_device_status(device_id: str, db: Session = Depends(get_db)):
         data={
             "device_id": device_id_str,
             "device_name": device.device_name,
-            "is_online": manager.is_online(device_id_str),
+            "is_online": _is_online(device),
             "is_locked": bool(device.is_locked),
             "last_seen_at": device.last_seen_at.isoformat() if device.last_seen_at else None
         },

@@ -303,13 +303,13 @@ class AgentApp:
                 except Exception as e:
                     logger.error(f"Error in periodic screenshot worker: {e}")
 
-    def on_shutdown(self):
+    def on_shutdown(self, reason: str = "Agent process terminating gracefully."):
         """Graceful shutdown callback."""
         logger.info("Agent shutting down gracefully...")
         self.is_running = False
 
         if self.alert_sender:
-            self.alert_sender.send_alert_direct(self.device_id, "agent_shutdown", "🔴 [AGENT TẮT MÁY] Agent process terminating gracefully.")
+            self.alert_sender.send_alert_direct(self.device_id, "agent_shutdown", f"🔴 [AGENT SHUTDOWN] {reason}")
             self.alert_sender.stop()
         if self.ws_client:
             self.ws_client.stop()

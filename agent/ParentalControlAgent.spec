@@ -1,19 +1,12 @@
 # -*- mode: python ; coding: utf-8 -*-
-from PyInstaller.utils.hooks import collect_all
-
-datas = []
-binaries = [('sqlite3.dll', '.'), ('_sqlite3.pyd', '.')]
-hiddenimports = ['sqlite3', '_sqlite3', 'win32gui', 'win32process', 'win32crypt', 'mss', 'PIL', 'websocket']
-tmp_ret = collect_all('sqlite3')
-datas += tmp_ret[0]; binaries += tmp_ret[1]; hiddenimports += tmp_ret[2]
 
 
 a = Analysis(
     ['main.py'],
     pathex=[],
-    binaries=binaries,
-    datas=datas,
-    hiddenimports=hiddenimports,
+    binaries=[],
+    datas=[],
+    hiddenimports=['win32gui', 'win32process', 'win32crypt', 'mss', 'PIL', 'websocket'],
     hookspath=[],
     hooksconfig={},
     runtime_hooks=[],

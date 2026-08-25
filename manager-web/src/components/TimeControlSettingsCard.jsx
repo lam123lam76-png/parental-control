@@ -73,6 +73,7 @@ function AllowedHoursSection({ styles, deviceId }) {
   const [originalSchedulesStr, setOriginalSchedulesStr] = useState(null);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState(null);
+  const [isDirty, setIsDirty] = useState(false);
 
   useEffect(() => {
     const load = async () => {
@@ -80,26 +81,61 @@ function AllowedHoursSection({ styles, deviceId }) {
         const json = await api.getAllowedHours(deviceId);
         const serverSchedules = json.data?.schedules || [];
         setOriginalSchedulesStr(JSON.stringify(serverSchedules));
-        
-        const draft = localStorage.getItem(`pc_draft_hours_${deviceId}`);
-        if (draft) {
-          setSchedules(JSON.parse(draft));
-          setMessage({ type: "error", text: "Đang hiển thị bản nháp chưa lưu (lần trước bị gián đoạn)." });
+
+        let draft = null;
+        try {
+          draft = localStorage.getItem(`pc_draft_hours_${deviceId}`);
+        } catch {
+          // Storage may be unavailable in private/restricted browser contexts.
+        }
+
+        if (draft !== null) {
+          try {
+            const parsedDraft = JSON.parse(draft);
+            if (!Array.isArray(parsedDraft)) throw new Error("Invalid draft");
+            setSchedules(parsedDraft);
+            setIsDirty(true);
+            setMessage({ type: "error", text: "Đang hiển thị bản nháp chưa lưu (lần trước bị gián đoạn)." });
+          } catch {
+            try {
+              localStorage.removeItem(`pc_draft_hours_${deviceId}`);
+            } catch {
+              // Ignore storage cleanup failures and use server data.
+            }
+            setSchedules(serverSchedules);
+            setIsDirty(false);
+          }
         } else {
           setSchedules(serverSchedules);
+          setIsDirty(false);
         }
-      } catch {}
+      } catch (e) {
+        setSchedules([]);
+        setIsDirty(false);
+        setMessage({ type: "error", text: e.message || "Không thể tải khung giờ từ máy chủ." });
+      }
     };
-    if (deviceId !== undefined) load();
+    if (deviceId) load();
+    else {
+      setSchedules([]);
+      setOriginalSchedulesStr(null);
+      setIsDirty(false);
+      setMessage({ type: "error", text: "Chưa có thiết bị được chọn." });
+    }
   }, [deviceId]);
 
   useEffect(() => {
-    if (schedules.length > 0 && deviceId !== undefined) {
+    if (!deviceId || !isDirty) return;
+    try {
+      // Persist empty drafts too, so deleting every schedule is recoverable.
       localStorage.setItem(`pc_draft_hours_${deviceId}`, JSON.stringify(schedules));
+    } catch {
+      setMessage({ type: "error", text: "Không thể lưu bản nháp trong trình duyệt." });
     }
-  }, [schedules, deviceId]);
+  }, [schedules, deviceId, isDirty]);
 
   const toggleDay = (idx, day) => {
+    setIsDirty(true);
     setSchedules((prev) =>
       prev.map((s, i) =>
         i === idx
@@ -110,25 +146,63 @@ function AllowedHoursSection({ styles, deviceId }) {
   };
 
   const updateField = (idx, field, value) => {
+    setIsDirty(true);
     setSchedules((prev) => prev.map((s, i) => (i === idx ? { ...s, [field]: value } : s)));
   };
 
   const addSchedule = () => {
+    setIsDirty(true);
     setSchedules((prev) => [...prev, { days: [], start: "08:00", end: "20:00" }]);
   };
 
   const removeSchedule = (idx) => {
+    setIsDirty(true);
     setSchedules((prev) => prev.filter((_, i) => i !== idx));
   };
 
+  const validateSchedules = () => {
+    if (!Array.isArray(schedules)) return "Dữ liệu khung giờ không hợp lệ.";
+    for (const schedule of schedules) {
+      if (!Array.isArray(schedule.days) || schedule.days.length === 0) {
+        return "Mỗi khung giờ phải chọn ít nhất một ngày.";
+      }
+      if (schedule.days.some((day) => !Number.isInteger(day) || day < 0 || day > 6)) {
+        return "Ngày trong tuần không hợp lệ.";
+      }
+      if (!/^([01]\d|2[0-3]):[0-5]\d$/.test(schedule.start) || !/^([01]\d|2[0-3]):[0-5]\d$/.test(schedule.end)) {
+        return "Giờ bắt đầu và kết thúc phải có định dạng HH:MM hợp lệ.";
+      }
+    }
+    return null;
+  };
+
   const handleSave = async () => {
+    if (!deviceId) {
+      setMessage({ type: "error", text: "Chưa có thiết bị được chọn." });
+      return;
+    }
+    const validationError = validateSchedules();
+    if (validationError) {
+      setMessage({ type: "error", text: validationError });
+      return;
+    }
     setSaving(true);
     setMessage(null);
     try {
-      const currentJson = await api.getAllowedHours(deviceId);
-      const currentSchedulesStr = JSON.stringify(currentJson.data?.schedules || []);
+      let currentSchedulesStr = originalSchedulesStr;
+      try {
+        const currentJson = await api.getAllowedHours(deviceId);
+        currentSchedulesStr = JSON.stringify(currentJson.data?.schedules || []);
+      } catch (checkErr) {
+        console.warn("Could not check for conflicts:", checkErr);
+        if (!window.confirm("Không thể kiểm tra xung đột với dữ liệu trên máy chủ. Bạn có chắc chắn muốn tiếp tục lưu?")) {
+          setSaving(false);
+          return;
+        }
+      }
+
       if (originalSchedulesStr && currentSchedulesStr !== originalSchedulesStr) {
-        if (!window.confirm("CẢNH BÁO: Quản trị viên khác vừa thay đổi Khung Giờ! Bạn có chắc chắn muốn ghi đè?")) {
+        if (!window.confirm("CẢNH BÁO: Quản trị viên khác hoặc hệ thống vừa thay đổi Khung Giờ! Bạn có chắc chắn muốn ghi đè?")) {
           setSaving(false);
           return;
         }
@@ -136,7 +210,12 @@ function AllowedHoursSection({ styles, deviceId }) {
 
       await api.updateAllowedHours(deviceId || null, schedules);
       setOriginalSchedulesStr(JSON.stringify(schedules));
-      localStorage.removeItem(`pc_draft_hours_${deviceId}`);
+      setIsDirty(false);
+      try {
+        localStorage.removeItem(`pc_draft_hours_${deviceId}`);
+      } catch {
+        // The server save already succeeded; storage cleanup is best effort.
+      }
       setMessage({ type: "success", text: "Đã lưu khung giờ cho phép!" });
     } catch (e) {
       setMessage({ type: "error", text: e.message || "Lưu thất bại." });

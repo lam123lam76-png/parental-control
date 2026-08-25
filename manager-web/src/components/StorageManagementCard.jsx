@@ -487,6 +487,22 @@ export default function StorageManagementCard({ theme = "dark", deviceId = "" })
             <span>Chọn Tất Cả ({groupedData.length} Mốc)</span>
           </button>
 
+          {/* Header Bulk Delete — icon-only, dùng chung handleBulkDelete */}
+          <button
+            type="button"
+            onClick={handleBulkDelete}
+            disabled={cleanLoading || (selectedPeriods.length === 0 && selectedItemIds.length === 0)}
+            title="Xóa các mục đã chọn"
+            aria-label="Xóa các mục đã chọn"
+            className={`py-2 px-2.5 text-xs font-bold rounded-lg transition flex items-center gap-2 ${
+              selectedItemIds.length > 0 || selectedPeriods.length > 0
+                ? "bg-rose-900/50 border border-rose-700/70 text-rose-200 hover:bg-rose-900/80"
+                : styles.buttonSecondary
+            } disabled:opacity-40`}
+          >
+            <Trash2 className="w-4 h-4" />
+          </button>
+
         </div>
 
         {/* REAL ITEMS GROUPED BY DATE HEADERS */}

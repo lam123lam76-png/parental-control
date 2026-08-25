@@ -36,9 +36,9 @@ class LogUploader:
         batch_interval: float = LOG_BATCH_INTERVAL,
         local_db: LocalDB | None = None,
     ):
-        from utils.config import BACKEND_URL
-        base_url = backend_url or BACKEND_URL
-        self.backend_url = base_url.rstrip("/")
+        from utils.config import BACKEND_URL, BACKUP_SERVER_URL
+        self.base_url = base_url or BACKEND_URL
+        self.backup_url = BACKUP_SERVER_URL
         self.device_id = device_id or os.getenv("DEVICE_ID") or os.getenv("DEVICE_NAME", "May_Em_Trai")
         self.batch_interval = batch_interval
         self.db = local_db or LocalDB()
@@ -49,7 +49,10 @@ class LogUploader:
 
     @property
     def upload_url(self) -> str:
-        return f"{self.backend_url}/api/logs/batch"
+        import utils.state as state
+        if state.FALLBACK_MODE and self.backup_url:
+            return f"{self.backup_url.rstrip('/')}/api/logs/batch"
+        return f"{self.base_url.rstrip('/')}/api/logs/batch"
 
     def start(self) -> None:
         """Start the batch uploader worker thread."""

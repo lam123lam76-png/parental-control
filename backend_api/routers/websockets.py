@@ -57,6 +57,29 @@ async def websocket_endpoint(websocket: WebSocket, device_id: str, token: str):
         db.close()
 
     await manager.connect(websocket, device_id_str)
+
+    # Always send the current rules when an agent reconnects. REST updates are
+    # persisted even while the agent is offline, so relying only on the
+    # original PUT-time push leaves the agent enforcing stale local rules.
+    sync_db = _get_session()
+    try:
+        current_rules = sync_db.query(models.Rule).filter(
+            models.Rule.device_id == device.id
+        ).all()
+        rules_list = [
+            schemas.RuleResponse.model_validate(rule).model_dump(mode="json")
+            for rule in current_rules
+        ]
+        await manager.send_command(device_id_str, {
+            "type": "command",
+            "command": "refresh_rules",
+            "payload": {"rules": rules_list},
+        })
+    except Exception as e:
+        logger.error(f"Failed to sync rules on reconnect for {device_id_str}: {e}")
+    finally:
+        sync_db.close()
+
     try:
         while True:
             data = await websocket.receive_text()

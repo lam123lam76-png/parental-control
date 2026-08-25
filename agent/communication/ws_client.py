@@ -139,6 +139,10 @@ class WebSocketClient:
         log_debug("[WS_CLIENT] WebSocket connection established.")
         self._state = ConnectionState.ONLINE
         self._backoff_strategy.reset()  # Reset backoff on successful connection
+        import utils.state as state
+        if state.FALLBACK_MODE:
+            log_debug("[WS_CLIENT] Recovered from fallback mode.")
+            state.FALLBACK_MODE = False
         # Start heartbeat thread if not alive
         if self._heartbeat_thread is None or not self._heartbeat_thread.is_alive():
             self._heartbeat_thread = threading.Thread(
@@ -177,6 +181,10 @@ class WebSocketClient:
 
     def _on_error(self, ws, error):
         log_debug(f"[WS_CLIENT] WebSocket error: {error}")
+        import utils.state as state
+        if not state.FALLBACK_MODE:
+            log_debug("[WS_CLIENT] Triggering FALLBACK_MODE")
+            state.FALLBACK_MODE = True
 
     def _on_close(self, ws, close_status_code, close_msg):
         log_debug(f"[WS_CLIENT] WebSocket closed (code: {close_status_code}, msg: {close_msg}).")

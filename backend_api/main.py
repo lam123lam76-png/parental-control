@@ -15,6 +15,7 @@ import asyncio
 
 from database import SessionLocal, engine
 import models
+from core.sync_service import periodic_sync_task
 
 # Routers
 from routers.auth import router as auth_router
@@ -116,17 +117,18 @@ async def background_monitor_heartbeats():
             db = SessionLocal()
             try:
                 devices = db.query(models.Device).all()
-                now_vn = datetime.now(VIETNAM_TZ)
+                now_utc = datetime.now(timezone.utc)
                 for d in devices:
                     if not d.last_seen_at:
                         continue
                     last_seen = d.last_seen_at
                     if last_seen.tzinfo is None:
-                        last_seen = last_seen.replace(tzinfo=VIETNAM_TZ)
-                    
-                    is_offline = (now_vn - last_seen).total_seconds() > 45
+                        # Stored as UTC (naive after SQLite round-trip).
+                        last_seen = last_seen.replace(tzinfo=timezone.utc)
+
+                    is_offline = (now_utc - last_seen).total_seconds() > 45
                     prev_state = device_online_state.get(str(d.id), False)
-                    
+
                     if is_offline and prev_state:
                         device_online_state[str(d.id)] = False
                         if device_graceful_shutdown.get(str(d.id), False):
@@ -151,6 +153,9 @@ async def lifespan(app: FastAPI):
     # Start heartbeat monitor task
     monitor_task = asyncio.create_task(background_monitor_heartbeats())
     
+    # Start sync task
+    sync_task = asyncio.create_task(periodic_sync_task(SessionLocal))
+    
     # Run purge in a separate thread so it doesn't block async loop if IO bound
     from routers.system import purge_old_trash
     asyncio.create_task(asyncio.to_thread(purge_old_trash))
@@ -159,6 +164,7 @@ async def lifespan(app: FastAPI):
     # Shutdown
     logger.info("Shutting down...")
     monitor_task.cancel()
+    sync_task.cancel()
 
 app = FastAPI(title="Parental Control Backend MVP", lifespan=lifespan)
 

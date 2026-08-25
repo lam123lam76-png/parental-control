@@ -35,14 +35,23 @@ import subprocess
 
 
 def install_scheduled_task() -> bool:
-    """Creates a Windows Scheduled Task to launch Watchdog every 5 minutes to ensure ultimate persistence."""
+    """Creates a Windows Scheduled Task to launch Watchdog at logon + every 2 minutes.
+
+    The task runs only after the user logs on (AtLogOn, interactive session) —
+    exactly the desired behavior: the agent starts immediately at logon.
+
+    Uses PowerShell Register-ScheduledTask because plain `schtasks` defaults to
+    DisallowStartIfOnBatteries=True and RunLevel=Limited — on a laptop running on
+    battery the task would never fire, so the watchdog (and therefore the agent)
+    would silently stop being supervised after a restart.
+    """
     try:
         is_frozen = getattr(sys, 'frozen', False)
         base_dir = Path(sys.executable).parent if is_frozen else Path(__file__).resolve().parent.parent
-        
+
         watchdog_exe = base_dir / "ParentalControlWatchdog.exe"
         prog_data_exe = Path(r"C:\ProgramData\ParentalControl\ParentalControlWatchdog.exe")
-        
+
         if watchdog_exe.exists():
             target_path = str(watchdog_exe)
         elif prog_data_exe.exists():
@@ -54,20 +63,40 @@ def install_scheduled_task() -> bool:
             else:
                 return False
 
-        # Run Watchdog every 5 minutes. If it's already running, Named Mutex will prevent duplicate execution.
-        if "python.exe" in target_path or "pythonw.exe" in target_path:
-            cmd = f'schtasks /create /tn "ParentalControlWatchdogTask" /tr "{target_path}" /sc minute /mo 2 /f'
-        else:
-            cmd = f'schtasks /create /tn "ParentalControlWatchdogTask" /tr "\\"{target_path}\\"" /sc minute /mo 2 /f'
-            
+        user_who = f"{os.environ.get('USERDOMAIN', '.')}\\{os.environ.get('USERNAME', '')}"
+
+        # AtLogOn + 2-minute repetition (self-heal), battery-safe, single instance.
+        ps = (
+            "$ErrorActionPreference='Stop'; "
+            f"$action = New-ScheduledTaskAction -Execute '{target_path}'; "
+            "$tLogon = New-ScheduledTaskTrigger -AtLogOn; "
+            "$tRepeat = New-ScheduledTaskTrigger -Once -At (Get-Date) -RepetitionInterval (New-TimeSpan -Minutes 2); "
+            f"$p = New-ScheduledTaskPrincipal -UserId '{user_who}' -LogonType Interactive -RunLevel Highest; "
+            "$s = New-ScheduledTaskSettingsSet -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries -MultipleInstances IgnoreNew -ExecutionTimeLimit (New-TimeSpan -Minutes 0); "
+            "Register-ScheduledTask -TaskName 'ParentalControlWatchdogTask' -Action $action "
+            "-Trigger $tLogon,$tRepeat -Principal $p -Settings $s -Force | Out-Null"
+        )
         creationflags = subprocess.CREATE_NO_WINDOW if os.name == 'nt' else 0
-        res = subprocess.run(cmd, shell=True, capture_output=True, text=True, creationflags=creationflags)
+        res = subprocess.run(
+            ["powershell", "-NoProfile", "-NonInteractive", "-Command", ps],
+            capture_output=True, text=True, creationflags=creationflags,
+        )
         if res.returncode == 0:
-            logger.info("Successfully installed Scheduled Task for Watchdog.")
+            logger.info("Successfully installed Scheduled Task for Watchdog (battery-safe).")
             return True
-        else:
-            logger.error(f"Failed to install Scheduled Task: {res.stderr}")
-            return False
+
+        # Elevated RunLevel may be unavailable (non-admin token). Retry with Limited.
+        logger.warning(f"Highest-runlevel task install failed: {res.stderr.strip()[:200]}; retrying Limited.")
+        ps_limited = ps.replace(" -RunLevel Highest", " -RunLevel Limited")
+        res2 = subprocess.run(
+            ["powershell", "-NoProfile", "-NonInteractive", "-Command", ps_limited],
+            capture_output=True, text=True, creationflags=creationflags,
+        )
+        if res2.returncode == 0:
+            logger.info("Successfully installed Scheduled Task for Watchdog (Limited fallback).")
+            return True
+        logger.error(f"Failed to install Scheduled Task (Limited): {res2.stderr}")
+        return False
     except Exception as e:
         logger.error(f"Scheduled task installation error: {e}")
         return False

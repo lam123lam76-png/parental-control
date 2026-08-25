@@ -1,6 +1,7 @@
 import json
 import logging
-from fastapi import APIRouter, WebSocket, WebSocketDisconnect, Depends, HTTPException, status
+from typing import Optional
+from fastapi import APIRouter, WebSocket, WebSocketDisconnect, Depends, HTTPException, status, Header
 from sqlalchemy.orm import Session
 from datetime import datetime, timezone
 import uuid

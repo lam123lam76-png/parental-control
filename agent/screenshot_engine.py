@@ -186,6 +186,18 @@ class ScreenshotEngine:
                 return False
 
             url = f"{self.backend_url}/api/screenshots/upload"
+
+            # Failover: when the main backend is unreachable, push screenshots to
+            # the backup (Vercel) API so evidence is not lost.
+            try:
+                import utils.state as state
+                from utils.config import BACKUP_SERVER_URL
+                if state.FALLBACK_MODE and BACKUP_SERVER_URL:
+                    url = f"{BACKUP_SERVER_URL.rstrip('/')}/api/screenshots/upload"
+                    logger.info("[FALLBACK] Uploading screenshot to backup server.")
+            except Exception:
+                pass
+
             data = {"device_id": self.device_id}
             files = {
                 "file": ("screenshot.jpg", img_buffer, "image/jpeg")

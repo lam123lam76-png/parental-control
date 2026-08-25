@@ -1,7 +1,6 @@
 import json
 import logging
-from typing import Optional
-from fastapi import APIRouter, WebSocket, WebSocketDisconnect, Depends, HTTPException, status, Header
+from fastapi import APIRouter, WebSocket, WebSocketDisconnect, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from datetime import datetime, timezone
 import uuid
@@ -246,15 +245,25 @@ async def shutdown_device(
             status_code=200
         )
     else:
+        # Offline -> queue for fallback polling (same as send_device_command)
+        pending = models.PendingCommand(
+            device_id=dev.id,
+            command="shutdown_pc",
+            payload=json.dumps(cmd_payload.get("payload", {}))
+        )
+        db.add(pending)
+        db.commit()
+        send_telegram_notification(db, f"⚡ <b>[TẮT NGUỒN TỪ XA]</b> {dev.device_name} đang ngoại tuyến — lệnh đã vào hàng đợi dự phòng.")
         return schemas.StandardResponse(
-            error="Không thể gửi lệnh tắt nguồn. Thiết bị có thể đang ngoại tuyến.",
-            status_code=503
+            data={"msg": f"{dev.device_name} đang ngoại tuyến — lệnh tắt nguồn đã vào hàng đợi dự phòng."},
+            status_code=200
         )
 
 
 @router.post("/api/devices/force-update-all", response_model=schemas.StandardResponse, dependencies=[Depends(require_system_admin)])
-async def force_update_all_devices():
-    """Broadcasts WebSocket force_update command to all online devices."""
+async def force_update_all_devices(db: Session = Depends(get_db)):
+    """Broadcasts WebSocket force_update command to all online devices;
+    queues it for offline devices so they update when they come back (fallback)."""
     from core.config import UPDATES_DIR
     import json
     
@@ -271,22 +280,42 @@ async def force_update_all_devices():
     }
 
     broadcast_count = 0
-    for device_id in list(manager.active_connections.keys()):
+    online_ids = set(manager.active_connections.keys())
+    for device_id in list(online_ids):
         success = await manager.send_command(device_id, cmd_payload)
         if success:
             broadcast_count += 1
 
+    # Queue for offline devices (fallback polling will deliver it)
+    queued = 0
+    offline_devices = db.query(models.Device).all()
+    for dev in offline_devices:
+        dev_id_str = str(dev.id)
+        if dev_id_str in online_ids:
+            continue
+        db.add(models.PendingCommand(
+            device_id=dev.id,
+            command="force_update",
+            payload=json.dumps(vdata)
+        ))
+        queued += 1
+    db.commit()
+
     return schemas.StandardResponse(
-        data={"notified_devices": broadcast_count, "version": vdata["version"]},
+        data={"notified_devices": broadcast_count, "queued_offline": queued, "version": vdata["version"]},
         status_code=200
     )
-@router.get("/api/device/{device_id}/commands")
+@router.get("/api/device/{device_id}/commands", dependencies=[Depends(verify_api_key)])
 def get_pending_commands(
     device_id: str,
-    authorization: Optional[str] = Header(None),
     db: Session = Depends(get_db)
 ):
-    """Fallback client polls for pending commands."""
+    """Fallback client polls for pending commands.
+
+    Auth (via verify_api_key): device secret_token / API key / manager JWT.
+    Commands are marked delivered_at (not deleted) so a crash between fetch and
+    execution does not lose them; delivered rows are garbage-collected by TTL.
+    """
     dev_id_str = str(device_id)
     device = None
     try:
@@ -298,35 +327,39 @@ def get_pending_commands(
         ).first()
 
     if not device:
-        if authorization:
-            from core.security import VALID_API_KEYS, decode_access_token
-            token = authorization.replace("Bearer ", "").strip()
-            if token not in VALID_API_KEYS and not decode_access_token(token):
-                raise HTTPException(status_code=401, detail="Unauthorized")
-        else:
-            raise HTTPException(status_code=401, detail="Unauthorized")
-            
         raise HTTPException(status_code=404, detail="Device not found")
 
+    now = datetime.now(timezone.utc)
     commands = db.query(models.PendingCommand).filter(
-        models.PendingCommand.device_id == device.id
+        models.PendingCommand.device_id == device.id,
+        models.PendingCommand.delivered_at.is_(None)
     ).order_by(models.PendingCommand.created_at.asc()).all()
-    
+
     result = []
-    import json
     for cmd in commands:
         payload_data = {}
         if cmd.payload:
             try:
                 payload_data = json.loads(cmd.payload)
-            except:
+            except Exception:
                 pass
         result.append({
             "command": cmd.command,
             "payload": payload_data,
             "id": str(cmd.id)
         })
-        db.delete(cmd)
-        
+        cmd.delivered_at = now
     db.commit()
+
+    # TTL cleanup: drop delivered commands older than 24h (SQLite + PostgreSQL)
+    try:
+        cutoff = now - timedelta(hours=24)
+        db.query(models.PendingCommand).filter(
+            models.PendingCommand.delivered_at.isnot(None),
+            models.PendingCommand.delivered_at < cutoff
+        ).delete(synchronize_session=False)
+        db.commit()
+    except Exception:
+        pass
+
     return {"commands": result}

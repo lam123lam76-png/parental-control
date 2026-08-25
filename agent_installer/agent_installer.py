@@ -181,13 +181,13 @@ def derive_ws_url(backend_url: str) -> str:
     return backend_url
 
 
-def write_env_file(target_dir: Path, backend_url: str) -> None:
+def write_env_file(target_dir: Path, backend_url: str, backup_url: str = "") -> None:
     """Create/update ProgramData .env with server URLs.
 
     Required for machines that never had the agent installed: utils/config.py
     hard-requires BACKEND_URL/WS_URL and sys.exit()s the agent when missing
     (old manual installs shipped a .env, the installer must too). Existing
-    keys (AGENT_PASSWORD, TELEGRAM_*, ...) are preserved.
+    keys (AGENT_PASSWORD, TELEGRAM_*, BACKUP_SERVER_URL, ...) are preserved.
     """
     env_path = target_dir / ".env"
     server_url = backend_url.rstrip("/")
@@ -196,6 +196,8 @@ def write_env_file(target_dir: Path, backend_url: str) -> None:
         "BACKEND_URL": server_url,
         "WS_URL": derive_ws_url(server_url),
     }
+    if backup_url:
+        wanted["BACKUP_SERVER_URL"] = backup_url.rstrip("/")
     lines: list[str] = []
     if env_path.exists():
         try:
@@ -207,12 +209,12 @@ def write_env_file(target_dir: Path, backend_url: str) -> None:
         kept.append(f"{k}={v}")
     try:
         env_path.write_text("\n".join(kept) + "\n", encoding="utf-8")
-        log(f"  .env written ({server_url})")
+        log(f"  .env written ({server_url})" + (f" + backup {backup_url}" if backup_url else ""))
     except Exception as e:
         log(f"  WARNING: could not write .env: {e}")
 
 
-def install_agent(backend_url: str, target_dir: Path, extracted: Path, enable_autostart: bool = True) -> None:
+def install_agent(backend_url: str, target_dir: Path, extracted: Path, enable_autostart: bool = True, backup_url: str = "") -> None:
     """Copy files into target_dir and register autostart (needs admin)."""
     log(f"Installing agent to {target_dir}")
     target_dir.mkdir(parents=True, exist_ok=True)
@@ -227,7 +229,7 @@ def install_agent(backend_url: str, target_dir: Path, extracted: Path, enable_au
     if install_bat.exists():
         shutil.copy2(install_bat, target_dir / "Install_Parental_Control.bat")
 
-    write_env_file(target_dir, backend_url)
+    write_env_file(target_dir, backend_url, backup_url)
 
     if not enable_autostart:
         log("  autostart skipped (--no-autostart test mode)")
@@ -321,7 +323,7 @@ def cmd_install(args) -> int:
     try:
         download_zip(backend_url, zip_path)
         extract_zip(zip_path, extracted)
-        install_agent(backend_url, target_dir, extracted, enable_autostart=not args.no_autostart)
+        install_agent(backend_url, target_dir, extracted, enable_autostart=not args.no_autostart, backup_url=args.backup_url or "")
         if not args.no_start:
             start_watchdog(target_dir)
         log("Cài đặt hoàn tất.")
@@ -386,7 +388,7 @@ def cmd_update(args) -> int:
         except Exception:
             pass
 
-        write_env_file(target_dir, backend_url)
+        write_env_file(target_dir, backend_url, args.backup_url or "")
         clear_shutdown_flag(target_dir)
         if not args.no_start:
             start_watchdog(target_dir)
@@ -411,6 +413,7 @@ def cmd_auto(args) -> int:
 def main() -> int:
     parser = argparse.ArgumentParser(description="Parental Control Agent Installer")
     parser.add_argument("--url", default=None, help="Backend URL (default: https://nguyentruclam.io.vn)")
+    parser.add_argument("--backup-url", default=None, help="Backup (Vercel) API URL written to .env as BACKUP_SERVER_URL (default: keep existing)")
     parser.add_argument("--install", action="store_true", help="Install agent (first time)")
     parser.add_argument("--update", action="store_true", help="Update agent to latest")
     parser.add_argument("--auto", action="store_true", help="Install if missing, else update")

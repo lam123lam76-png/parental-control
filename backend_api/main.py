@@ -13,7 +13,7 @@ from sqlalchemy import text
 from datetime import datetime
 import asyncio
 
-from database import SessionLocal, engine
+from database import SessionLocal, engine, ensure_schema
 import models
 from core.sync_service import periodic_sync_task
 
@@ -36,6 +36,9 @@ logger = logging.getLogger(__name__)
 
 # Automatically create tables if not present
 models.Base.metadata.create_all(bind=engine)
+
+# Idempotent column migrations (SQLite + PostgreSQL/Supabase)
+ensure_schema(engine)
 
 # Auto-migrate SQLite schema columns if missing
 for _col_sql in [

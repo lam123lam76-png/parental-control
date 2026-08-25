@@ -201,6 +201,8 @@ class WebSocketClient:
             except Exception as e:
                 log_debug(f"[WS_CLIENT] Failed to send heartbeat: {e}")
                 self._state = ConnectionState.DISCONNECTED
+                import utils.state as state
+                state.FALLBACK_MODE = True
                 break
 
             # Sleep interruptible

@@ -1,6 +1,16 @@
 import os
-from sqlalchemy import create_engine
+from pathlib import Path
+from dotenv import load_dotenv
+from sqlalchemy import create_engine, inspect, text
 from sqlalchemy.orm import sessionmaker, declarative_base
+
+# Load .env BEFORE reading DATABASE_URL — database.py may be imported before
+# core.config, so relying on that module's load_dotenv is not safe. Without this,
+# the local backend silently falls back to SQLite while Vercel uses Supabase
+# (split-brain: queued commands never reach the polling endpoint).
+_BE_DIR = Path(__file__).resolve().parent
+load_dotenv(_BE_DIR / ".env")
+load_dotenv(_BE_DIR.parent / ".env")
 
 # Fallback to local SQLite database if env var is not set
 SQLALCHEMY_DATABASE_URL = os.getenv(
@@ -39,3 +49,26 @@ def get_db():
         yield db
     finally:
         db.close()
+
+
+def ensure_schema(engine):
+    """Idempotently add columns that create_all() cannot alter on existing tables.
+
+    Works on both SQLite and PostgreSQL (Supabase). Safe to call at every startup.
+    """
+    try:
+        insp = inspect(engine)
+        if not insp.has_table("pending_commands"):
+            return
+        cols = {c["name"] for c in insp.get_columns("pending_commands")}
+        if "delivered_at" in cols:
+            return
+        ddl = (
+            "ALTER TABLE pending_commands ADD COLUMN delivered_at TIMESTAMPTZ"
+            if engine.dialect.name == "postgresql"
+            else "ALTER TABLE pending_commands ADD COLUMN delivered_at DATETIME"
+        )
+        with engine.begin() as conn:
+            conn.execute(text(ddl))
+    except Exception:
+        pass

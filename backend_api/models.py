@@ -122,6 +122,7 @@ class PendingCommand(Base):
     command = Column(String, nullable=False)
     payload = Column(String, nullable=True) # JSON string
     created_at = Column(UTCDateTime, default=lambda: datetime.now(timezone.utc))
+    delivered_at = Column(UTCDateTime, nullable=True)  # set when the device polls it; TTL cleanup later
 
     device = relationship("Device", back_populates="pending_commands")
 

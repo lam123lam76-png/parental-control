@@ -36,6 +36,7 @@
 | Exit code | 0/1/2/3/4 (success/lỗi/mạng/sai luồng/không admin) | Cho tự động hóa |
 | Cache CDN | Cache-buster `?t=<timestamp>` cho version.json + zip | Cloudflare cache zip cũ nhiều ngày; nếu không sẽ tải nhầm bản cũ |
 | `.env` máy mới | Installer tự ghi `ProgramData\ParentalControl\.env` (SERVER_URL/BACKEND_URL/WS_URL từ `--url`, giữ key khác) | `utils/config.py` `_require()` + `sys.exit()` khi thiếu → máy chưa cài agent bao giờ sẽ crash ngay, pairing UI không hiện |
+| Backup URL | `--backup-url` ghi thêm `BACKUP_SERVER_URL` vào `.env` (tùy chọn) | Failover: agent poll lệnh từ backup API (Vercel) khi WS chính sập; nếu thiếu biến này fallback câm |
 
 ## 3. Cấu trúc file
 

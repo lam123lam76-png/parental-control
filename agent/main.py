@@ -54,6 +54,7 @@ logger = logging.getLogger("ParentalAgent")
 import config
 import credential_store
 from communication.alert_sender import AlertSender
+from communication.fallback_client import FallbackClient
 from communication.log_uploader import LogUploader
 from communication.ws_client import WebSocketClient
 from enforcement.app_enforcer import enforce_app_rules
@@ -315,6 +316,8 @@ class AgentApp:
             self.ws_client.stop()
         if self.log_uploader:
             self.log_uploader.stop()
+        if getattr(self, "fallback_client", None):
+            self.fallback_client.stop()
 
     def _watchdog_guardian_worker(self):
         """Background thread ensuring ParentalControlWatchdog.exe is always active (Dual Cross-Monitoring)."""
@@ -377,6 +380,19 @@ class AgentApp:
         self.alert_sender.start()
         self.log_uploader.start()
         self.ws_client.start()
+
+        # Fallback polling client (Vercel backup API): while FALLBACK_MODE is on,
+        # polls pending commands every 30s and dispatches them like WS commands.
+        try:
+            self.fallback_client = FallbackClient(
+                dispatch_callback=self.handle_server_command,
+                device_id=self.device_id,
+                secret_token=self.secret_token,
+            )
+            self.fallback_client.start()
+            logger.info("FallbackClient started (backup polling active).")
+        except Exception as e:
+            logger.warning(f"Could not start FallbackClient: {e}")
 
         # Send Online Notification to Backend
         if self.alert_sender:

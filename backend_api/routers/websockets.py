@@ -330,6 +330,14 @@ def get_pending_commands(
         raise HTTPException(status_code=404, detail="Device not found")
 
     now = datetime.now(timezone.utc)
+    # Presence via backup: every poll refreshes last_seen_at so the parent can
+    # see the device is alive during a home-server outage (no WS to update it).
+    try:
+        device.last_seen_at = now
+        db.add(device)
+    except Exception:
+        pass
+
     commands = db.query(models.PendingCommand).filter(
         models.PendingCommand.device_id == device.id,
         models.PendingCommand.delivered_at.is_(None)

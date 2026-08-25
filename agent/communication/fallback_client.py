@@ -38,7 +38,6 @@ class FallbackClient:
 
     def _loop(self):
         from utils.config import BACKUP_SERVER_URL, API_KEY
-        import utils.state as state
 
         backup_url = (self.backup_url or BACKUP_SERVER_URL or "").strip()
         if not backup_url:
@@ -51,22 +50,24 @@ class FallbackClient:
         token = self.secret_token or API_KEY or ""
         headers = {"Authorization": f"Bearer {token}"} if token else {}
 
+        # Poll ALWAYS (not only in FALLBACK_MODE): the shared Supabase queue is
+        # drained by this poll, so commands queued while the main link was down
+        # (or during a brief outage) are still delivered after WS reconnects.
         while self._running:
-            if state.FALLBACK_MODE:
-                try:
-                    url = f"{backup_url.rstrip('/')}/api/device/{self.device_id}/commands"
-                    resp = requests.get(url, headers=headers, timeout=5)
-                    if resp.status_code == 200:
-                        data = resp.json()
-                        for cmd in data.get("commands", []):
-                            try:
-                                self.dispatch_callback(cmd.get("command"), cmd.get("payload"))
-                            except Exception as e:
-                                log_debug(f"[FALLBACK] dispatch error: {e}")
-                    elif resp.status_code == 401:
-                        log_debug("[FALLBACK] Unauthorized polling backup API — check secret_token/API_KEY.")
-                except Exception as e:
-                    log_debug(f"[FALLBACK] Error polling commands: {e}")
+            try:
+                url = f"{backup_url.rstrip('/')}/api/device/{self.device_id}/commands"
+                resp = requests.get(url, headers=headers, timeout=5)
+                if resp.status_code == 200:
+                    data = resp.json()
+                    for cmd in data.get("commands", []):
+                        try:
+                            self.dispatch_callback(cmd.get("command"), cmd.get("payload"))
+                        except Exception as e:
+                            log_debug(f"[FALLBACK] dispatch error: {e}")
+                elif resp.status_code == 401:
+                    log_debug("[FALLBACK] Unauthorized polling backup API — check secret_token/API_KEY.")
+            except Exception as e:
+                log_debug(f"[FALLBACK] Error polling commands: {e}")
 
             # Sleep interruptible
             for _ in range(self.POLL_INTERVAL):

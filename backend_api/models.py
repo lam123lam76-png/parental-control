@@ -112,6 +112,18 @@ class Device(Base):
     screenshots = relationship("Screenshot", back_populates="device", cascade="all, delete-orphan")
     browser_history = relationship("BrowserHistory", back_populates="device", cascade="all, delete-orphan")
     chat_messages = relationship("ChatMessage", back_populates="device", cascade="all, delete-orphan")
+    pending_commands = relationship("PendingCommand", back_populates="device", cascade="all, delete-orphan")
+
+class PendingCommand(Base):
+    __tablename__ = "pending_commands"
+
+    id = Column(GUID, primary_key=True, default=uuid.uuid4, index=True)
+    device_id = Column(GUID, ForeignKey("devices.id", ondelete="CASCADE"), nullable=False, index=True)
+    command = Column(String, nullable=False)
+    payload = Column(String, nullable=True) # JSON string
+    created_at = Column(UTCDateTime, default=lambda: datetime.now(timezone.utc))
+
+    device = relationship("Device", back_populates="pending_commands")
 
 
 class ChatMessage(Base):

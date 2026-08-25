@@ -145,18 +145,35 @@ async def send_device_command(
     if not device:
         raise HTTPException(status_code=404, detail="Device not found")
     
-    if not manager.is_online(device_id):
-        return schemas.StandardResponse(
-            error="Device is offline.",
-            status_code=503
-        )
-    
+    import json
     msg_id = str(uuid.uuid4())
     cmd_payload = {
         "type": "command",
         "command": command.command,
         "payload": {**command.payload, "msg_id": msg_id} if command.payload else {"msg_id": msg_id}
     }
+    
+    if not manager.is_online(device_id):
+        # Queue the command for Fallback polling
+        import json
+        pending = models.PendingCommand(
+            device_id=device.id,
+            command=command.command,
+            payload=json.dumps(cmd_payload.get("payload", {}))
+        )
+        db.add(pending)
+        
+        # update state
+        if command.command == "lock_screen":
+            device.is_locked = True
+        elif command.command == "unlock_screen":
+            device.is_locked = False
+        db.commit()
+        return schemas.StandardResponse(
+            data={"msg": f"Device is offline. Command '{command.command}' queued for Fallback polling."},
+            status_code=200
+        )
+    
     success = await manager.send_command(device_id, cmd_payload)
     
     if success:
@@ -262,3 +279,53 @@ async def force_update_all_devices():
         data={"notified_devices": broadcast_count, "version": vdata["version"]},
         status_code=200
     )
+@router.get("/api/device/{device_id}/commands")
+def get_pending_commands(
+    device_id: str,
+    authorization: Optional[str] = Header(None),
+    db: Session = Depends(get_db)
+):
+    """Fallback client polls for pending commands."""
+    dev_id_str = str(device_id)
+    device = None
+    try:
+        dev_uuid = uuid.UUID(dev_id_str)
+        device = db.query(models.Device).filter(models.Device.id == dev_uuid).first()
+    except Exception:
+        device = db.query(models.Device).filter(
+            (models.Device.secret_token == dev_id_str) | (models.Device.device_name == dev_id_str)
+        ).first()
+
+    if not device:
+        if authorization:
+            from core.security import VALID_API_KEYS, decode_access_token
+            token = authorization.replace("Bearer ", "").strip()
+            if token not in VALID_API_KEYS and not decode_access_token(token):
+                raise HTTPException(status_code=401, detail="Unauthorized")
+        else:
+            raise HTTPException(status_code=401, detail="Unauthorized")
+            
+        raise HTTPException(status_code=404, detail="Device not found")
+
+    commands = db.query(models.PendingCommand).filter(
+        models.PendingCommand.device_id == device.id
+    ).order_by(models.PendingCommand.created_at.asc()).all()
+    
+    result = []
+    import json
+    for cmd in commands:
+        payload_data = {}
+        if cmd.payload:
+            try:
+                payload_data = json.loads(cmd.payload)
+            except:
+                pass
+        result.append({
+            "command": cmd.command,
+            "payload": payload_data,
+            "id": str(cmd.id)
+        })
+        db.delete(cmd)
+        
+    db.commit()
+    return {"commands": result}

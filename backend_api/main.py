@@ -34,8 +34,12 @@ from core.notifications import send_telegram_notification
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# Automatically create tables if not present
-models.Base.metadata.create_all(bind=engine)
+# Automatically create tables if not present (best effort: a DB hiccup at startup
+# must not kill the whole backend — requests can recover via pool_pre_ping)
+try:
+    models.Base.metadata.create_all(bind=engine)
+except Exception as _ddl_err:
+    logger.warning(f"create_all failed at startup (will retry on next request path): {_ddl_err}")
 
 # Idempotent column migrations (SQLite + PostgreSQL/Supabase)
 ensure_schema(engine)

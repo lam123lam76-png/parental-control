@@ -1,26 +1,55 @@
 import os
+import tempfile
 from pathlib import Path
 from dotenv import load_dotenv
 
 # Base Paths
 PROJECT_ROOT = Path(__file__).parent.parent
-STORAGE_DIR = PROJECT_ROOT / "storage"
 
 # Load environment variables
 load_dotenv(PROJECT_ROOT / ".env")
 load_dotenv(PROJECT_ROOT.parent / ".env")
 
+
+def _writable_storage_dir() -> Path:
+    """Pick a writable storage root.
+
+    Locally this is PROJECT_ROOT/storage. On serverless runtimes (Vercel) the
+    deploy dir /var/task is read-only, so fall back to the OS temp dir (writable,
+    ephemeral). Probes with a real write to make sure mkdir alone is not enough.
+    """
+    candidates = []
+    # Local default first: keep the normal backend_api/storage layout.
+    candidates.append(PROJECT_ROOT / "storage")
+    env_path = os.getenv("STORAGE_PATH", "").strip()
+    if env_path:
+        candidates.append(Path(env_path))
+    candidates.append(Path(tempfile.gettempdir()) / "pc_storage")
+    for cand in candidates:
+        try:
+            cand.mkdir(parents=True, exist_ok=True)
+            probe = cand / ".write_probe"
+            probe.write_text("ok", encoding="utf-8")
+            probe.unlink()
+            return cand
+        except Exception:
+            continue
+    return PROJECT_ROOT / "storage"
+
+
+STORAGE_DIR = _writable_storage_dir()
 SCREENSHOTS_DIR = STORAGE_DIR / "screenshots"
 UPDATES_DIR = STORAGE_DIR / "updates"
 TRASH_DIR = STORAGE_DIR / "trash"
 TRASH_SHOTS_DIR = TRASH_DIR / "screenshots"
 TRASH_RECORDS_DIR = TRASH_DIR / "records"
 
-# Ensure directories exist
-SCREENSHOTS_DIR.mkdir(parents=True, exist_ok=True)
-UPDATES_DIR.mkdir(parents=True, exist_ok=True)
-TRASH_SHOTS_DIR.mkdir(parents=True, exist_ok=True)
-TRASH_RECORDS_DIR.mkdir(parents=True, exist_ok=True)
+# Ensure directories exist (best effort; serverless may be read-only)
+for _d in (SCREENSHOTS_DIR, UPDATES_DIR, TRASH_SHOTS_DIR, TRASH_RECORDS_DIR):
+    try:
+        _d.mkdir(parents=True, exist_ok=True)
+    except Exception:
+        pass
 
 # Admin
 SYSTEM_ADMIN_EMAIL = os.getenv("SYSTEM_ADMIN_EMAIL", "admin@nguyentruclam.io.vn")

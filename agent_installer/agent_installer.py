@@ -268,10 +268,22 @@ def start_watchdog(target_dir: Path) -> None:
 
 
 def stop_agent_processes() -> None:
-    """Kill running agent + watchdog before overwriting files."""
+    """Kill running agent + watchdog before overwriting files.
+
+    taskkill alone often fails with Access denied on the elevated agent/watchdog
+    (scheduled-task Highest), which locks the exe and makes the overwrite fail
+    with Permission denied. Add PowerShell Stop-Process and wmic fallbacks.
+    """
     for name in ("ParentalControlAgent.exe", "ParentalControlWatchdog.exe", "Updater.exe"):
-        subprocess.run(f"taskkill /F /T /IM {name} >nul 2>&1", shell=True)
-    time.sleep(1.5)
+        subprocess.run(f'taskkill /F /T /IM {name} >nul 2>&1', shell=True)
+        proc_name = name[:-4] if name.lower().endswith(".exe") else name
+        subprocess.run(
+            f'powershell -NoProfile -Command "Get-Process -Name \'{proc_name}\' '
+            f'-ErrorAction SilentlyContinue | Stop-Process -Force"',
+            shell=True, creationflags=subprocess.CREATE_NO_WINDOW,
+        )
+        subprocess.run(f'wmic process where "name=\'{name}\'" delete >nul 2>&1', shell=True)
+    time.sleep(2)
 
 
 def write_shutdown_flag(target_dir: Path) -> None:

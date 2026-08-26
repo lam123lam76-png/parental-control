@@ -34,27 +34,32 @@ from core.notifications import send_telegram_notification
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# Automatically create tables if not present (best effort: a DB hiccup at startup
-# must not kill the whole backend — requests can recover via pool_pre_ping)
-try:
-    models.Base.metadata.create_all(bind=engine)
-except Exception as _ddl_err:
-    logger.warning(f"create_all failed at startup (will retry on next request path): {_ddl_err}")
-
-# Idempotent column migrations (SQLite + PostgreSQL/Supabase)
-ensure_schema(engine)
-
-# Auto-migrate SQLite schema columns if missing
-for _col_sql in [
-    "ALTER TABLE devices ADD COLUMN is_locked BOOLEAN DEFAULT 0;",
-    "ALTER TABLE users ADD COLUMN is_system_admin BOOLEAN DEFAULT 0;",
-]:
+def _init_schema_background():
+    """Create/migrate schema in a background thread so a slow or unreachable DB
+    never blocks uvicorn startup (tables already exist from migration; requests
+    use pool_pre_ping and recover when Supabase is reachable)."""
     try:
-        with engine.connect() as conn:
-            conn.execute(text(_col_sql))
-            conn.commit()
-    except Exception:
-        pass  # Column already exists
+        models.Base.metadata.create_all(bind=engine)
+    except Exception as e:
+        logger.warning(f"create_all failed (background): {e}")
+    try:
+        ensure_schema(engine)
+    except Exception as e:
+        logger.warning(f"ensure_schema failed (background): {e}")
+    # Auto-migrate SQLite schema columns if missing
+    for _col_sql in [
+        "ALTER TABLE devices ADD COLUMN is_locked BOOLEAN DEFAULT 0;",
+        "ALTER TABLE users ADD COLUMN is_system_admin BOOLEAN DEFAULT 0;",
+    ]:
+        try:
+            with engine.connect() as conn:
+                conn.execute(text(_col_sql))
+                conn.commit()
+        except Exception:
+            pass
+
+
+threading.Thread(target=_init_schema_background, daemon=True).start()
 
 def seed_system_admin():
     """Ensure the built-in super admin account exists on every startup."""
@@ -155,7 +160,9 @@ async def background_monitor_heartbeats():
 async def lifespan(app: FastAPI):
     # Startup
     logger.info("Starting up Parental Control Backend MVP...")
-    seed_system_admin()
+    # Run seed in a background thread so a slow/unreachable Supabase never
+    # blocks uvicorn from starting and serving.
+    threading.Thread(target=seed_system_admin, daemon=True).start()
     
     # Start heartbeat monitor task
     monitor_task = asyncio.create_task(background_monitor_heartbeats())

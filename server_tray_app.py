@@ -31,6 +31,28 @@ URL_FILE = os.path.join(BASE_DIR, ".cloudflared_url.txt")
 TOKEN_FILE = os.path.join(BASE_DIR, ".cloudflare_token.txt")
 OFFICIAL_DOMAIN = "https://nguyentruclam.io.vn"
 
+def _ensure_single_instance() -> bool:
+    """Prevent multiple tray apps (each would spawn its own backend/tunnel/web),
+    which is what caused many duplicate uvicorn instances all bound to port 8000."""
+    try:
+        import ctypes
+        name = "Global\\ParentalControlServerTray_SingleInstance"
+        ctypes.windll.kernel32.CreateMutexW(None, False, name)
+        err = ctypes.windll.kernel32.GetLastError()
+        if err == 183:  # ERROR_ALREADY_EXISTS
+            print("[TRAY] Another server instance is already running — exiting this one.")
+            return False
+    except Exception as e:
+        print(f"[TRAY] Single-instance check failed (continuing): {e}")
+    return True
+
+
+class _DummyProc:
+    """Stand-in for a subprocess that is managed externally (e.g. a Windows
+    service); poll() returning None makes the supervisor treat it as running."""
+    def poll(self):
+        return None
+
 def create_tray_icon_image():
     """Generate a clean 64x64 Emerald Green Shield icon for Windows System Tray."""
     image = Image.new('RGBA', (64, 64), color=(0, 0, 0, 0))
@@ -95,12 +117,12 @@ def _start_backend_proc():
     py_exec = sys.executable
     if "pythonw" in py_exec.lower():
         py_exec = re.sub(r'pythonw', 'python', py_exec, flags=re.IGNORECASE)
-    backend_cmd = [py_exec, "-m", "uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
+    backend_cmd = [py_exec, "-m", "uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
     try:
         backend_proc = subprocess.Popen(
             backend_cmd,
             cwd=backend_dir,
-            creationflags=0  # Show terminal window for testing
+            creationflags=subprocess.CREATE_NO_WINDOW  # no console window spam
         )
         print("[TRAY WATCHDOG] FastAPI Backend started on port 8000")
         return True
@@ -127,8 +149,23 @@ def _start_web_proc():
         return False
 
 def _start_tunnel_proc(icon=None):
-    """Internal helper to start Cloudflare Tunnel."""
+    """Internal helper to start Cloudflare Tunnel (skips if the Cloudflared
+    Windows service is already managing it, to avoid duplicate tunnels)."""
     global tunnel_proc, tunnel_url
+
+    # If the Cloudflared service is already running, it owns the named tunnel
+    # for nguyentruclam.io.vn -> localhost:8000. Do not spawn a second one.
+    try:
+        import subprocess as _sp
+        svc_check = _sp.run(["sc", "query", "Cloudflared"], capture_output=True, text=True, timeout=10)
+        if svc_check.returncode == 0 and "RUNNING" in svc_check.stdout.upper():
+            print("[TRAY TUNNEL] Cloudflared service already RUNNING — using it; skipping duplicate tunnel.")
+            tunnel_url = OFFICIAL_DOMAIN
+            tunnel_proc = _DummyProc()  # poll() returns None -> supervisor treats it as running
+            return
+    except Exception as e:
+        print(f"[TRAY TUNNEL] service check skipped: {e}")
+
     cloudflared_bin = "C:\\Cloudflared\\cloudflared.exe" if os.path.exists("C:\\Cloudflared\\cloudflared.exe") else "cloudflared"
     
     token = ""
@@ -324,6 +361,8 @@ def exit_tray(icon, item):
     threading.Thread(target=_exit, daemon=True).start()
 
 def main():
+    if not _ensure_single_instance():
+        return
     image = create_tray_icon_image()
     
     menu = pystray.Menu(

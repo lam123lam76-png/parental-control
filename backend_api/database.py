@@ -26,10 +26,10 @@ if SQLALCHEMY_DATABASE_URL.startswith("sqlite"):
 else:
     engine = create_engine(
         SQLALCHEMY_DATABASE_URL,
-        pool_size=10,
-        max_overflow=20,
+        pool_size=3,           # small: home server + ~2 agents needs very few
+        max_overflow=5,        # cap total ~8 conns/process so Supabase pooler never exhausts
         pool_timeout=30,       # Seconds to wait for a connection from the pool
-        pool_recycle=1800,     # Recycle connections after 30 minutes
+        pool_recycle=300,      # Recycle connections after 5 minutes
         pool_pre_ping=True,    # Check connection health before using
         connect_args={"connect_timeout": 15},  # fail fast instead of hanging on dead DB
     )

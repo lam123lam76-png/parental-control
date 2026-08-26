@@ -80,15 +80,17 @@ def create_shutdown_flag() -> None:
 _single_instance_mutex = None
 
 def ensure_single_instance(mutex_name: str):
-    """Ensure only one instance of Watchdog runs on Windows using Named Mutex."""
+    """Ensure only one instance of Watchdog runs on Windows using Named Mutex.
+
+    Uses ctypes (always available, works in the frozen exe) instead of win32event,
+    which can be missing from the PyInstaller bundle and silently disable the check.
+    """
     if os.name == 'nt':
         try:
-            import win32api
-            import win32event
-            import winerror
+            import ctypes
             global _single_instance_mutex
-            _single_instance_mutex = win32event.CreateMutex(None, False, mutex_name)
-            if win32api.GetLastError() == winerror.ERROR_ALREADY_EXISTS:
+            _single_instance_mutex = ctypes.windll.kernel32.CreateMutexW(None, False, mutex_name)
+            if ctypes.windll.kernel32.GetLastError() == 183:  # ERROR_ALREADY_EXISTS
                 logger.warning(f"Another Watchdog instance with mutex '{mutex_name}' is active. Exiting silently.")
                 sys.exit(0)
         except Exception as e:

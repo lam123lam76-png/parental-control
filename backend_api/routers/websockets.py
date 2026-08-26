@@ -48,18 +48,25 @@ async def websocket_endpoint(websocket: WebSocket, device_id: str, token: str):
     WebSocket endpoint for device agents.
     - Authenticates via secret_token (query param)
     - Maintains heartbeat loop
+    NOTE: uses the ASYNC DB session so slow/unreachable Supabase never blocks the
+    uvicorn event loop (sync db.query inside an async handler used to freeze the
+    whole server -> health/static also timed out).
     """
-    db = _get_session()
-    try:
-        from core.security import VALID_API_KEYS
+    from sqlalchemy import select, update
+    from database import AsyncSessionLocal
+    from core.security import VALID_API_KEYS
+
+    async with AsyncSessionLocal() as db:
         device = None
         try:
             dev_uuid = uuid.UUID(device_id)
-            device = db.query(models.Device).filter(models.Device.id == dev_uuid).first()
+            res = await db.execute(select(models.Device).where(models.Device.id == dev_uuid))
+            device = res.scalars().first()
         except Exception:
-            device = db.query(models.Device).filter(
+            res = await db.execute(select(models.Device).where(
                 (models.Device.secret_token == device_id) | (models.Device.device_name == device_id)
-            ).first()
+            ))
+            device = res.scalars().first()
 
         is_auth = False
         if device and (device.secret_token == token or token in VALID_API_KEYS or str(device.id) == token):
@@ -71,65 +78,52 @@ async def websocket_endpoint(websocket: WebSocket, device_id: str, token: str):
             return
 
         device_id_str = str(device.id)
-    finally:
-        db.close()
 
-    await manager.connect(websocket, device_id_str)
+        await manager.connect(websocket, device_id_str)
 
-    # Always send the current rules when an agent reconnects. REST updates are
-    # persisted even while the agent is offline, so relying only on the
-    # original PUT-time push leaves the agent enforcing stale local rules.
-    sync_db = _get_session()
-    try:
-        current_rules = sync_db.query(models.Rule).filter(
-            models.Rule.device_id == device.id
-        ).all()
-        rules_list = [
-            schemas.RuleResponse.model_validate(rule).model_dump(mode="json")
-            for rule in current_rules
-        ]
-        await manager.send_command(device_id_str, {
-            "type": "command",
-            "command": "refresh_rules",
-            "payload": {"rules": rules_list},
-        })
-    except Exception as e:
-        logger.error(f"Failed to sync rules on reconnect for {device_id_str}: {e}")
-    finally:
-        sync_db.close()
+        # Always send the current rules when an agent reconnects. REST updates are
+        # persisted even while the agent is offline, so relying only on the
+        # original PUT-time push leaves the agent enforcing stale local rules.
+        try:
+            res = await db.execute(select(models.Rule).where(models.Rule.device_id == device.id))
+            current_rules = res.scalars().all()
+            rules_list = [
+                schemas.RuleResponse.model_validate(rule).model_dump(mode="json")
+                for rule in current_rules
+            ]
+            await manager.send_command(device_id_str, {
+                "type": "command",
+                "command": "refresh_rules",
+                "payload": {"rules": rules_list},
+            })
+        except Exception as e:
+            logger.error(f"Failed to sync rules on reconnect for {device_id_str}: {e}")
 
-    try:
-        while True:
-            data = await websocket.receive_text()
-            payload = json.loads(data)
-            
-            if payload.get("type") == "heartbeat":
-                # Performance Optimization: Only update DB if last update was > 10s ago,
-                # or just use short-lived session sparingly.
-                db = _get_session()
-                try:
-                    db.query(models.Device).filter(
-                        models.Device.id == device.id
-                    ).update({"last_seen_at": datetime.now(timezone.utc)})
-                    db.commit()
-                finally:
-                    db.close()
-                
-                await websocket.send_text(json.dumps({
-                    "type": "heartbeat_ack",
-                    "status": "ok"
-                }))
-            elif payload.get("type") == "version_info":
-                msg_id = payload.get("msg_id")
-                version = payload.get("version")
-                if msg_id and version:
-                    core.state.version_replies[msg_id] = version
-            elif payload.get("type") == "chat_message":
-                msg_text = payload.get("message") or ""
-                sender_name = payload.get("sender") or "child"
-                if msg_text:
-                    db = _get_session()
-                    try:
+        try:
+            while True:
+                data = await websocket.receive_text()
+                payload = json.loads(data)
+
+                if payload.get("type") == "heartbeat":
+                    await db.execute(
+                        update(models.Device)
+                        .where(models.Device.id == device.id)
+                        .values(last_seen_at=datetime.now(timezone.utc))
+                    )
+                    await db.commit()
+                    await websocket.send_text(json.dumps({
+                        "type": "heartbeat_ack",
+                        "status": "ok"
+                    }))
+                elif payload.get("type") == "version_info":
+                    msg_id = payload.get("msg_id")
+                    version = payload.get("version")
+                    if msg_id and version:
+                        core.state.version_replies[msg_id] = version
+                elif payload.get("type") == "chat_message":
+                    msg_text = payload.get("message") or ""
+                    sender_name = payload.get("sender") or "child"
+                    if msg_text:
                         chat_entry = models.ChatMessage(
                             device_id=device.id,
                             sender=sender_name,
@@ -137,16 +131,14 @@ async def websocket_endpoint(websocket: WebSocket, device_id: str, token: str):
                             timestamp=datetime.now(timezone.utc)
                         )
                         db.add(chat_entry)
-                        db.commit()
-                    finally:
-                        db.close()
-                    logger.info(f"Saved chat message from {sender_name} on device {device_id_str}: {msg_text}")
+                        await db.commit()
+                        logger.info(f"Saved chat message from {sender_name} on device {device_id_str}: {msg_text}")
 
-    except WebSocketDisconnect:
-        manager.disconnect(device_id_str)
-    except Exception as e:
-        logger.error(f"WebSocket error for device {device_id_str}: {e}")
-        manager.disconnect(device_id_str)
+        except WebSocketDisconnect:
+            manager.disconnect(device_id_str)
+        except Exception as e:
+            logger.error(f"WebSocket error for device {device_id_str}: {e}")
+            manager.disconnect(device_id_str)
 
 
 # Commands use REST auth

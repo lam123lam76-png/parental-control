@@ -163,22 +163,25 @@ async def lifespan(app: FastAPI):
     # Run seed in a background thread so a slow/unreachable Supabase never
     # blocks uvicorn from starting and serving.
     threading.Thread(target=seed_system_admin, daemon=True).start()
-    
-    # Start heartbeat monitor task
-    monitor_task = asyncio.create_task(background_monitor_heartbeats())
-    
-    # Start sync task
-    sync_task = asyncio.create_task(periodic_sync_task(SessionLocal))
-    
+
+    # DB-bound loops run in their OWN threads/event-loops so their synchronous
+    # SQLAlchemy calls never block the main uvicorn event loop. Without this, a
+    # hung Supabase connection freezes even static/SPA serving -> web won't open.
+    def _run_monitor():
+        asyncio.run(background_monitor_heartbeats())
+    threading.Thread(target=_run_monitor, daemon=True).start()
+
+    def _run_sync():
+        asyncio.run(periodic_sync_task(SessionLocal))
+    threading.Thread(target=_run_sync, daemon=True).start()
+
     # Run purge in a separate thread so it doesn't block async loop if IO bound
     from routers.system import purge_old_trash
     asyncio.create_task(asyncio.to_thread(purge_old_trash))
-    
+
     yield
     # Shutdown
     logger.info("Shutting down...")
-    monitor_task.cancel()
-    sync_task.cancel()
 
 app = FastAPI(title="Parental Control Backend MVP", lifespan=lifespan)
 

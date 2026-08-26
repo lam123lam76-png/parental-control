@@ -89,7 +89,7 @@ export default function AgentUpdateManagerCard({ theme = "dark" }) {
       {/* HEADER */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <div className="p-2.5 rounded-lg bg-[#064E3B]/20 border border-[#064E3B]/40 text-[#F8E7C9]">
+          <div className="p-2.5 rounded-lg bg-zinc-900/70 border border-zinc-800 border-l-2 border-l-[#064E3B] text-[#F8E7C9]">
             <Cpu className="w-5 h-5 stroke-[1.75]" />
           </div>
           <div>
@@ -113,7 +113,7 @@ export default function AgentUpdateManagerCard({ theme = "dark" }) {
 
       {/* NOTIFICATION BANNER */}
       {message && (
-        <div className={`p-3.5 rounded-lg border text-xs font-bold flex items-center gap-2.5 ${message.includes("❌") ? "bg-rose-900/30 border-rose-800/50 text-rose-300" : "bg-[#064E3B]/25 border-[#064E3B]/60 text-[#F8E7C9]"}`}>
+        <div className={`p-3.5 rounded-lg border text-xs font-bold flex items-center gap-2.5 ${message.includes("❌") ? "bg-rose-900/30 border-rose-800/50 text-rose-300" : "bg-[#064E3B]/25 border-zinc-800 text-[#F8E7C9]"}`}>
           <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
           <span className="flex-1">{message}</span>
         </div>

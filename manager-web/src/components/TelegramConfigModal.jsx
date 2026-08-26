@@ -72,7 +72,7 @@ export default function TelegramConfigModal({ isOpen, onClose, theme = "dark" })
   return (
     <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4">
       <div className={`max-w-md w-full p-6 rounded-xl border shadow-2xl space-y-4 ${
-        theme === "dark" ? "bg-[#101614] border-[#1E382E] text-[#F8E7C9]" : "bg-[#FFFFFF] border-[#DECC9F] text-[#064E3B]"
+        theme === "dark" ? "bg-zinc-900 border-zinc-800 text-[#F8E7C9]" : "bg-[#FFFFFF] border-[#DECC9F] text-[#064E3B]"
       }`}>
         <div className="flex justify-between items-center border-b pb-3 border-opacity-20">
           <h3 className="text-sm font-bold flex items-center gap-2">
@@ -102,7 +102,7 @@ export default function TelegramConfigModal({ isOpen, onClose, theme = "dark" })
               value={botToken}
               onChange={(e) => setBotToken(e.target.value)}
               className={`w-full p-2 rounded-md border focus:outline-none font-mono text-[11px] ${
-                theme === "dark" ? "bg-[#080C0A] border-[#1E382E] text-[#F8E7C9]" : "bg-[#F8E7C9]/40 border-[#DECC9F] text-[#064E3B]"
+                theme === "dark" ? "bg-zinc-950 border-zinc-800 text-[#F8E7C9]" : "bg-[#F8E7C9]/40 border-[#DECC9F] text-[#064E3B]"
               }`}
             />
           </div>
@@ -115,7 +115,7 @@ export default function TelegramConfigModal({ isOpen, onClose, theme = "dark" })
               value={chatId}
               onChange={(e) => setChatId(e.target.value)}
               className={`w-full p-2 rounded-md border focus:outline-none font-mono text-[11px] ${
-                theme === "dark" ? "bg-[#080C0A] border-[#1E382E] text-[#F8E7C9]" : "bg-[#F8E7C9]/40 border-[#DECC9F] text-[#064E3B]"
+                theme === "dark" ? "bg-zinc-950 border-zinc-800 text-[#F8E7C9]" : "bg-[#F8E7C9]/40 border-[#DECC9F] text-[#064E3B]"
               }`}
             />
           </div>

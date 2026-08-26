@@ -92,7 +92,7 @@ export default function DeviceChatBox({ theme = "dark", deviceId = "", isOnline 
       {/* HEADER */}
       <div className="flex items-center justify-between pb-3 border-b border-opacity-20 shrink-0">
         <div className="flex items-center gap-2.5">
-          <div className="p-2 rounded-lg bg-[#064E3B]/20 border border-[#064E3B]/40 text-[#F8E7C9]">
+          <div className="p-2 rounded-lg bg-zinc-900/70 border border-zinc-800 border-l-2 border-l-[#064E3B] text-[#F8E7C9]">
             <MessageSquare className="w-4 h-4" />
           </div>
           <div>
@@ -150,7 +150,7 @@ export default function DeviceChatBox({ theme = "dark", deviceId = "", isOnline 
                 </div>
 
                 {isAdmin && (
-                  <div className="px-2 py-0.5 rounded-full bg-[#064E3B]/40 border border-[#064E3B]/60 flex items-center justify-center text-[#F8E7C9] text-[10px] font-bold shrink-0">
+                  <div className="px-2 py-0.5 rounded-full bg-[#064E3B]/40 border border-zinc-800 flex items-center justify-center text-[#F8E7C9] text-[10px] font-bold shrink-0">
                     Bạn
                   </div>
                 )}

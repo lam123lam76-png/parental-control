@@ -46,7 +46,7 @@ export default function ScreenTimeTodayCard({ deviceId, styles }) {
       {/* Header */}
       <div className="flex items-center justify-between border-b border-zinc-800/60 pb-3">
         <div className="flex items-center gap-2">
-          <div className="p-1.5 rounded-lg bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+          <div className="p-1.5 rounded-lg bg-zinc-800/50 text-zinc-300 border border-zinc-700">
             <Clock className="w-4 h-4" />
           </div>
           <div>
@@ -72,7 +72,7 @@ export default function ScreenTimeTodayCard({ deviceId, styles }) {
 
       {/* Hero Stat: Total Screen Time Today */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-        <div className="p-3.5 rounded-lg border bg-gradient-to-br from-emerald-950/30 to-zinc-900/60 border-emerald-500/30 flex flex-col justify-between">
+        <div className="p-3.5 rounded-lg border bg-zinc-900/50 border-zinc-800 flex flex-col justify-between">
           <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-400">
             Tổng Giờ Dùng Hôm Nay
           </span>

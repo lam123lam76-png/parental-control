@@ -4,13 +4,13 @@ import { api } from "../lib/api";
 
 const themeStyles = {
   dark: {
-    card: "bg-[#0D1F17] border-[#064E3B]/50 text-[#F8E7C9]",
-    input: "bg-[#0a1a12] border-[#064E3B]/60 text-[#F8E7C9] focus:border-[#064E3B]",
+    card: "bg-zinc-900 border-zinc-800 text-[#F8E7C9]",
+    input: "bg-zinc-950 border-zinc-800 text-[#F8E7C9] focus:border-[#064E3B]",
     textBold: "text-[#F8E7C9]",
-    textMuted: "text-[#7A9E7E]",
+    textMuted: "text-zinc-400",
     buttonPrimary: "bg-[#064E3B] text-[#F8E7C9] hover:bg-[#065f47]",
-    buttonSecondary: "bg-transparent border-[#064E3B]/50 text-[#7A9E7E] hover:border-[#064E3B] hover:text-[#F8E7C9]",
-    badge: "bg-[#064E3B]/30 text-emerald-300 border border-[#064E3B]/50",
+    buttonSecondary: "bg-transparent border-zinc-800 text-zinc-400 hover:border-[#064E3B] hover:text-[#F8E7C9]",
+    badge: "bg-[#064E3B]/30 text-emerald-300 border border-zinc-800",
   },
   light: {
     card: "bg-white border-gray-200 text-gray-900",
@@ -221,7 +221,7 @@ export default function PeriodSettingsCard({ theme = "dark", deviceId }) {
         <div
           className={`flex items-center gap-2 px-3 py-2.5 rounded-lg border text-xs font-bold ${
             message.type === "success"
-              ? "bg-emerald-900/30 border-emerald-700/50 text-emerald-300"
+              ? "bg-zinc-800/30 border-zinc-700/50 text-zinc-200 text-emerald-300"
               : "bg-rose-900/30 border-rose-700/50 text-rose-300"
           }`}
         >

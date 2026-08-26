@@ -79,7 +79,7 @@ export default function QuickRulesCatalog({ currentRules = [], onToggleRule, sty
                   className={`shrink-0 ml-2 text-[10px] font-bold px-2.5 py-1 rounded border transition flex items-center gap-1 ${
                     active
                       ? "text-rose-400 border-rose-800/40 bg-rose-900/30 hover:bg-rose-900/50 hover:text-rose-300"
-                      : "text-emerald-500 border-emerald-800/40 bg-emerald-900/20 hover:bg-emerald-900/40 hover:text-emerald-400"
+                      : "text-zinc-300 border-zinc-700/50 bg-zinc-800/30 hover:bg-zinc-800/60 hover:text-zinc-100"
                   }`}
                 >
                   {active ? (
@@ -129,7 +129,7 @@ export default function QuickRulesCatalog({ currentRules = [], onToggleRule, sty
                   className={`shrink-0 ml-2 text-[10px] font-bold px-2.5 py-1 rounded border transition flex items-center gap-1 ${
                     active
                       ? "text-rose-400 border-rose-800/40 bg-rose-900/30 hover:bg-rose-900/50 hover:text-rose-300"
-                      : "text-emerald-500 border-emerald-800/40 bg-emerald-900/20 hover:bg-emerald-900/40 hover:text-emerald-400"
+                      : "text-zinc-300 border-zinc-700/50 bg-zinc-800/30 hover:bg-zinc-800/60 hover:text-zinc-100"
                   }`}
                 >
                   {active ? (

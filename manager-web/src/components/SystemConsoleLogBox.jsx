@@ -182,11 +182,11 @@ export default function SystemConsoleLogBox({ theme = "dark", realLogs = [], ale
 
       {/* CONSOLE LOG BOX CONTAINER */}
       <div className={`rounded-xl border shadow-xl overflow-hidden font-mono text-xs ${
-        theme === "dark" ? "bg-[#050806] border-[#1E382E]" : "bg-[#080C0A] border-[#DECC9F] text-[#F8E7C9]"
+        theme === "dark" ? "bg-zinc-950 border-zinc-800" : "bg-zinc-950 border-[#DECC9F] text-[#F8E7C9]"
       }`}>
         
         {/* Terminal Top Window Bar */}
-        <div className="px-4 py-2 bg-[#080C0A] border-b border-[#1E382E] flex items-center justify-between text-[11px] text-[#F8E7C9]">
+        <div className="px-4 py-2 bg-zinc-950 border-b border-zinc-800 flex items-center justify-between text-[11px] text-[#F8E7C9]">
           <div className="flex items-center gap-2">
             <span className="w-2.5 h-2.5 rounded-full bg-rose-500 inline-block" />
             <span className="w-2.5 h-2.5 rounded-full bg-amber-500 inline-block" />
@@ -201,7 +201,7 @@ export default function SystemConsoleLogBox({ theme = "dark", realLogs = [], ale
         {/* Console Output Log Stream — Plain Colored Text without Box Fill Shapes */}
         <div
           ref={logContainerRef}
-          className="h-80 overflow-y-auto p-4 space-y-2.5 bg-[#050806] text-[#F8E7C9] font-mono text-[11px] leading-relaxed"
+          className="h-80 overflow-y-auto p-4 space-y-2.5 bg-zinc-950 text-[#F8E7C9] font-mono text-[11px] leading-relaxed"
         >
           {filteredLogs.length === 0 ? (
             <div className="text-center py-12 opacity-50 italic">
@@ -209,7 +209,7 @@ export default function SystemConsoleLogBox({ theme = "dark", realLogs = [], ale
             </div>
           ) : (
             filteredLogs.map((log) => (
-              <div key={log.id} className="flex items-start gap-2 hover:bg-[#0c1410] p-1.5 rounded transition text-[11px] leading-relaxed">
+              <div key={log.id} className="flex items-start gap-2 hover:bg-zinc-900 p-1.5 rounded transition text-[11px] leading-relaxed">
                 <span className="opacity-50 shrink-0 text-[10px] pt-0.5">{log.time}</span>
                 <div className="shrink-0 pt-0.5">{getLevelBadge(log.level)}</div>
                 <span className="text-cyan-400 font-extrabold shrink-0 pt-0.5">
@@ -224,7 +224,7 @@ export default function SystemConsoleLogBox({ theme = "dark", realLogs = [], ale
         </div>
 
         {/* Terminal Bottom Status Bar */}
-        <div className="px-4 py-1.5 bg-[#080C0A] border-t border-[#1E382E] flex justify-between items-center text-[10px] text-[#F8E7C9] opacity-80">
+        <div className="px-4 py-1.5 bg-zinc-950 border-t border-zinc-800 flex justify-between items-center text-[10px] text-[#F8E7C9] opacity-80">
           <span>System Status: <span className="text-emerald-400 font-bold">OPERATIONAL</span></span>
           <span>WebSocket Stream 1 • Alert Stream 2 • Batch Stream 3</span>
         </div>

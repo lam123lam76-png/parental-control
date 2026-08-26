@@ -63,7 +63,7 @@ export default function BrowserHistoryView({ theme = "dark", deviceId = "" }) {
       {/* HEADER CARD */}
       <div className={`p-4 sm:p-5 rounded-xl border flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 ${styles.card}`}>
         <div className="flex items-center gap-3">
-          <div className="p-2.5 rounded-lg bg-[#064E3B]/20 border border-[#064E3B]/40 text-[#F8E7C9]">
+          <div className="p-2.5 rounded-lg bg-zinc-900/70 border border-zinc-800 border-l-2 border-l-[#064E3B] text-[#F8E7C9]">
             <Globe className="w-5 h-5 stroke-[1.75]" />
           </div>
           <div>

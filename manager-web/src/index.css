@@ -30,28 +30,28 @@
   }
 
   .dark {
-    /* DARK MODE — Deep Dark Emerald Obsidian Background + Emerald Ink Accent & Champagne Text */
-    --background: #080C0A;
+    /* DARK MODE — Zinc Minimalist Background + Emerald Ink Accent & Champagne Text */
+    --background: #09090b;
     --foreground: #F8E7C9;
     
-    --card: #101614;
+    --card: #18181b;
     --card-foreground: #F8E7C9;
     
     --primary: #064E3B;
     --primary-foreground: #F8E7C9;
     
-    --secondary: #16241E;
+    --secondary: #27272a;
     --secondary-foreground: #F8E7C9;
     
-    --muted: #172620;
-    --muted-foreground: #94A3B8;
+    --muted: #27272a;
+    --muted-foreground: #a1a1aa;
     
-    --accent: #1C332A;
+    --accent: #27272a;
     --accent-foreground: #F8E7C9;
     
-    --border: #1E382E;
-    --input: #1E382E;
-    --ring: #059669;
+    --border: #27272a;
+    --input: #27272a;
+    --ring: #064E3B;
 
     --emerald-ink: #064E3B;
     --champagne: #F8E7C9;

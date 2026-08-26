@@ -110,7 +110,7 @@ export default function AccountPermissionsSettings({ theme = "dark", adminEmail 
       {/* HEADER SECTION */}
       <div className={`p-4 sm:p-5 rounded-xl border flex items-center justify-between gap-3 ${styles.card}`}>
         <div className="flex items-center gap-3">
-          <div className="p-2.5 rounded-lg bg-[#064E3B]/20 border border-[#064E3B]/40 text-[#F8E7C9]">
+          <div className="p-2.5 rounded-lg bg-zinc-900/70 border border-zinc-800 border-l-2 border-l-[#064E3B] text-[#F8E7C9]">
             <Settings className="w-5 h-5 stroke-[1.75]" />
           </div>
           <div>
@@ -125,7 +125,7 @@ export default function AccountPermissionsSettings({ theme = "dark", adminEmail 
       </div>
 
       {message && (
-        <div className="p-3 rounded-lg bg-[#064E3B]/20 border border-[#064E3B]/50 text-xs text-[#F8E7C9] font-bold flex items-center gap-2">
+        <div className="p-3 rounded-lg bg-zinc-900/70 border border-zinc-800 border-l-2 border-l-[#064E3B] text-xs text-[#F8E7C9] font-bold flex items-center gap-2">
           <CheckCircle2 className="w-4 h-4 text-emerald-400" />
           <span>{message}</span>
         </div>
@@ -237,7 +237,7 @@ export default function AccountPermissionsSettings({ theme = "dark", adminEmail 
                     <div>
                       <span className={`font-bold text-xs ${styles.textBold}`}>{u.email}</span>
                       <div className="flex items-center gap-2 text-[10px] text-zinc-400 mt-0.5">
-                        <span className="px-2 py-0.5 rounded bg-[#064E3B]/30 border border-[#064E3B]/50 font-bold uppercase text-[#F8E7C9]">
+                        <span className="px-2 py-0.5 rounded bg-[#064E3B]/30 border border-zinc-800 font-bold uppercase text-[#F8E7C9]">
                           {u.role}
                         </span>
                         <span>Khởi tạo: {u.created_at ? new Date(u.created_at).toLocaleDateString() : "—"}</span>
@@ -274,7 +274,7 @@ export default function AccountPermissionsSettings({ theme = "dark", adminEmail 
                         onClick={() => handleTogglePermission(u.id, p.key, isAllowed)}
                         className={`p-2 rounded-lg border text-left transition flex items-center justify-between ${
                           isAllowed
-                            ? "bg-[#064E3B]/20 border-[#064E3B]/60 text-[#F8E7C9]"
+                            ? "bg-zinc-900/70 border border-zinc-800 border-l-2 border-l-[#064E3B] text-[#F8E7C9]"
                             : "bg-rose-900/10 border-rose-900/30 text-rose-300 opacity-70"
                         } ${isAdmin ? "cursor-not-allowed opacity-90" : "hover:border-emerald-500"}`}
                       >

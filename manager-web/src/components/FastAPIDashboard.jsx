@@ -569,7 +569,7 @@ export default function FastAPIDashboard() {
   // ============================================================
   if (!isLoggedIn) {
     return (
-      <div className="min-h-screen bg-[#0a0f0d] flex items-center justify-center p-4 font-sans">
+      <div className="min-h-screen bg-zinc-950 flex items-center justify-center p-4 font-sans">
         <div className="w-full max-w-sm">
           <div className="text-center mb-8">
             <div className="inline-flex items-center gap-2 mb-3">
@@ -581,8 +581,8 @@ export default function FastAPIDashboard() {
             <p className="text-xs text-zinc-500">Đăng nhập để quản lý thiết bị con em</p>
           </div>
 
-          <form onSubmit={handleAuth} className="bg-[#111a16] border border-emerald-900/40 rounded-xl p-6 space-y-4 shadow-2xl">
-            <div className="flex gap-2 p-1 bg-[#0a0f0d] rounded-lg">
+          <form onSubmit={handleAuth} className="bg-zinc-900 border border-zinc-800 rounded-xl p-6 space-y-4 shadow-2xl">
+            <div className="flex gap-2 p-1 bg-zinc-950 rounded-lg">
               <button
                 type="button"
                 onClick={() => setAuthMode("login")}
@@ -608,7 +608,7 @@ export default function FastAPIDashboard() {
               placeholder="Email phụ huynh"
               value={parentEmail}
               onChange={(e) => setParentEmail(e.target.value)}
-              className="w-full p-3 text-sm font-bold rounded-lg border border-emerald-900/40 bg-[#0a0f0d] text-zinc-100 placeholder-zinc-600 focus:outline-none focus:border-emerald-600"
+              className="w-full p-3 text-sm font-bold rounded-lg border border-zinc-800 bg-zinc-950 text-zinc-100 placeholder-zinc-600 focus:outline-none focus:border-emerald-600"
               required
             />
             <input
@@ -616,7 +616,7 @@ export default function FastAPIDashboard() {
               placeholder="Mật khẩu"
               value={parentPassword}
               onChange={(e) => setParentPassword(e.target.value)}
-              className="w-full p-3 text-sm font-bold rounded-lg border border-emerald-900/40 bg-[#0a0f0d] text-zinc-100 placeholder-zinc-600 focus:outline-none focus:border-emerald-600"
+              className="w-full p-3 text-sm font-bold rounded-lg border border-zinc-800 bg-zinc-950 text-zinc-100 placeholder-zinc-600 focus:outline-none focus:border-emerald-600"
               required
             />
 
@@ -626,7 +626,7 @@ export default function FastAPIDashboard() {
                 id="rememberMe"
                 checked={rememberMe}
                 onChange={(e) => setRememberMe(e.target.checked)}
-                className="w-4 h-4 rounded border-emerald-900/40 bg-[#0a0f0d] text-[#064E3B] focus:ring-[#064E3B]"
+                className="w-4 h-4 rounded border-zinc-800 bg-zinc-950 text-[#064E3B] focus:ring-[#064E3B]"
               />
               <label htmlFor="rememberMe" className="text-xs text-zinc-400 font-medium cursor-pointer select-none">
                 Ghi nhớ đăng nhập (60 ngày)
@@ -786,7 +786,7 @@ export default function FastAPIDashboard() {
             </div>
 
             {/* TÀI KHOẢN & THIẾT BỊ (MOBILE) */}
-            <div className="pt-2 mt-2 border-t border-[#064E3B]/20 dark:border-emerald-500/20 space-y-2">
+            <div className="pt-2 mt-2 border-t border-zinc-200 dark:border-zinc-800 space-y-2">
               <div className={`p-2 rounded-md border ${styles.card}`}>
                 <span className={`text-[10px] font-medium ${styles.textMuted}`}>Đăng nhập:</span>
                 <div className={`text-xs font-bold truncate ${styles.textBold}`}>{parentEmail}</div>
@@ -931,7 +931,7 @@ export default function FastAPIDashboard() {
               
               {/* Lock Screen Switch Toggle */}
               <div className="flex items-center gap-3">
-                <div className={`p-2 rounded-lg ${isLocked ? "bg-rose-900/30 border border-rose-800/50 text-rose-300" : "bg-[#064E3B]/20 border border-[#064E3B]/40 text-[#F8E7C9]"}`}>
+                <div className={`p-2 rounded-lg ${isLocked ? "bg-rose-900/30 border border-rose-800/50 text-rose-300" : "bg-zinc-900/70 border border-zinc-800 border-l-2 border-l-[#064E3B] text-[#F8E7C9]"}`}>
                   {isLocked ? <Lock className="w-4 h-4" /> : <Unlock className="w-4 h-4" />}
                 </div>
                 <div>
@@ -1366,7 +1366,7 @@ export default function FastAPIDashboard() {
               {settingSubTab === "menu" && (
                 <div className={`p-4 sm:p-5 rounded-xl border space-y-4 ${styles.card}`}>
                   <div className="flex items-center gap-3 pb-3 border-b border-opacity-20">
-                    <div className="p-2.5 rounded-lg bg-[#064E3B]/20 border border-[#064E3B]/40 text-[#F8E7C9]">
+                    <div className="p-2.5 rounded-lg bg-zinc-900/70 border border-zinc-800 border-l-2 border-l-[#064E3B] text-[#F8E7C9]">
                       <Settings className="w-5 h-5 stroke-[1.75]" />
                     </div>
                     <div>
@@ -1562,7 +1562,7 @@ export default function FastAPIDashboard() {
             </h4>
 
             {/* Status Indicator */}
-            <div className="flex items-center gap-3 p-3 rounded-lg border bg-[#064E3B]/10 border-[#064E3B]/40">
+            <div className="flex items-center gap-3 p-3 rounded-lg border bg-[#064E3B]/10 border-zinc-800">
               <span className="relative flex h-3 w-3 shrink-0">
                 <span className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 ${status.is_online ? "bg-[#064E3B] dark:bg-emerald-400" : "bg-rose-400"}`} />
                 <span className={`relative inline-flex rounded-full h-3 w-3 ${status.is_online ? "bg-[#064E3B] dark:bg-emerald-500" : "bg-rose-500"}`} />
@@ -1744,7 +1744,7 @@ export default function FastAPIDashboard() {
                   e.target.src = relativePath.startsWith("/") ? relativePath : `/${relativePath}`;
                 }
               }}
-              className="max-w-full max-h-[90vh] object-contain rounded-xl border border-emerald-900 shadow-2xl"
+              className="max-w-full max-h-[90vh] object-contain rounded-xl border border-zinc-800 shadow-2xl"
             />
           </div>
         </div>

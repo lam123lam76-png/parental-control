@@ -15,7 +15,7 @@ export default function MobileBottomNav({ activeNav, setActiveNav, theme = "dark
   return (
     <nav className={`md:hidden fixed bottom-0 inset-x-0 z-40 border-t backdrop-blur-lg transition-colors px-2 py-1.5 shadow-2xl ${
       theme === "dark"
-        ? "bg-[#080C0A]/95 border-[#1E382E] text-[#F8E7C9]"
+        ? "bg-zinc-950/95 border-zinc-800 text-[#F8E7C9]"
         : "bg-[#F8E7C9]/95 border-[#DECC9F] text-[#064E3B]"
     }`}>
       <div className="flex items-center justify-around">

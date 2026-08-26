@@ -267,7 +267,7 @@ export default function StorageManagementCard({ theme = "dark", deviceId = "" })
       {/* HEADER */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <div className="p-2.5 rounded-lg bg-[#064E3B]/20 border border-[#064E3B]/40 text-[#F8E7C9]">
+          <div className="p-2.5 rounded-lg bg-zinc-900/70 border border-zinc-800 border-l-2 border-l-[#064E3B] text-[#F8E7C9]">
             <HardDrive className="w-5 h-5 stroke-[1.75]" />
           </div>
           <div>
@@ -292,7 +292,7 @@ export default function StorageManagementCard({ theme = "dark", deviceId = "" })
       </div>
 
       {message && (
-        <div className="p-3 rounded-lg bg-[#064E3B]/20 border border-[#064E3B]/50 text-xs text-[#F8E7C9] font-bold flex items-center gap-2">
+        <div className="p-3 rounded-lg bg-zinc-900/70 border border-zinc-800 border-l-2 border-l-[#064E3B] text-xs text-[#F8E7C9] font-bold flex items-center gap-2">
           <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
           <span>{message}</span>
         </div>
@@ -308,7 +308,7 @@ export default function StorageManagementCard({ theme = "dark", deviceId = "" })
             {disk.used_gb} GB / {disk.total_gb} GB ({disk.used_percent}%) — Trống: {disk.free_gb} GB
           </span>
         </div>
-        <div className="w-full h-3 rounded-full bg-[#0a0f0d] border border-emerald-900/40 overflow-hidden p-0.5">
+        <div className="w-full h-3 rounded-full bg-zinc-950 border border-zinc-800 overflow-hidden p-0.5">
           <div
             className={`h-full rounded-full transition-all duration-500 ${
               disk.used_percent > 85 ? "bg-rose-500" : disk.used_percent > 65 ? "bg-amber-500" : "bg-[#064E3B]"
@@ -439,7 +439,7 @@ export default function StorageManagementCard({ theme = "dark", deviceId = "" })
       </div>
 
       {/* RECYCLE BIN BANNER */}
-      <div className="p-3 rounded-lg border bg-[#064E3B]/10 border-[#064E3B]/30 flex items-center gap-2.5 text-xs">
+      <div className="p-3 rounded-lg border bg-[#064E3B]/10 border-zinc-800 flex items-center gap-2.5 text-xs">
         <Trash2 className="w-4 h-4 text-emerald-400 shrink-0" />
         <span className={styles.textMuted}>
           <strong className="text-[#F8E7C9]">Thùng Rác Server (storage/trash/):</strong> File ảnh và bản ghi đã xóa được sao lưu tạm vào thùng rác. Hệ thống tự động dọn dẹp vĩnh viễn các dữ liệu đi vào thùng rác quá <strong className="text-emerald-400">7 ngày</strong>.
@@ -525,7 +525,7 @@ export default function StorageManagementCard({ theme = "dark", deviceId = "" })
                   <div
                     onClick={() => handleTogglePeriodGroup(group.key, group.items)}
                     className={`p-3 rounded-lg border flex items-center justify-between cursor-pointer transition ${
-                      isGroupSelected ? "bg-[#064E3B]/30 border-[#064E3B]" : "bg-[#141b18] border-[#1e2a25]"
+                      isGroupSelected ? "bg-[#064E3B]/30 border-[#064E3B]" : "bg-zinc-900 border-zinc-800"
                     }`}
                   >
                     <div className="flex items-center gap-2.5">
@@ -554,7 +554,7 @@ export default function StorageManagementCard({ theme = "dark", deviceId = "" })
                             key={item.id}
                             onClick={() => handleToggleItem(item.id, group.key)}
                             className={`relative rounded-lg overflow-hidden border cursor-pointer transition group ${
-                              isItemSelected ? "ring-2 ring-emerald-500 border-emerald-500" : "border-zinc-800"
+                              isItemSelected ? "ring-1 ring-zinc-500 border-zinc-500" : "border-zinc-800"
                             }`}
                           >
                             <img
@@ -583,7 +583,7 @@ export default function StorageManagementCard({ theme = "dark", deviceId = "" })
                             key={item.id}
                             onClick={() => handleToggleItem(item.id, group.key)}
                             className={`p-2.5 rounded-lg border flex items-center justify-between text-xs cursor-pointer transition ${
-                              isItemSelected ? "bg-emerald-950/40 border-emerald-800" : "bg-[#101614] border-[#18231f] hover:border-zinc-700"
+                              isItemSelected ? "bg-zinc-800/40 border-zinc-700" : "bg-zinc-900 border-zinc-800 hover:border-zinc-600"
                             }`}
                           >
                             <div className="flex items-center gap-3 min-w-0 pr-2">

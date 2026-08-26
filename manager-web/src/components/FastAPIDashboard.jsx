@@ -824,7 +824,7 @@ export default function FastAPIDashboard() {
       {/* Origin / backend indicator line */}
       <div className="flex-none px-4 py-1 text-[10px] font-mono text-zinc-500 border-b border-zinc-800 flex items-center gap-2">
         <span className={(() => { const h = typeof window !== 'undefined' ? window.location.hostname : ''; return ['localhost','127.0.0.1','::1'].includes(h) ? 'text-emerald-400' : (h.includes('vercel.app') ? 'text-sky-400' : 'text-zinc-400'); })()}>●</span>
-        <span>Nguồn: <b className="text-zinc-300">{(() => { const h = typeof window !== 'undefined' ? window.location.hostname : ''; return ['localhost','127.0.0.1','::1'].includes(h) ? 'Local' : (h.includes('vercel.app') ? 'Vercel' : (h ? 'Tunnel' : 'Local')); })()}</b></span>
+        <span>Nguồn: <b className="text-zinc-300">{(() => { const h = typeof window !== 'undefined' ? window.location.hostname : ''; return ['localhost','127.0.0.1','::1'].includes(h) ? 'Local' : (h.includes('vercel.app') ? 'Vercel' : (h ? 'Tunnel → Local' : 'Local')); })()}</b></span>
         <span className="opacity-60">{typeof window !== 'undefined' ? window.location.hostname : 'localhost'}</span>
         <span className="opacity-40">·</span>
         <span>DB: <b className="text-zinc-300">Supabase</b></span>

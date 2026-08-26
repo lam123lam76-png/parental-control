@@ -805,7 +805,7 @@ export default function FastAPIDashboard() {
                 >
                   {allDevices.map(d => (
                     <option key={d.device_id} value={d.device_id}>
-                      {d.device_name} {d.is_online ? "🟢" : "⚫"}
+                      {d.device_name} {d.is_online ? "🟢" : "🔴"}
                     </option>
                   ))}
                 </select>
@@ -986,10 +986,10 @@ export default function FastAPIDashboard() {
                   <span className={`text-[10px] font-bold uppercase tracking-wider ${styles.textMuted}`}>Trạng Thái</span>
                   <div className="flex items-center gap-2">
                     <span className={`relative flex h-2.5 w-2.5 shrink-0`}>
-                      <span className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 ${status.is_online ? "bg-emerald-400" : "bg-emerald-400"}`} />
-                      <span className={`relative inline-flex rounded-full h-2.5 w-2.5 ${status.is_online ? "bg-emerald-500" : "bg-emerald-500"}`} />
+                      <span className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 ${status.is_online ? "bg-emerald-400" : "bg-rose-500"}`} />
+                      <span className={`relative inline-flex rounded-full h-2.5 w-2.5 ${status.is_online ? "bg-emerald-500" : "bg-rose-500"}`} />
                     </span>
-                    <span className={`text-sm font-extrabold ${styles.textBold}`}>{status.is_online ? "Online" : "Offline"}</span>
+                    <span className={`text-sm font-extrabold ${status.is_online ? styles.textBold : "text-rose-400"}`}>{status.is_online ? "Online" : "Offline"}</span>
                   </div>
                   <span className={`text-[10px] ${styles.textMuted}`}>
                     {status.last_seen_at ? `Cập nhật: ${new Date(status.last_seen_at).toLocaleTimeString()}` : "Chưa kết nối"}
@@ -1564,13 +1564,13 @@ export default function FastAPIDashboard() {
             {/* Status Indicator */}
             <div className="flex items-center gap-3 p-3 rounded-lg border bg-[#064E3B]/10 border-zinc-800">
               <span className="relative flex h-3 w-3 shrink-0">
-                <span className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 ${status.is_online ? "bg-[#064E3B] dark:bg-emerald-400" : "bg-emerald-400"}`} />
-                <span className={`relative inline-flex rounded-full h-3 w-3 ${status.is_online ? "bg-[#064E3B] dark:bg-emerald-500" : "bg-emerald-500"}`} />
+                <span className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 ${status.is_online ? "bg-[#064E3B] dark:bg-emerald-400" : "bg-rose-500"}`} />
+                <span className={`relative inline-flex rounded-full h-3 w-3 ${status.is_online ? "bg-[#064E3B] dark:bg-emerald-500" : "bg-rose-500"}`} />
               </span>
               <div>
                 <div className={`text-xs font-extrabold flex items-center gap-1.5 ${styles.textBold}`}>
                   <Monitor className="w-3.5 h-3.5 stroke-[1.75]" />
-                  <span>{status.is_online ? "WS CONNECTED" : "OFFLINE"}</span>
+                  <span className={status.is_online ? "" : "text-rose-400"}>{status.is_online ? "WS CONNECTED" : "OFFLINE"}</span>
                 </div>
                 <div className={`text-[10px] font-medium ${styles.textMuted}`}>
                   Heartbeat 15s interval
@@ -1620,7 +1620,7 @@ export default function FastAPIDashboard() {
                 >
                   {allDevices.map(d => (
                     <option key={d.device_id} value={d.device_id}>
-                      {d.device_name} {d.is_online ? "🟢" : "⚫"}
+                      {d.device_name} {d.is_online ? "🟢" : "🔴"}
                     </option>
                   ))}
                 </select>

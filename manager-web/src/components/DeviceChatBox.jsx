@@ -98,7 +98,7 @@ export default function DeviceChatBox({ theme = "dark", deviceId = "", isOnline 
           <div>
             <h3 className={`text-sm font-extrabold flex items-center gap-2 ${styles.textBold}`}>
               <span>Trò Chuyện 2 Chiều Real-Time</span>
-              <span className={`w-2 h-2 rounded-full ${isOnline ? "bg-emerald-400 animate-pulse" : "bg-zinc-600"}`} />
+              <span className={`w-2 h-2 rounded-full ${isOnline ? "bg-emerald-400 animate-pulse" : "bg-rose-500"}`} />
             </h3>
             <p className={`text-[11px] ${styles.textMuted}`}>
               {isOnline ? "Thiết bị đang online — Tin nhắn nhận tức thì" : "Thiết bị offline — Tin nhắn lưu trong DB"}

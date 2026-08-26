@@ -114,7 +114,7 @@ export default function StreamFlowInspector({ theme = "dark", deviceId }) {
             <div className={`space-y-1.5 text-xs font-mono ${styles.text}`}>
               <div className="flex justify-between">
                 <span className="font-semibold">Trạng Thái Kênh:</span>
-                <span className={isOnline ? "text-emerald-400 font-bold" : "text-emerald-400 font-bold"}>
+                <span className={isOnline ? "text-emerald-400 font-bold" : "text-rose-400 font-bold"}>
                   {isOnline ? "Trực Tuyến (Online)" : "Ngoại Tuyến (Offline)"}
                 </span>
               </div>

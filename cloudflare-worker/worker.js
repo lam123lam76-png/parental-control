@@ -13,7 +13,7 @@
 
 // ===== CẤU HÌNH — chỉ cần sửa 2 dòng này =====
 const HOME = "https://home.nguyentruclam.io.vn";           // tunnel → máy nhà
-const BACKUP = "https://parental-control-web.vercel.app";  // web tĩnh (rewrite /api) — THAY URL thật của bạn
+const BACKUP = "https://parental-control-sepia.vercel.app"; // web tĩnh (rewrite /api) — URL backup thật
 // =============================================
 
 const HOME_TIMEOUT_MS = 4000;       // thời gian chờ home trước khi fallback

@@ -110,6 +110,20 @@ async function request(endpoint, options = {}) {
 export const api = {
   baseUrl: BASE_URL,
 
+  // Detect which backend is actually serving this page (home vs Vercel backup)
+  // via the X-PC-Source header. The domain is identical for both (nguyentruclam.io.vn),
+  // so the hostname alone can't tell them apart.
+  getServerSource: async () => {
+    try {
+      const resp = await fetch(`${BASE_URL}/api/health`, {
+        headers: { "Cache-Control": "no-cache" },
+      });
+      return resp.headers.get("X-PC-Source") || "";
+    } catch (e) {
+      return "";
+    }
+  },
+
   // Auth & Pairing
   registerParent: (email, password) =>
     request("/api/register", { method: "POST", body: { email, password } }),

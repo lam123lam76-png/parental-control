@@ -100,6 +100,7 @@ export default function FastAPIDashboard() {
 
   // Status & Data
   const [status, setStatus] = useState({ is_online: false, last_seen_at: null });
+  const [serverSource, setServerSource] = useState("");
   const [activeNav, setActiveNav] = useState("overview");
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   
@@ -337,6 +338,15 @@ export default function FastAPIDashboard() {
     const interval = setInterval(fetchAllData, 3000);
     return () => clearInterval(interval);
   }, [deviceId, isLoggedIn]);
+
+  // Detect the actual serving source (home backend vs Vercel backup) once on mount.
+  useEffect(() => {
+    let active = true;
+    api.getServerSource().then((src) => {
+      if (active) setServerSource(src);
+    });
+    return () => { active = false; };
+  }, []);
 
   // Remote Control Handlers
   const handleLock = async () => {
@@ -823,8 +833,8 @@ export default function FastAPIDashboard() {
 
       {/* Origin / backend indicator line */}
       <div className="flex-none px-4 py-1 text-[10px] font-mono text-zinc-500 border-b border-zinc-800 flex items-center gap-2">
-        <span className={(() => { const h = typeof window !== 'undefined' ? window.location.hostname : ''; return ['localhost','127.0.0.1','::1'].includes(h) ? 'text-emerald-400' : (h.includes('vercel.app') ? 'text-sky-400' : 'text-zinc-400'); })()}>●</span>
-        <span>Nguồn: <b className="text-zinc-300">{(() => { const h = typeof window !== 'undefined' ? window.location.hostname : ''; return ['localhost','127.0.0.1','::1'].includes(h) ? 'Local' : (h.includes('vercel.app') ? 'Vercel' : (h ? 'Tunnel → Local' : 'Local')); })()}</b></span>
+        <span className={(() => { const h = typeof window !== 'undefined' ? window.location.hostname : ''; const isLocal = ['localhost','127.0.0.1','::1'].includes(h); const isVercel = serverSource === 'vercel' || h.includes('vercel.app'); return isLocal || !isVercel ? 'text-emerald-400' : 'text-sky-400'; })()}>●</span>
+        <span>Nguồn: <b className="text-zinc-300">{(() => { const h = typeof window !== 'undefined' ? window.location.hostname : ''; if (['localhost','127.0.0.1','::1'].includes(h)) return 'Local'; if (serverSource === 'vercel') return 'Vercel'; if (serverSource === 'home') return 'Tunnel → Local'; return h.includes('vercel.app') ? 'Vercel' : 'Tunnel → Local'; })()}</b></span>
         <span className="opacity-60">{typeof window !== 'undefined' ? window.location.hostname : 'localhost'}</span>
         <span className="opacity-40">·</span>
         <span>DB: <b className="text-zinc-300">Supabase</b></span>

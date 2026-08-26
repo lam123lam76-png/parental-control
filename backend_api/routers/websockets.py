@@ -48,97 +48,117 @@ async def websocket_endpoint(websocket: WebSocket, device_id: str, token: str):
     WebSocket endpoint for device agents.
     - Authenticates via secret_token (query param)
     - Maintains heartbeat loop
-    NOTE: uses the ASYNC DB session so slow/unreachable Supabase never blocks the
-    uvicorn event loop (sync db.query inside an async handler used to freeze the
-    whole server -> health/static also timed out).
+    Uses short-lived ASYNC DB sessions so slow/unreachable Supabase never blocks
+    the uvicorn event loop, and a DB failure never drops the WebSocket: the agent
+    stays ONLINE via the active WS even while Supabase is slow/unreachable.
     """
     from sqlalchemy import select, update
     from database import AsyncSessionLocal
     from core.security import VALID_API_KEYS
 
-    async with AsyncSessionLocal() as db:
-        device = None
+    # ---- Authenticate + resolve device (short-lived session) ----
+    device = None
+    try:
+        async with AsyncSessionLocal() as db:
+            try:
+                dev_uuid = uuid.UUID(device_id)
+                res = await db.execute(select(models.Device).where(models.Device.id == dev_uuid))
+                device = res.scalars().first()
+            except Exception:
+                res = await db.execute(select(models.Device).where(
+                    (models.Device.secret_token == device_id) | (models.Device.device_name == device_id)
+                ))
+                device = res.scalars().first()
+
+            is_auth = bool(device) and (
+                device.secret_token == token or token in VALID_API_KEYS or str(device.id) == token
+            )
+            if not is_auth:
+                logger.warning(f"WebSocket auth rejected for device_id={device_id}, token={token[:6] if token else 'None'}...")
+                await websocket.close(code=status.WS_1008_POLICY_VIOLATION)
+                return
+
+            device_id_str = str(device.id)
+
+            # Always send the current rules when an agent reconnects (best effort).
+            try:
+                res = await db.execute(select(models.Rule).where(models.Rule.device_id == device.id))
+                current_rules = res.scalars().all()
+                rules_list = [
+                    schemas.RuleResponse.model_validate(rule).model_dump(mode="json")
+                    for rule in current_rules
+                ]
+                await manager.send_command(device_id_str, {
+                    "type": "command",
+                    "command": "refresh_rules",
+                    "payload": {"rules": rules_list},
+                })
+            except Exception as e:
+                logger.error(f"Failed to sync rules on reconnect for {device_id_str}: {e}")
+    except Exception as e:
+        # Cannot reach DB to authenticate -> reject cleanly (agent falls back to polling).
+        logger.error(f"WS connect DB error for device_id={device_id}: {e}")
         try:
-            dev_uuid = uuid.UUID(device_id)
-            res = await db.execute(select(models.Device).where(models.Device.id == dev_uuid))
-            device = res.scalars().first()
+            await websocket.close(code=status.WS_1011_INTERNAL_ERROR)
         except Exception:
-            res = await db.execute(select(models.Device).where(
-                (models.Device.secret_token == device_id) | (models.Device.device_name == device_id)
-            ))
-            device = res.scalars().first()
+            pass
+        return
 
-        is_auth = False
-        if device and (device.secret_token == token or token in VALID_API_KEYS or str(device.id) == token):
-            is_auth = True
+    await manager.connect(websocket, device_id_str)
 
-        if not is_auth:
-            logger.warning(f"WebSocket auth rejected for device_id={device_id}, token={token[:6] if token else 'None'}...")
-            await websocket.close(code=status.WS_1008_POLICY_VIOLATION)
-            return
-
-        device_id_str = str(device.id)
-
-        await manager.connect(websocket, device_id_str)
-
-        # Always send the current rules when an agent reconnects. REST updates are
-        # persisted even while the agent is offline, so relying only on the
-        # original PUT-time push leaves the agent enforcing stale local rules.
-        try:
-            res = await db.execute(select(models.Rule).where(models.Rule.device_id == device.id))
-            current_rules = res.scalars().all()
-            rules_list = [
-                schemas.RuleResponse.model_validate(rule).model_dump(mode="json")
-                for rule in current_rules
-            ]
-            await manager.send_command(device_id_str, {
-                "type": "command",
-                "command": "refresh_rules",
-                "payload": {"rules": rules_list},
-            })
-        except Exception as e:
-            logger.error(f"Failed to sync rules on reconnect for {device_id_str}: {e}")
-
-        try:
-            while True:
-                data = await websocket.receive_text()
+    # ---- Main receive loop: DB failures NEVER drop the WS ----
+    try:
+        while True:
+            data = await websocket.receive_text()
+            try:
                 payload = json.loads(data)
+            except Exception:
+                continue
 
-                if payload.get("type") == "heartbeat":
-                    await db.execute(
-                        update(models.Device)
-                        .where(models.Device.id == device.id)
-                        .values(last_seen_at=datetime.now(timezone.utc))
-                    )
-                    await db.commit()
-                    await websocket.send_text(json.dumps({
-                        "type": "heartbeat_ack",
-                        "status": "ok"
-                    }))
-                elif payload.get("type") == "version_info":
-                    msg_id = payload.get("msg_id")
-                    version = payload.get("version")
-                    if msg_id and version:
-                        core.state.version_replies[msg_id] = version
-                elif payload.get("type") == "chat_message":
-                    msg_text = payload.get("message") or ""
-                    sender_name = payload.get("sender") or "child"
-                    if msg_text:
-                        chat_entry = models.ChatMessage(
-                            device_id=device.id,
-                            sender=sender_name,
-                            message=msg_text,
-                            timestamp=datetime.now(timezone.utc)
+            if payload.get("type") == "heartbeat":
+                # Update last_seen_at. If Supabase is slow/unreachable, keep the
+                # connection alive regardless (is_online falls back to active WS).
+                try:
+                    async with AsyncSessionLocal() as hb_db:
+                        await hb_db.execute(
+                            update(models.Device)
+                            .where(models.Device.id == device.id)
+                            .values(last_seen_at=datetime.now(timezone.utc))
                         )
-                        db.add(chat_entry)
-                        await db.commit()
-                        logger.info(f"Saved chat message from {sender_name} on device {device_id_str}: {msg_text}")
+                        await hb_db.commit()
+                except Exception as e:
+                    logger.warning(f"Heartbeat DB update failed (keeping WS up): {e}")
+                try:
+                    await websocket.send_text(json.dumps({"type": "heartbeat_ack", "status": "ok"}))
+                except Exception:
+                    raise
+            elif payload.get("type") == "version_info":
+                msg_id = payload.get("msg_id")
+                version = payload.get("version")
+                if msg_id and version:
+                    core.state.version_replies[msg_id] = version
+            elif payload.get("type") == "chat_message":
+                msg_text = payload.get("message") or ""
+                sender_name = payload.get("sender") or "child"
+                if msg_text:
+                    try:
+                        async with AsyncSessionLocal() as ch_db:
+                            ch_db.add(models.ChatMessage(
+                                device_id=device.id,
+                                sender=sender_name,
+                                message=msg_text,
+                                timestamp=datetime.now(timezone.utc),
+                            ))
+                            await ch_db.commit()
+                            logger.info(f"Saved chat message from {sender_name} on device {device_id_str}: {msg_text}")
+                    except Exception as e:
+                        logger.warning(f"Chat DB write failed: {e}")
 
-        except WebSocketDisconnect:
-            manager.disconnect(device_id_str)
-        except Exception as e:
-            logger.error(f"WebSocket error for device {device_id_str}: {e}")
-            manager.disconnect(device_id_str)
+    except WebSocketDisconnect:
+        manager.disconnect(device_id_str)
+    except Exception as e:
+        logger.error(f"WebSocket error for device {device_id_str}: {e}")
+        manager.disconnect(device_id_str)
 
 
 # Commands use REST auth

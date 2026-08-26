@@ -208,6 +208,19 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+
+@app.middleware("http")
+async def add_server_source_header(request, call_next):
+    """Expose the serving source so the web manager can show where it's running.
+    Home backend (not on Vercel) reports 'home'; the Vercel backup reports 'vercel'.
+    The domain (nguyentruclam.io.vn) is identical for both, so the frontend can't
+    infer the source from the hostname alone — it needs this header.
+    """
+    response = await call_next(request)
+    source = "vercel" if (os.getenv("VERCEL") or os.getenv("VERCEL_ENV")) else "home"
+    response.headers["X-PC-Source"] = source
+    return response
+
 # Include Routers
 app.include_router(auth_router)
 app.include_router(users_router)

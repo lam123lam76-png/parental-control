@@ -1,5 +1,5 @@
 import React from "react";
-import { Shield, ShieldAlert, Check, Plus, Trash2, Gamepad2, Globe, Sparkles } from "lucide-react";
+import { Plus, Trash2 } from "lucide-react";
 
 export const CATALOG_ITEMS = [
   // Games
@@ -41,19 +41,15 @@ export default function QuickRulesCatalog({ currentRules = [], onToggleRule, sty
   return (
     <div className={`p-4 sm:p-5 rounded-xl border space-y-4 ${styles.card}`}>
       <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <Sparkles className="w-4 h-4 text-emerald-400" />
-          <h4 className={`text-xs font-bold uppercase tracking-wider ${styles.textBold}`}>
-            Danh Mục Chặn Nhanh (1 Chạm)
-          </h4>
-        </div>
+        <h4 className={`text-xs font-bold uppercase tracking-wider ${styles.textBold}`}>
+          Danh Mục Chặn Nhanh (1 Chạm)
+        </h4>
         <span className={`text-[10px] ${styles.textMuted}`}>Gợi ý ứng dụng & website phổ biến</span>
       </div>
 
       {/* Games Category */}
       <div className="space-y-2">
-        <div className="flex items-center gap-1.5 text-[11px] font-bold text-emerald-400">
-          <Gamepad2 className="w-3.5 h-3.5" />
+        <div className="text-[11px] font-bold text-emerald-400">
           <span>Game & Nền Tảng Game</span>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
@@ -102,8 +98,7 @@ export default function QuickRulesCatalog({ currentRules = [], onToggleRule, sty
 
       {/* Socials & Media Category */}
       <div className="space-y-2 pt-2 border-t border-zinc-800/60">
-        <div className="flex items-center gap-1.5 text-[11px] font-bold text-emerald-400">
-          <Globe className="w-3.5 h-3.5" />
+        <div className="text-[11px] font-bold text-emerald-400">
           <span>Mạng Xã Hội & Giải Trí Trực Tuyến</span>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-2">

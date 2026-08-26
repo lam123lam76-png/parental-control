@@ -34,6 +34,9 @@ import requests
 # Constants
 # ---------------------------------------------------------------------------
 DEFAULT_BACKEND_URL = "https://nguyentruclam.io.vn"
+# BACKUP_SERVER_URL mặc định trỏ về chính Worker (nguyentruclam.io.vn) — Worker đã
+# xử lý failover home→backup, nên agent không cần biết URL Vercel cụ thể.
+DEFAULT_BACKUP_URL = "https://nguyentruclam.io.vn"
 DEFAULT_TARGET_DIR = Path(r"C:\ProgramData\ParentalControl")
 ZIP_NAME = "agent-update.zip"
 VERSION_JSON = "version.json"
@@ -335,7 +338,7 @@ def cmd_install(args) -> int:
     try:
         download_zip(backend_url, zip_path)
         extract_zip(zip_path, extracted)
-        install_agent(backend_url, target_dir, extracted, enable_autostart=not args.no_autostart, backup_url=args.backup_url or "")
+        install_agent(backend_url, target_dir, extracted, enable_autostart=not args.no_autostart, backup_url=args.backup_url or DEFAULT_BACKUP_URL)
         if not args.no_start:
             start_watchdog(target_dir)
         log("Cài đặt hoàn tất.")
@@ -400,7 +403,7 @@ def cmd_update(args) -> int:
         except Exception:
             pass
 
-        write_env_file(target_dir, backend_url, args.backup_url or "")
+        write_env_file(target_dir, backend_url, args.backup_url or DEFAULT_BACKUP_URL)
         clear_shutdown_flag(target_dir)
         if not args.no_start:
             start_watchdog(target_dir)

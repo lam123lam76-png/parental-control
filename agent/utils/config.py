@@ -37,7 +37,7 @@ def _optional(key: str, default: str = "") -> str:
 # === Cấu hình kết nối (bắt buộc cấu hình qua .env) ===
 BACKEND_URL       = _require("BACKEND_URL", "URL của Backend API (vd: https://nguyentruclam.io.vn)")
 WS_URL            = _require("WS_URL", "URL của WebSocket (vd: wss://nguyentruclam.io.vn)")
-BACKUP_SERVER_URL = _optional("BACKUP_SERVER_URL", "")
+BACKUP_SERVER_URL = _optional("BACKUP_SERVER_URL", "https://nguyentruclam.io.vn")
 
 # === Cấu hình xác thực & định danh ===
 API_KEY     = _optional("API_KEY",     "732F636DF7E2E6A0B95AAB8C139AB375D5B65D82241661C7")

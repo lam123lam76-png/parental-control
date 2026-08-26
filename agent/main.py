@@ -527,8 +527,8 @@ def ensure_single_instance(mutex_name: str):
         try:
             import ctypes
             global _single_instance_mutex
-            _single_instance_mutex = ctypes.windll.kernel32.CreateMutexW(None, False, mutex_name)
-            if ctypes.windll.kernel32.GetLastError() == 183:  # ERROR_ALREADY_EXISTS
+            _single_instance_mutex = ctypes.WinDLL('kernel32', use_last_error=True).CreateMutexW(None, False, mutex_name)
+            if ctypes.get_last_error() == 183:  # ERROR_ALREADY_EXISTS
                 logger.warning(f"Another instance with mutex '{mutex_name}' is already running. Exiting silently.")
                 sys.exit(0)
         except Exception as e:

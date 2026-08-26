@@ -37,8 +37,8 @@ def _ensure_single_instance() -> bool:
     try:
         import ctypes
         name = "Global\\ParentalControlServerTray_SingleInstance"
-        ctypes.windll.kernel32.CreateMutexW(None, False, name)
-        err = ctypes.windll.kernel32.GetLastError()
+        ctypes.WinDLL('kernel32', use_last_error=True).CreateMutexW(None, False, name)
+        err = ctypes.get_last_error()
         if err == 183:  # ERROR_ALREADY_EXISTS
             print("[TRAY] Another server instance is already running — exiting this one.")
             return False

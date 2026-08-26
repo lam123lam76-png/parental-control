@@ -23,7 +23,14 @@ export function Header({
     return 'blocked'
   }
 
+  // Origin / backend indicator: which server is serving this page (for monitoring)
+  const host = typeof window !== 'undefined' ? window.location.hostname : '';
+  const isLocal = ['localhost', '127.0.0.1', '::1'].includes(host);
+  const isVercel = host.includes('vercel.app');
+  const sourceLabel = isLocal ? 'Local' : (isVercel ? 'Vercel' : (host ? `Tunnel` : 'Local'));
+
   return (
+    <>
     <header className="bg-black/90 border-b border-zinc-800 px-5 py-3 sticky top-0 z-20 backdrop-blur-md flex items-center justify-between gap-4">
       {/* SEARCH INPUT (/ Find) */}
       <div className="relative flex-grow max-w-xs">
@@ -93,5 +100,15 @@ export function Header({
         )}
       </div>
     </header>
+    {/* Origin / backend indicator line */}
+    <div className="bg-black/60 px-5 py-1 text-[10px] font-mono text-zinc-500 border-b border-zinc-800 flex items-center gap-2">
+      <span className={isLocal ? "text-emerald-400" : (isVercel ? "text-sky-400" : "text-zinc-400")}>●</span>
+      <span>Nguồn: <b className="text-zinc-300">{sourceLabel}</b></span>
+      <span className="opacity-60">{host || 'localhost'}</span>
+      <span className="opacity-40">·</span>
+      <span>DB: <b className="text-zinc-300">Supabase</b></span>
+      <span className="ml-auto opacity-60">{typeof window !== 'undefined' ? window.location.origin : ''}</span>
+    </div>
+    </>
   )
 }

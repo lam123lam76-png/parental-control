@@ -5,4 +5,4 @@ powershell -Command "Get-NetTCPConnection -LocalPort 8000 -ErrorAction SilentlyC
 
 echo [2/2] Starting FastAPI Backend for Parental Control Agent...
 cd backend_api
-python -m uvicorn main:app --host 0.0.0.0 --port 8000 --reload
+python -m uvicorn main:app --host 0.0.0.0 --port 8000

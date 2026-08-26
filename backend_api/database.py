@@ -29,7 +29,8 @@ else:
         pool_size=3,           # small: home server + ~2 agents needs very few
         max_overflow=5,        # cap total ~8 conns/process so Supabase pooler never exhausts
         pool_timeout=8,        # fail fast instead of waiting 30s for a pool slot
-        pool_recycle=300,      # Recycle connections after 5 minutes
+        pool_recycle=1800,     # Keep warm connections long (30min). Supabase connect/TLS from
+                               # this machine is slow (~1.4s+), so reuse beats reconnect churn.
         pool_pre_ping=True,    # Check connection health before using
         # Fail fast: cap connect + add a statement timeout so a hung Supabase query
         # is cancelled and its connection released instead of exhausting the pool
@@ -86,7 +87,7 @@ else:
         pool_size=3,
         max_overflow=5,
         pool_timeout=8,
-        pool_recycle=300,
+        pool_recycle=1800,
         pool_pre_ping=True,
         # statement_cache_size=0: avoids pgbouncer (Supabase pooler) prepared-statement errors
         connect_args={"ssl": _ssl_ctx, "statement_cache_size": 0, "timeout": 10},

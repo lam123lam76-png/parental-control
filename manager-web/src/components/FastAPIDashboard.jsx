@@ -821,6 +821,16 @@ export default function FastAPIDashboard() {
         )}
       </header>
 
+      {/* Origin / backend indicator line */}
+      <div className="flex-none px-4 py-1 text-[10px] font-mono text-zinc-500 border-b border-zinc-800 flex items-center gap-2">
+        <span className={(() => { const h = typeof window !== 'undefined' ? window.location.hostname : ''; return ['localhost','127.0.0.1','::1'].includes(h) ? 'text-emerald-400' : (h.includes('vercel.app') ? 'text-sky-400' : 'text-zinc-400'); })()}>●</span>
+        <span>Nguồn: <b className="text-zinc-300">{(() => { const h = typeof window !== 'undefined' ? window.location.hostname : ''; return ['localhost','127.0.0.1','::1'].includes(h) ? 'Local' : (h.includes('vercel.app') ? 'Vercel' : (h ? 'Tunnel' : 'Local')); })()}</b></span>
+        <span className="opacity-60">{typeof window !== 'undefined' ? window.location.hostname : 'localhost'}</span>
+        <span className="opacity-40">·</span>
+        <span>DB: <b className="text-zinc-300">Supabase</b></span>
+        <span className="ml-auto opacity-60">{typeof window !== 'undefined' ? window.location.origin : ''}</span>
+      </div>
+
       {/* MAIN CONTAINER — RESPONSIVE GRID LAYOUT */}
       <div className="max-w-7xl mx-auto px-3 sm:px-4 py-4 sm:py-6 grid grid-cols-1 md:grid-cols-12 gap-6 sm:gap-8 flex-1 overflow-hidden w-full">
 

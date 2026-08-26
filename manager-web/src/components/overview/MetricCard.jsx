@@ -14,7 +14,7 @@ export function MetricCard({
   actionButton
 }) {
   return (
-    <div className="bg-zinc-900/50 border border-zinc-800 rounded-xl p-4 flex flex-col justify-between hover:border-zinc-700/80 transition-all duration-200 group">
+    <div className="bg-zinc-900/50 border border-zinc-900 rounded-xl p-4 flex flex-col justify-between hover:border-zinc-700/80 transition-all duration-200 group">
       {/* HEADER */}
       <div className="flex items-center justify-between mb-3">
         <span className="text-[11px] font-mono font-medium text-zinc-500 uppercase tracking-wider">{title}</span>

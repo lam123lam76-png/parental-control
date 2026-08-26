@@ -7,7 +7,7 @@ export function ProcessTable({ processes = [] }) {
 
   if (safeProcesses.length === 0) {
     return (
-      <div className="p-8 text-center text-xs font-mono text-zinc-500 bg-zinc-900/30 border border-zinc-800 rounded-xl">
+      <div className="p-8 text-center text-xs font-mono text-zinc-500 bg-zinc-900/30 border border-zinc-900 rounded-xl">
         No active process logs recorded.
       </div>
     )

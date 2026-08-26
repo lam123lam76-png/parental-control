@@ -581,7 +581,7 @@ export default function FastAPIDashboard() {
             <p className="text-xs text-zinc-500">Đăng nhập để quản lý thiết bị con em</p>
           </div>
 
-          <form onSubmit={handleAuth} className="bg-zinc-900 border border-zinc-800 rounded-xl p-6 space-y-4 shadow-2xl">
+          <form onSubmit={handleAuth} className="bg-zinc-900 border border-zinc-900 rounded-xl p-6 space-y-4 shadow-2xl">
             <div className="flex gap-2 p-1 bg-zinc-950 rounded-lg">
               <button
                 type="button"
@@ -634,7 +634,7 @@ export default function FastAPIDashboard() {
             </div>
 
             {authError && (
-              <div className="p-2.5 rounded-lg bg-rose-900/30 border border-rose-800/50 text-xs text-rose-300 font-bold">
+              <div className="p-2.5 rounded-lg bg-emerald-900/30 border border-emerald-800/50 text-xs text-emerald-300 font-bold">
                 {authError}
               </div>
             )}
@@ -690,7 +690,7 @@ export default function FastAPIDashboard() {
 
             {/* System Admin Badge */}
             {isSystemAdmin && (
-              <span className="hidden lg:flex items-center gap-1 px-2.5 py-1 rounded-lg text-[10px] font-extrabold tracking-wider bg-amber-900/30 border border-amber-600/60 text-amber-300">
+              <span className="hidden lg:flex items-center gap-1 px-2.5 py-1 rounded-lg text-[10px] font-extrabold tracking-wider bg-emerald-900/30 border border-emerald-600/60 text-emerald-300">
                 <Shield className="w-3 h-3" />
                 SYSTEM ADMIN
               </span>
@@ -812,7 +812,7 @@ export default function FastAPIDashboard() {
               )}
               <button
                 onClick={handleLogout}
-                className="w-full py-2 text-xs font-bold rounded-md bg-rose-900/40 border border-rose-800/50 text-rose-300 hover:bg-rose-900/60 transition"
+                className="w-full py-2 text-xs font-bold rounded-md bg-emerald-900/40 border border-emerald-800/50 text-emerald-300 hover:bg-emerald-900/60 transition"
               >
                 Đăng Xuất
               </button>
@@ -931,13 +931,13 @@ export default function FastAPIDashboard() {
               
               {/* Lock Screen Switch Toggle */}
               <div className="flex items-center gap-3">
-                <div className={`p-2 rounded-lg ${isLocked ? "bg-rose-900/30 border border-rose-800/50 text-rose-300" : "bg-zinc-900/70 border border-zinc-800 border-l-2 border-l-[#064E3B] text-[#F8E7C9]"}`}>
+                <div className={`p-2 rounded-lg ${isLocked ? "bg-emerald-900/30 border border-emerald-800/50 text-emerald-300" : "bg-zinc-900/70 border border-zinc-900 border-l-2 border-l-[#064E3B] text-[#F8E7C9]"}`}>
                   {isLocked ? <Lock className="w-4 h-4" /> : <Unlock className="w-4 h-4" />}
                 </div>
                 <div>
                   <div className="flex items-center gap-2">
                     <span className={`text-xs font-extrabold ${styles.textBold}`}>Khóa Màn Hình</span>
-                    <span className={`text-[9px] font-extrabold px-1.5 py-0.5 rounded ${isLocked ? "bg-rose-900/60 text-rose-200" : "bg-[#064E3B] text-[#F8E7C9]"}`}>
+                    <span className={`text-[9px] font-extrabold px-1.5 py-0.5 rounded ${isLocked ? "bg-emerald-900/60 text-emerald-200" : "bg-[#064E3B] text-[#F8E7C9]"}`}>
                       {isLocked ? "ĐANG KHÓA (ON)" : "MỞ KHÓA (OFF)"}
                     </span>
                   </div>
@@ -950,7 +950,7 @@ export default function FastAPIDashboard() {
                 <button
                   onClick={handleToggleLock}
                   className={`w-12 h-6 rounded-full p-0.5 transition-colors duration-300 flex items-center ${
-                    isLocked ? "bg-rose-600 justify-end" : "bg-zinc-700 justify-start"
+                    isLocked ? "bg-emerald-600 justify-end" : "bg-zinc-700 justify-start"
                   }`}
                   title={isLocked ? "Tắt khóa màn hình" : "Bật khóa màn hình"}
                 >
@@ -986,8 +986,8 @@ export default function FastAPIDashboard() {
                   <span className={`text-[10px] font-bold uppercase tracking-wider ${styles.textMuted}`}>Trạng Thái</span>
                   <div className="flex items-center gap-2">
                     <span className={`relative flex h-2.5 w-2.5 shrink-0`}>
-                      <span className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 ${status.is_online ? "bg-emerald-400" : "bg-rose-400"}`} />
-                      <span className={`relative inline-flex rounded-full h-2.5 w-2.5 ${status.is_online ? "bg-emerald-500" : "bg-rose-500"}`} />
+                      <span className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 ${status.is_online ? "bg-emerald-400" : "bg-emerald-400"}`} />
+                      <span className={`relative inline-flex rounded-full h-2.5 w-2.5 ${status.is_online ? "bg-emerald-500" : "bg-emerald-500"}`} />
                     </span>
                     <span className={`text-sm font-extrabold ${styles.textBold}`}>{status.is_online ? "Online" : "Offline"}</span>
                   </div>
@@ -1032,9 +1032,9 @@ export default function FastAPIDashboard() {
                 <h4 className={`text-xs font-bold uppercase tracking-wider ${styles.textBold}`}>Phân Loại Quy Tắc Đang Kích Hoạt</h4>
                 <div className="space-y-2">
                   {[
-                    { label: "App Ban Rules", count: rules.filter(r => r.rule_type === "app").length, color: "bg-rose-500" },
-                    { label: "Web Ban Rules", count: rules.filter(r => r.rule_type === "web").length, color: "bg-amber-500" },
-                    { label: "Time Rules",    count: rules.filter(r => r.rule_type === "time").length, color: "bg-blue-500" },
+                    { label: "App Ban Rules", count: rules.filter(r => r.rule_type === "app").length, color: "bg-emerald-500" },
+                    { label: "Web Ban Rules", count: rules.filter(r => r.rule_type === "web").length, color: "bg-emerald-500" },
+                    { label: "Time Rules",    count: rules.filter(r => r.rule_type === "time").length, color: "bg-emerald-500" },
                   ].map(({ label, count, color }) => (
                     <div key={label} className="flex items-center gap-3 text-xs">
                       <span className={`text-[10px] font-bold w-28 shrink-0 ${styles.textMuted}`}>{label}</span>
@@ -1058,16 +1058,16 @@ export default function FastAPIDashboard() {
                     onClick={handleTakeScreenshot}
                     className={`p-3 rounded-lg border text-xs font-bold flex flex-col items-center gap-1.5 transition hover:border-[#064E3B] ${styles.card}`}
                   >
-                    <Camera className="w-5 h-5 text-cyan-400" />
+                    <Camera className="w-5 h-5 text-emerald-400" />
                     <span>Chụp Màn Hình</span>
                   </button>
                   <button
                     onClick={() => handleToggleFocusMode(60)}
                     className={`p-3 rounded-lg border text-xs font-bold flex flex-col items-center gap-1.5 transition ${
-                      isFocusMode ? "bg-amber-950/60 border-amber-500 text-amber-300" : `${styles.card} hover:border-amber-500`
+                      isFocusMode ? "bg-emerald-950/60 border-emerald-500 text-emerald-300" : `${styles.card} hover:border-emerald-500`
                     }`}
                   >
-                    <Target className={`w-5 h-5 ${isFocusMode ? "text-amber-400 animate-pulse" : "text-amber-400"}`} />
+                    <Target className={`w-5 h-5 ${isFocusMode ? "text-emerald-400 animate-pulse" : "text-emerald-400"}`} />
                     <span>{isFocusMode ? "Tắt Học Bài" : "🎯 Học Bài (1h)"}</span>
                   </button>
                   <button
@@ -1081,15 +1081,15 @@ export default function FastAPIDashboard() {
                     onClick={() => setActiveNav("rules")}
                     className={`p-3 rounded-lg border text-xs font-bold flex flex-col items-center gap-1.5 transition hover:border-[#064E3B] ${styles.card}`}
                   >
-                    <Shield className="w-5 h-5 text-blue-400" />
+                    <Shield className="w-5 h-5 text-emerald-400" />
                     <span>Quản Lý Rules</span>
                   </button>
                   <button
                     onClick={() => setShowShutdownModal(true)}
-                    className={`p-3 rounded-lg border text-xs font-bold flex flex-col items-center gap-1.5 transition bg-rose-950/20 border-rose-800/40 text-rose-300 hover:bg-rose-900/40 hover:border-rose-600`}
+                    className={`p-3 rounded-lg border text-xs font-bold flex flex-col items-center gap-1.5 transition bg-emerald-950/20 border-emerald-800/40 text-emerald-300 hover:bg-emerald-900/40 hover:border-emerald-600`}
                     title="Tắt nguồn thiết bị từ xa (Hẹn giờ 10s)"
                   >
-                    <Power className="w-5 h-5 text-rose-400" />
+                    <Power className="w-5 h-5 text-emerald-400" />
                     <span>Tắt Máy Từ Xa</span>
                   </button>
                 </div>
@@ -1147,8 +1147,8 @@ export default function FastAPIDashboard() {
                   <h4 className={`text-xs font-bold uppercase tracking-wider ${styles.textBold}`}>Cảnh Báo Gần Nhất</h4>
                   <div className="space-y-1.5">
                     {alerts.slice(0, 5).map((alert, idx) => (
-                      <div key={idx} className="flex items-start gap-2 text-xs p-2 rounded-lg bg-rose-900/20 border border-rose-800/30">
-                        <span className="text-rose-400 font-bold shrink-0">[{alert.alert_type || "ALERT"}]</span>
+                      <div key={idx} className="flex items-start gap-2 text-xs p-2 rounded-lg bg-emerald-900/20 border border-emerald-800/30">
+                        <span className="text-emerald-400 font-bold shrink-0">[{alert.alert_type || "ALERT"}]</span>
                         <span className={`${styles.textMuted} flex-1 truncate`}>{alert.message}</span>
                         <span className={`text-[9px] shrink-0 ${styles.textMuted}`}>
                           {alert.timestamp ? new Date(alert.timestamp).toLocaleTimeString() : ""}
@@ -1183,7 +1183,7 @@ export default function FastAPIDashboard() {
                   {screenshots.length > 0 && (
                     <button
                       onClick={handleDeleteAllScreenshots}
-                      className="px-2.5 py-1 text-xs font-bold rounded-lg bg-rose-600/20 border border-rose-500/40 text-rose-300 hover:bg-rose-600/30 flex items-center gap-1.5 transition active:scale-95"
+                      className="px-2.5 py-1 text-xs font-bold rounded-lg bg-emerald-600/20 border border-emerald-500/40 text-emerald-300 hover:bg-emerald-600/30 flex items-center gap-1.5 transition active:scale-95"
                       title="Xóa tất cả ảnh của thiết bị này"
                     >
                       <Trash2 className="w-3.5 h-3.5" />
@@ -1225,7 +1225,7 @@ export default function FastAPIDashboard() {
                         <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition z-10">
                           <button
                             onClick={(e) => handleDeleteScreenshot(e, shot.id)}
-                            className="p-1.5 rounded-lg bg-rose-600/90 hover:bg-rose-700 text-white shadow-lg transition active:scale-90"
+                            className="p-1.5 rounded-lg bg-emerald-600/90 hover:bg-emerald-700 text-white shadow-lg transition active:scale-90"
                             title="Xóa ảnh này"
                           >
                             <Trash2 className="w-3.5 h-3.5" />
@@ -1309,9 +1309,9 @@ export default function FastAPIDashboard() {
                       </div>
                       <button
                         onClick={() => handleDeleteRule(rule.id)}
-                        className="text-[10px] font-bold text-rose-600 dark:text-rose-400 hover:text-rose-700 px-2 py-0.5 rounded border border-rose-800/40 hover:bg-rose-900/30 transition flex items-center gap-1"
+                        className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 hover:text-emerald-700 px-2 py-0.5 rounded border border-emerald-800/40 hover:bg-emerald-900/30 transition flex items-center gap-1"
                       >
-                        <Trash2 className="w-3 h-3 text-rose-600 dark:text-rose-400" />
+                        <Trash2 className="w-3 h-3 text-emerald-600 dark:text-emerald-400" />
                         <span>Xóa</span>
                       </button>
                     </div>
@@ -1366,7 +1366,7 @@ export default function FastAPIDashboard() {
               {settingSubTab === "menu" && (
                 <div className={`p-4 sm:p-5 rounded-xl border space-y-4 ${styles.card}`}>
                   <div className="flex items-center gap-3 pb-3 border-b border-opacity-20">
-                    <div className="p-2.5 rounded-lg bg-zinc-900/70 border border-zinc-800 border-l-2 border-l-[#064E3B] text-[#F8E7C9]">
+                    <div className="p-2.5 rounded-lg bg-zinc-900/70 border border-zinc-900 border-l-2 border-l-[#064E3B] text-[#F8E7C9]">
                       <Settings className="w-5 h-5 stroke-[1.75]" />
                     </div>
                     <div>
@@ -1420,7 +1420,7 @@ export default function FastAPIDashboard() {
                       className={`w-full p-3.5 rounded-xl border flex items-center justify-between transition hover:border-[#064E3B] ${styles.card}`}
                     >
                       <div className="flex items-center gap-3">
-                        <div className="p-2 rounded-lg bg-blue-900/30 text-blue-300">
+                        <div className="p-2 rounded-lg bg-emerald-900/30 text-emerald-300">
                           <HardDrive className="w-4 h-4" />
                         </div>
                         <div className="text-left">
@@ -1437,7 +1437,7 @@ export default function FastAPIDashboard() {
                       className={`w-full p-3.5 rounded-xl border flex items-center justify-between transition hover:border-[#064E3B] ${styles.card}`}
                     >
                       <div className="flex items-center gap-3">
-                        <div className="p-2 rounded-lg bg-purple-900/30 text-purple-300">
+                        <div className="p-2 rounded-lg bg-emerald-900/30 text-emerald-300">
                           <Activity className="w-4 h-4" />
                         </div>
                         <div className="text-left">
@@ -1454,7 +1454,7 @@ export default function FastAPIDashboard() {
                       className={`w-full p-3.5 rounded-xl border flex items-center justify-between transition hover:border-[#064E3B] ${styles.card}`}
                     >
                       <div className="flex items-center gap-3">
-                        <div className="p-2 rounded-lg bg-amber-900/30 text-amber-300">
+                        <div className="p-2 rounded-lg bg-emerald-900/30 text-emerald-300">
                           <Clock className="w-4 h-4" />
                         </div>
                         <div className="text-left">
@@ -1564,8 +1564,8 @@ export default function FastAPIDashboard() {
             {/* Status Indicator */}
             <div className="flex items-center gap-3 p-3 rounded-lg border bg-[#064E3B]/10 border-zinc-800">
               <span className="relative flex h-3 w-3 shrink-0">
-                <span className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 ${status.is_online ? "bg-[#064E3B] dark:bg-emerald-400" : "bg-rose-400"}`} />
-                <span className={`relative inline-flex rounded-full h-3 w-3 ${status.is_online ? "bg-[#064E3B] dark:bg-emerald-500" : "bg-rose-500"}`} />
+                <span className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 ${status.is_online ? "bg-[#064E3B] dark:bg-emerald-400" : "bg-emerald-400"}`} />
+                <span className={`relative inline-flex rounded-full h-3 w-3 ${status.is_online ? "bg-[#064E3B] dark:bg-emerald-500" : "bg-emerald-500"}`} />
               </span>
               <div>
                 <div className={`text-xs font-extrabold flex items-center gap-1.5 ${styles.textBold}`}>
@@ -1627,7 +1627,7 @@ export default function FastAPIDashboard() {
               )}
               <button
                 onClick={handleLogout}
-                className="w-full py-2 sm:py-1.5 text-xs font-bold rounded-md bg-rose-900/40 border border-rose-800/50 text-rose-300 hover:bg-rose-900/60 transition"
+                className="w-full py-2 sm:py-1.5 text-xs font-bold rounded-md bg-emerald-900/40 border border-emerald-800/50 text-emerald-300 hover:bg-emerald-900/60 transition"
               >
                 Đăng Xuất
               </button>
@@ -1655,13 +1655,13 @@ export default function FastAPIDashboard() {
       {/* Remote Shutdown Confirmation Modal */}
       {showShutdownModal && (
         <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="max-w-md w-full p-5 sm:p-6 rounded-2xl border border-rose-500/40 shadow-2xl space-y-4 bg-zinc-950 text-white animate-in fade-in zoom-in duration-200">
-            <div className="flex items-center gap-3 text-rose-400 border-b border-rose-900/40 pb-3">
-              <div className="p-2 rounded-xl bg-rose-950/60 border border-rose-700/50">
-                <AlertTriangle className="w-6 h-6 text-rose-400 animate-pulse" />
+          <div className="max-w-md w-full p-5 sm:p-6 rounded-2xl border border-emerald-500/40 shadow-2xl space-y-4 bg-zinc-950 text-white animate-in fade-in zoom-in duration-200">
+            <div className="flex items-center gap-3 text-emerald-400 border-b border-emerald-900/40 pb-3">
+              <div className="p-2 rounded-xl bg-emerald-950/60 border border-emerald-700/50">
+                <AlertTriangle className="w-6 h-6 text-emerald-400 animate-pulse" />
               </div>
               <div>
-                <h3 className="text-sm font-black uppercase tracking-wider text-rose-300">
+                <h3 className="text-sm font-black uppercase tracking-wider text-emerald-300">
                   Xác Nhận Tắt Nguồn Thiết Bị
                 </h3>
                 <p className="text-[11px] text-zinc-400">
@@ -1670,7 +1670,7 @@ export default function FastAPIDashboard() {
               </div>
             </div>
 
-            <div className="p-3.5 rounded-xl bg-rose-950/30 border border-rose-900/50 text-xs text-rose-200/90 leading-relaxed space-y-2">
+            <div className="p-3.5 rounded-xl bg-emerald-950/30 border border-emerald-900/50 text-xs text-emerald-200/90 leading-relaxed space-y-2">
               <p>
                 ⚠️ <b>LƯU Ý QUAN TRỌNG:</b> Sau khi gửi lệnh, máy tính của con sẽ đếm ngược <b>10 giây</b> và <b>TẮT NGUỒN HOÀN TOÀN</b>.
               </p>
@@ -1686,7 +1686,7 @@ export default function FastAPIDashboard() {
                 value={shutdownReason}
                 onChange={(e) => setShutdownReason(e.target.value)}
                 placeholder="Nhập lý do hoặc chọn nhanh bên dưới..."
-                className="w-full px-3 py-2 rounded-lg bg-zinc-900 border border-zinc-700 text-xs focus:border-rose-500 outline-none text-zinc-100"
+                className="w-full px-3 py-2 rounded-lg bg-zinc-900 border border-zinc-700 text-xs focus:border-emerald-500 outline-none text-zinc-100"
               />
               <div className="flex flex-wrap gap-1.5 pt-1">
                 {["Đã hết giờ dùng máy tính", "Đến giờ đi ngủ", "Tắt máy nghỉ ngơi"].map((preset) => (
@@ -1715,7 +1715,7 @@ export default function FastAPIDashboard() {
                 type="button"
                 onClick={handleShutdownDevice}
                 disabled={isShuttingDown}
-                className="px-4 py-2 rounded-lg bg-rose-600 hover:bg-rose-500 text-white text-xs font-bold transition flex items-center gap-1.5 shadow-lg shadow-rose-950/50"
+                className="px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold transition flex items-center gap-1.5 shadow-lg shadow-rose-950/50"
               >
                 <Power className="w-4 h-4" />
                 <span>{isShuttingDown ? "Đang gửi lệnh..." : "Xác Nhận Tắt Máy"}</span>

@@ -8,7 +8,7 @@ export function ProcessCardList({ processes = [] }) {
 
   if (safeProcesses.length === 0) {
     return (
-      <div className="lg:hidden p-4 text-center text-xs font-mono text-zinc-500 bg-zinc-900/30 border border-zinc-800 rounded-xl">
+      <div className="lg:hidden p-4 text-center text-xs font-mono text-zinc-500 bg-zinc-900/30 border border-zinc-900 rounded-xl">
         No active process logs recorded.
       </div>
     )
@@ -25,7 +25,7 @@ export function ProcessCardList({ processes = [] }) {
         return (
           <div
             key={`m_proc_${pidVal}_${idx}`}
-            className="p-3 bg-zinc-900/50 border border-zinc-800 rounded-xl space-y-2"
+            className="p-3 bg-zinc-900/50 border border-zinc-900 rounded-xl space-y-2"
           >
             {/* DÒNG 1: STATUS BADGE + PID */}
             <div className="flex items-center justify-between text-xs">

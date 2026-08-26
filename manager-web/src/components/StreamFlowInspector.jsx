@@ -96,7 +96,7 @@ export default function StreamFlowInspector({ theme = "dark", deviceId }) {
                     <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500" />
                   </>
                 ) : (
-                  <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-rose-500" />
+                  <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500" />
                 )}
               </span>
             </div>
@@ -114,7 +114,7 @@ export default function StreamFlowInspector({ theme = "dark", deviceId }) {
             <div className={`space-y-1.5 text-xs font-mono ${styles.text}`}>
               <div className="flex justify-between">
                 <span className="font-semibold">Trạng Thái Kênh:</span>
-                <span className={isOnline ? "text-emerald-400 font-bold" : "text-rose-400 font-bold"}>
+                <span className={isOnline ? "text-emerald-400 font-bold" : "text-emerald-400 font-bold"}>
                   {isOnline ? "Trực Tuyến (Online)" : "Ngoại Tuyến (Offline)"}
                 </span>
               </div>
@@ -142,12 +142,12 @@ export default function StreamFlowInspector({ theme = "dark", deviceId }) {
               <span className={`text-[10px] uppercase px-2 py-0.5 rounded ${styles.badge}`}>
                 Luồng 2: Tuyến Báo Động
               </span>
-              <span className="w-2.5 h-2.5 rounded-full bg-amber-400" />
+              <span className="w-2.5 h-2.5 rounded-full bg-emerald-400" />
             </div>
 
             <div>
               <h4 className={`text-xs font-bold flex items-center gap-1.5 ${styles.textBold}`}>
-                <AlertTriangle className="w-4 h-4 text-amber-400 stroke-[1.75]" />
+                <AlertTriangle className="w-4 h-4 text-emerald-400 stroke-[1.75]" />
                 <span>HTTP Fast-Track Alert Queue</span>
               </h4>
               <p className={`text-[11px] mt-1 ${styles.textMuted}`}>
@@ -184,12 +184,12 @@ export default function StreamFlowInspector({ theme = "dark", deviceId }) {
               <span className={`text-[10px] uppercase px-2 py-0.5 rounded ${styles.badge}`}>
                 Luồng 3: Tuyến Xe Tải
               </span>
-              <span className="w-2.5 h-2.5 rounded-full bg-blue-400" />
+              <span className="w-2.5 h-2.5 rounded-full bg-emerald-400" />
             </div>
 
             <div>
               <h4 className={`text-xs font-bold flex items-center gap-1.5 ${styles.textBold}`}>
-                <Truck className="w-4 h-4 text-blue-400 stroke-[1.75]" />
+                <Truck className="w-4 h-4 text-emerald-400 stroke-[1.75]" />
                 <span>Batch Process Log Upload</span>
               </h4>
               <p className={`text-[11px] mt-1 ${styles.textMuted}`}>

@@ -110,11 +110,11 @@ export default function SystemConsoleLogBox({ theme = "dark", realLogs = [], ale
       case "SUCCESS":
         return <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 shrink-0" title="SUCCESS" />;
       case "WARN":
-        return <AlertTriangle className="w-3.5 h-3.5 text-amber-400 shrink-0" title="WARN" />;
+        return <AlertTriangle className="w-3.5 h-3.5 text-emerald-400 shrink-0" title="WARN" />;
       case "ERROR":
-        return <XCircle className="w-3.5 h-3.5 text-rose-400 shrink-0" title="ERROR" />;
+        return <XCircle className="w-3.5 h-3.5 text-emerald-400 shrink-0" title="ERROR" />;
       default:
-        return <Info className="w-3.5 h-3.5 text-sky-400 shrink-0" title="INFO" />;
+        return <Info className="w-3.5 h-3.5 text-emerald-400 shrink-0" title="INFO" />;
     }
   };
 
@@ -129,8 +129,8 @@ export default function SystemConsoleLogBox({ theme = "dark", realLogs = [], ale
             Nhật Ký Console Hệ Thống Trực Quan (System Log Box)
           </h3>
           <span className="flex h-2 w-2 relative ml-1">
-            <span className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 ${isPaused ? "bg-amber-400" : "bg-emerald-400"}`} />
-            <span className={`relative inline-flex rounded-full h-2 w-2 ${isPaused ? "bg-amber-500" : "bg-emerald-500"}`} />
+            <span className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 ${isPaused ? "bg-emerald-400" : "bg-emerald-400"}`} />
+            <span className={`relative inline-flex rounded-full h-2 w-2 ${isPaused ? "bg-emerald-500" : "bg-emerald-500"}`} />
           </span>
         </div>
 
@@ -157,7 +157,7 @@ export default function SystemConsoleLogBox({ theme = "dark", realLogs = [], ale
             className={`p-1.5 px-2.5 rounded-lg border text-xs font-bold flex items-center gap-1 ${styles.buttonSecondary}`}
             title={isPaused ? "Tiếp tục chạy log" : "Tạm dừng log"}
           >
-            {isPaused ? <Play className="w-3 h-3 text-emerald-500" /> : <Pause className="w-3 h-3 text-amber-500" />}
+            {isPaused ? <Play className="w-3 h-3 text-emerald-500" /> : <Pause className="w-3 h-3 text-emerald-500" />}
             <span>{isPaused ? "Resume" : "Pause"}</span>
           </button>
 
@@ -174,7 +174,7 @@ export default function SystemConsoleLogBox({ theme = "dark", realLogs = [], ale
             className={`p-1.5 px-2.5 rounded-lg border text-xs font-bold flex items-center gap-1 ${styles.buttonSecondary}`}
             title="Xóa sạch nhật ký"
           >
-            <Trash2 className="w-3 h-3 text-rose-500" />
+            <Trash2 className="w-3 h-3 text-emerald-500" />
             <span>Clear</span>
           </button>
         </div>
@@ -188,8 +188,8 @@ export default function SystemConsoleLogBox({ theme = "dark", realLogs = [], ale
         {/* Terminal Top Window Bar */}
         <div className="px-4 py-2 bg-zinc-950 border-b border-zinc-800 flex items-center justify-between text-[11px] text-[#F8E7C9]">
           <div className="flex items-center gap-2">
-            <span className="w-2.5 h-2.5 rounded-full bg-rose-500 inline-block" />
-            <span className="w-2.5 h-2.5 rounded-full bg-amber-500 inline-block" />
+            <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 inline-block" />
+            <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 inline-block" />
             <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 inline-block" />
             <span className="ml-2 font-bold opacity-80">ParentalControlSystem.log</span>
           </div>
@@ -212,7 +212,7 @@ export default function SystemConsoleLogBox({ theme = "dark", realLogs = [], ale
               <div key={log.id} className="flex items-start gap-2 hover:bg-zinc-900 p-1.5 rounded transition text-[11px] leading-relaxed">
                 <span className="opacity-50 shrink-0 text-[10px] pt-0.5">{log.time}</span>
                 <div className="shrink-0 pt-0.5">{getLevelBadge(log.level)}</div>
-                <span className="text-cyan-400 font-extrabold shrink-0 pt-0.5">
+                <span className="text-emerald-400 font-extrabold shrink-0 pt-0.5">
                   [{log.stream}]
                 </span>
                 <span className="flex-1 font-medium text-[#F8E7C9] break-words whitespace-pre-wrap leading-tight">

@@ -13,7 +13,7 @@ export function ScheduleTable({
 
   if (safeTasks.length === 0) {
     return (
-      <div className="p-8 text-center text-xs font-mono text-zinc-500 bg-zinc-900/30 border border-zinc-800 rounded-xl">
+      <div className="p-8 text-center text-xs font-mono text-zinc-500 bg-zinc-900/30 border border-zinc-900 rounded-xl">
         Chưa có lịch trình hay công việc nào.
       </div>
     )

@@ -50,7 +50,7 @@ export function PermissionMatrix({
                         <select
                           value={currentPerm}
                           onChange={(e) => onSetPermission && onSetPermission(role, tab.id, e.target.value)}
-                          className="bg-zinc-900 border border-zinc-800 rounded-md px-2.5 py-1 text-xs font-mono text-zinc-200 outline-none focus:border-zinc-600 transition"
+                          className="bg-zinc-900 border border-zinc-900 rounded-md px-2.5 py-1 text-xs font-mono text-zinc-200 outline-none focus:border-zinc-600 transition"
                         >
                           {(permOptions ?? []).map(opt => (
                             <option key={opt.value} value={opt.value} className="bg-zinc-900 text-zinc-200">
@@ -69,7 +69,7 @@ export function PermissionMatrix({
       </div>
 
       {/* VERCEL STICKY WHITE ACTION BAR */}
-      <div className="sticky bottom-4 left-0 right-0 z-40 bg-zinc-900/90 border border-zinc-800 backdrop-blur-md rounded-xl p-3 flex items-center justify-between shadow-2xl">
+      <div className="sticky bottom-4 left-0 right-0 z-40 bg-zinc-900/90 border border-zinc-900 backdrop-blur-md rounded-xl p-3 flex items-center justify-between shadow-2xl">
         <div className="flex items-center gap-2 text-xs font-mono text-zinc-400">
           <ShieldCheck className="w-4 h-4 text-zinc-200 stroke-[1.5]" />
           <span>Quyền hạn sẽ được áp dụng ngay sau khi lưu.</span>

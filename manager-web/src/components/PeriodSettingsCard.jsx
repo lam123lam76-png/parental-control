@@ -4,7 +4,7 @@ import { api } from "../lib/api";
 
 const themeStyles = {
   dark: {
-    card: "bg-zinc-900 border-zinc-800 text-[#F8E7C9]",
+    card: "bg-zinc-900 border-zinc-900 text-[#F8E7C9]",
     input: "bg-zinc-950 border-zinc-800 text-[#F8E7C9] focus:border-[#064E3B]",
     textBold: "text-[#F8E7C9]",
     textMuted: "text-zinc-400",
@@ -104,7 +104,7 @@ export default function PeriodSettingsCard({ theme = "dark", deviceId }) {
     <div className={`p-4 sm:p-5 rounded-xl border space-y-5 ${styles.card}`}>
       {/* Header */}
       <div className="flex items-center gap-3">
-        <div className="p-2.5 rounded-lg bg-purple-900/30 border border-purple-700/40 text-purple-300">
+        <div className="p-2.5 rounded-lg bg-emerald-900/30 border border-emerald-700/40 text-emerald-300">
           <Activity className="w-5 h-5 stroke-[1.75]" />
         </div>
         <div>
@@ -171,7 +171,7 @@ export default function PeriodSettingsCard({ theme = "dark", deviceId }) {
       {/* Heartbeat Interval */}
       <div className={`p-4 rounded-xl border ${styles.card} space-y-3`}>
         <div className="flex items-center gap-2.5">
-          <div className="p-1.5 rounded-md bg-blue-900/30 text-blue-300">
+          <div className="p-1.5 rounded-md bg-emerald-900/30 text-emerald-300">
             <Activity className="w-4 h-4" />
           </div>
           <div>
@@ -189,7 +189,7 @@ export default function PeriodSettingsCard({ theme = "dark", deviceId }) {
               onClick={() => setHeartbeatInterval(opt.value)}
               className={`py-2 px-1 rounded-lg border text-xs font-bold transition ${
                 heartbeatInterval === opt.value
-                  ? "bg-blue-800/50 border-blue-500 text-blue-200"
+                  ? "bg-emerald-800/50 border-emerald-500 text-emerald-200"
                   : `${styles.buttonSecondary} border`
               }`}
             >
@@ -221,8 +221,8 @@ export default function PeriodSettingsCard({ theme = "dark", deviceId }) {
         <div
           className={`flex items-center gap-2 px-3 py-2.5 rounded-lg border text-xs font-bold ${
             message.type === "success"
-              ? "bg-zinc-800/30 border-zinc-700/50 text-zinc-200 text-emerald-300"
-              : "bg-rose-900/30 border-rose-700/50 text-rose-300"
+              ? "bg-zinc-800/30 border-zinc-800/50 text-zinc-200 text-emerald-300"
+              : "bg-emerald-900/30 border-emerald-700/50 text-emerald-300"
           }`}
         >
           {message.type === "success" ? (

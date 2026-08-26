@@ -72,7 +72,7 @@ export default function TelegramConfigModal({ isOpen, onClose, theme = "dark" })
   return (
     <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4">
       <div className={`max-w-md w-full p-6 rounded-xl border shadow-2xl space-y-4 ${
-        theme === "dark" ? "bg-zinc-900 border-zinc-800 text-[#F8E7C9]" : "bg-[#FFFFFF] border-[#DECC9F] text-[#064E3B]"
+        theme === "dark" ? "bg-zinc-900 border-zinc-900 text-[#F8E7C9]" : "bg-[#FFFFFF] border-[#DECC9F] text-[#064E3B]"
       }`}>
         <div className="flex justify-between items-center border-b pb-3 border-opacity-20">
           <h3 className="text-sm font-bold flex items-center gap-2">
@@ -86,9 +86,9 @@ export default function TelegramConfigModal({ isOpen, onClose, theme = "dark" })
 
         {statusMsg && (
           <div className={`p-2.5 rounded text-xs font-bold flex items-center gap-2 ${
-            isError ? "bg-rose-900/30 border border-rose-800 text-rose-300" : "bg-[#064E3B]/20 border border-[#064E3B] text-[#F8E7C9]"
+            isError ? "bg-emerald-900/30 border border-emerald-800 text-emerald-300" : "bg-[#064E3B]/20 border border-[#064E3B] text-[#F8E7C9]"
           }`}>
-            {isError ? <AlertCircle className="w-4 h-4 shrink-0 text-rose-400" /> : <CheckCircle2 className="w-4 h-4 shrink-0 text-emerald-400" />}
+            {isError ? <AlertCircle className="w-4 h-4 shrink-0 text-emerald-400" /> : <CheckCircle2 className="w-4 h-4 shrink-0 text-emerald-400" />}
             <span>{statusMsg}</span>
           </div>
         )}

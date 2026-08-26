@@ -92,7 +92,7 @@ export default function DeviceChatBox({ theme = "dark", deviceId = "", isOnline 
       {/* HEADER */}
       <div className="flex items-center justify-between pb-3 border-b border-opacity-20 shrink-0">
         <div className="flex items-center gap-2.5">
-          <div className="p-2 rounded-lg bg-zinc-900/70 border border-zinc-800 border-l-2 border-l-[#064E3B] text-[#F8E7C9]">
+          <div className="p-2 rounded-lg bg-zinc-900/70 border border-zinc-900 border-l-2 border-l-[#064E3B] text-[#F8E7C9]">
             <MessageSquare className="w-4 h-4" />
           </div>
           <div>
@@ -133,7 +133,7 @@ export default function DeviceChatBox({ theme = "dark", deviceId = "", isOnline 
                 className={`flex items-end gap-2 ${isAdmin ? "justify-end" : "justify-start"}`}
               >
                 {!isAdmin && (
-                  <div className="px-2 py-0.5 rounded-full bg-blue-900/40 border border-blue-700/50 flex items-center justify-center text-blue-300 text-[10px] font-bold shrink-0">
+                  <div className="px-2 py-0.5 rounded-full bg-emerald-900/40 border border-emerald-700/50 flex items-center justify-center text-emerald-300 text-[10px] font-bold shrink-0">
                     Máy Con
                   </div>
                 )}
@@ -141,7 +141,7 @@ export default function DeviceChatBox({ theme = "dark", deviceId = "", isOnline 
                 <div className={`max-w-[75%] rounded-2xl px-3.5 py-2 space-y-1 ${
                   isAdmin
                     ? "bg-[#064E3B] text-[#F8E7C9] rounded-br-none border border-[#064E3B]"
-                    : "bg-blue-950/60 text-zinc-100 rounded-bl-none border border-blue-900/50"
+                    : "bg-emerald-950/60 text-zinc-100 rounded-bl-none border border-emerald-900/50"
                 }`}>
                   <div className="font-bold text-xs break-words">{c.message}</div>
                   <div className={`text-[9px] text-right font-medium opacity-70`}>

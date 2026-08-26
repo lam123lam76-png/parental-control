@@ -5,13 +5,13 @@ import { cn } from '../../lib/utils';
 const statusConfig = {
   online:   { dot: 'bg-green-500', ping: 'bg-green-500 animate-ping', text: 'text-green-400', bg: 'bg-green-500/10', border: 'border-green-500/20', label: 'Online', pingable: true },
   ready:    { dot: 'bg-green-500', ping: 'bg-green-500 animate-ping', text: 'text-green-400', bg: 'bg-green-500/10', border: 'border-green-500/20', label: 'Ready', pingable: true },
-  paused:   { dot: 'bg-yellow-500', ping: 'bg-yellow-500 animate-ping', text: 'text-yellow-400', bg: 'bg-yellow-500/10', border: 'border-yellow-500/20', label: 'Paused', pingable: true },
-  warning:  { dot: 'bg-yellow-500', ping: 'bg-yellow-500 animate-ping', text: 'text-yellow-400', bg: 'bg-yellow-500/10', border: 'border-yellow-500/20', label: 'Warning', pingable: true },
-  limited:  { dot: 'bg-yellow-500', ping: 'bg-yellow-500 animate-ping', text: 'text-yellow-400', bg: 'bg-yellow-500/10', border: 'border-yellow-500/20', label: 'Limited', pingable: true },
-  offline:  { dot: 'bg-red-500', ping: 'hidden', text: 'text-red-400', bg: 'bg-red-500/10', border: 'border-red-500/20', label: 'Offline', pingable: false },
-  blocked:  { dot: 'bg-red-500', ping: 'hidden', text: 'text-red-400', bg: 'bg-red-500/10', border: 'border-red-500/20', label: 'Blocked', pingable: false },
-  forbidden:{ dot: 'bg-red-500', ping: 'hidden', text: 'text-red-400', bg: 'bg-red-500/10', border: 'border-red-500/20', label: 'Forbidden', pingable: false },
-  danger:   { dot: 'bg-red-500', ping: 'hidden', text: 'text-red-400', bg: 'bg-red-500/10', border: 'border-red-500/20', label: 'Danger', pingable: false },
+  paused:   { dot: 'bg-emerald-500', ping: 'bg-emerald-500 animate-ping', text: 'text-emerald-400', bg: 'bg-emerald-500/10', border: 'border-emerald-500/20', label: 'Paused', pingable: true },
+  warning:  { dot: 'bg-emerald-500', ping: 'bg-emerald-500 animate-ping', text: 'text-emerald-400', bg: 'bg-emerald-500/10', border: 'border-emerald-500/20', label: 'Warning', pingable: true },
+  limited:  { dot: 'bg-emerald-500', ping: 'bg-emerald-500 animate-ping', text: 'text-emerald-400', bg: 'bg-emerald-500/10', border: 'border-emerald-500/20', label: 'Limited', pingable: true },
+  offline:  { dot: 'bg-emerald-500', ping: 'hidden', text: 'text-emerald-400', bg: 'bg-emerald-500/10', border: 'border-emerald-500/20', label: 'Offline', pingable: false },
+  blocked:  { dot: 'bg-emerald-500', ping: 'hidden', text: 'text-emerald-400', bg: 'bg-emerald-500/10', border: 'border-emerald-500/20', label: 'Blocked', pingable: false },
+  forbidden:{ dot: 'bg-emerald-500', ping: 'hidden', text: 'text-emerald-400', bg: 'bg-emerald-500/10', border: 'border-emerald-500/20', label: 'Forbidden', pingable: false },
+  danger:   { dot: 'bg-emerald-500', ping: 'hidden', text: 'text-emerald-400', bg: 'bg-emerald-500/10', border: 'border-emerald-500/20', label: 'Danger', pingable: false },
 };
 
 export function StatusBadge({ status = 'ready', label, className = '' }) {

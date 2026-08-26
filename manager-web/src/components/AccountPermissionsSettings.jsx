@@ -110,7 +110,7 @@ export default function AccountPermissionsSettings({ theme = "dark", adminEmail 
       {/* HEADER SECTION */}
       <div className={`p-4 sm:p-5 rounded-xl border flex items-center justify-between gap-3 ${styles.card}`}>
         <div className="flex items-center gap-3">
-          <div className="p-2.5 rounded-lg bg-zinc-900/70 border border-zinc-800 border-l-2 border-l-[#064E3B] text-[#F8E7C9]">
+          <div className="p-2.5 rounded-lg bg-zinc-900/70 border border-zinc-900 border-l-2 border-l-[#064E3B] text-[#F8E7C9]">
             <Settings className="w-5 h-5 stroke-[1.75]" />
           </div>
           <div>
@@ -125,7 +125,7 @@ export default function AccountPermissionsSettings({ theme = "dark", adminEmail 
       </div>
 
       {message && (
-        <div className="p-3 rounded-lg bg-zinc-900/70 border border-zinc-800 border-l-2 border-l-[#064E3B] text-xs text-[#F8E7C9] font-bold flex items-center gap-2">
+        <div className="p-3 rounded-lg bg-zinc-900/70 border border-zinc-900 border-l-2 border-l-[#064E3B] text-xs text-[#F8E7C9] font-bold flex items-center gap-2">
           <CheckCircle2 className="w-4 h-4 text-emerald-400" />
           <span>{message}</span>
         </div>
@@ -248,7 +248,7 @@ export default function AccountPermissionsSettings({ theme = "dark", adminEmail 
                   {u.role !== "admin" && (
                     <button
                       onClick={() => handleDeleteUser(u.id, u.email)}
-                      className="p-1.5 rounded-lg bg-rose-900/30 border border-rose-800/50 text-rose-300 hover:bg-rose-900/60 transition"
+                      className="p-1.5 rounded-lg bg-emerald-900/30 border border-emerald-800/50 text-emerald-300 hover:bg-emerald-900/60 transition"
                       title="Xóa tài khoản này"
                     >
                       <Trash2 className="w-4 h-4" />
@@ -274,13 +274,13 @@ export default function AccountPermissionsSettings({ theme = "dark", adminEmail 
                         onClick={() => handleTogglePermission(u.id, p.key, isAllowed)}
                         className={`p-2 rounded-lg border text-left transition flex items-center justify-between ${
                           isAllowed
-                            ? "bg-zinc-900/70 border border-zinc-800 border-l-2 border-l-[#064E3B] text-[#F8E7C9]"
-                            : "bg-rose-900/10 border-rose-900/30 text-rose-300 opacity-70"
+                            ? "bg-zinc-900/70 border border-zinc-900 border-l-2 border-l-[#064E3B] text-[#F8E7C9]"
+                            : "bg-emerald-900/10 border-emerald-900/30 text-emerald-300 opacity-70"
                         } ${isAdmin ? "cursor-not-allowed opacity-90" : "hover:border-emerald-500"}`}
                       >
                         <span className="font-bold truncate">{p.label}</span>
                         <span className={`text-[9px] font-extrabold px-1.5 py-0.5 rounded ${
-                          isAllowed ? "bg-[#064E3B] text-[#F8E7C9]" : "bg-rose-900/40 text-rose-300"
+                          isAllowed ? "bg-[#064E3B] text-[#F8E7C9]" : "bg-emerald-900/40 text-emerald-300"
                         }`}>
                           {isAllowed ? "BẬT" : "TẮT"}
                         </span>

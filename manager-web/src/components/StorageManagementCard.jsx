@@ -267,7 +267,7 @@ export default function StorageManagementCard({ theme = "dark", deviceId = "" })
       {/* HEADER */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <div className="p-2.5 rounded-lg bg-zinc-900/70 border border-zinc-800 border-l-2 border-l-[#064E3B] text-[#F8E7C9]">
+          <div className="p-2.5 rounded-lg bg-zinc-900/70 border border-zinc-900 border-l-2 border-l-[#064E3B] text-[#F8E7C9]">
             <HardDrive className="w-5 h-5 stroke-[1.75]" />
           </div>
           <div>
@@ -292,7 +292,7 @@ export default function StorageManagementCard({ theme = "dark", deviceId = "" })
       </div>
 
       {message && (
-        <div className="p-3 rounded-lg bg-zinc-900/70 border border-zinc-800 border-l-2 border-l-[#064E3B] text-xs text-[#F8E7C9] font-bold flex items-center gap-2">
+        <div className="p-3 rounded-lg bg-zinc-900/70 border border-zinc-900 border-l-2 border-l-[#064E3B] text-xs text-[#F8E7C9] font-bold flex items-center gap-2">
           <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
           <span>{message}</span>
         </div>
@@ -311,7 +311,7 @@ export default function StorageManagementCard({ theme = "dark", deviceId = "" })
         <div className="w-full h-3 rounded-full bg-zinc-950 border border-zinc-800 overflow-hidden p-0.5">
           <div
             className={`h-full rounded-full transition-all duration-500 ${
-              disk.used_percent > 85 ? "bg-rose-500" : disk.used_percent > 65 ? "bg-amber-500" : "bg-[#064E3B]"
+              disk.used_percent > 85 ? "bg-emerald-500" : disk.used_percent > 65 ? "bg-emerald-500" : "bg-[#064E3B]"
             }`}
             style={{ width: `${Math.min(100, Math.max(2, disk.used_percent))}%` }}
           />
@@ -335,13 +335,13 @@ export default function StorageManagementCard({ theme = "dark", deviceId = "" })
                 : styles.card
             }`}
           >
-            <Sparkles className="w-4 h-4 text-amber-300 shrink-0 mt-0.5" />
+            <Sparkles className="w-4 h-4 text-emerald-300 shrink-0 mt-0.5" />
             <div>
               <div className={`text-[10px] font-extrabold uppercase ${styles.textMuted}`}>TOÀN BỘ DỮ LIỆU</div>
               <div className="text-xs font-extrabold text-[#F8E7C9]">
                 {realItems.length} Mục Thực
               </div>
-              <div className="text-[10px] font-mono text-amber-300 font-bold">
+              <div className="text-[10px] font-mono text-emerald-300 font-bold">
                 Tất cả 4 nhóm
               </div>
             </div>
@@ -379,13 +379,13 @@ export default function StorageManagementCard({ theme = "dark", deviceId = "" })
                 : styles.card
             }`}
           >
-            <Globe className="w-4 h-4 text-blue-400 shrink-0 mt-0.5" />
+            <Globe className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
             <div>
               <div className={`text-[10px] font-extrabold uppercase ${styles.textMuted}`}>Dữ Liệu Duyệt Web</div>
               <div className="text-xs font-extrabold text-[#F8E7C9]">
                 {metrics?.web?.count ?? 0} URL
               </div>
-              <div className="text-[10px] font-mono text-blue-400 font-bold">
+              <div className="text-[10px] font-mono text-emerald-400 font-bold">
                 {metrics?.web?.total_mb ?? 0} MB
               </div>
             </div>
@@ -401,13 +401,13 @@ export default function StorageManagementCard({ theme = "dark", deviceId = "" })
                 : styles.card
             }`}
           >
-            <AlertTriangle className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
+            <AlertTriangle className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
             <div>
               <div className={`text-[10px] font-extrabold uppercase ${styles.textMuted}`}>Log Hệ Thống / Alert</div>
               <div className="text-xs font-extrabold text-[#F8E7C9]">
                 {metrics?.logs?.count ?? 0} Báo động
               </div>
-              <div className="text-[10px] font-mono text-amber-400 font-bold">
+              <div className="text-[10px] font-mono text-emerald-400 font-bold">
                 {metrics?.logs?.total_mb ?? 0} MB
               </div>
             </div>
@@ -423,13 +423,13 @@ export default function StorageManagementCard({ theme = "dark", deviceId = "" })
                 : styles.card
             }`}
           >
-            <FileText className="w-4 h-4 text-sky-400 shrink-0 mt-0.5" />
+            <FileText className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
             <div>
               <div className={`text-[10px] font-extrabold uppercase ${styles.textMuted}`}>Nhật Ký Tiến Trình</div>
               <div className="text-xs font-extrabold text-[#F8E7C9]">
                 {metrics?.processes?.count ?? 0} Bản ghi
               </div>
-              <div className="text-[10px] font-mono text-sky-400 font-bold">
+              <div className="text-[10px] font-mono text-emerald-400 font-bold">
                 {metrics?.processes?.total_mb ?? 0} MB
               </div>
             </div>
@@ -496,7 +496,7 @@ export default function StorageManagementCard({ theme = "dark", deviceId = "" })
             aria-label="Xóa các mục đã chọn"
             className={`py-2 px-2.5 text-xs font-bold rounded-lg transition flex items-center gap-2 ${
               selectedItemIds.length > 0 || selectedPeriods.length > 0
-                ? "bg-rose-900/50 border border-rose-700/70 text-rose-200 hover:bg-rose-900/80"
+                ? "bg-emerald-900/50 border border-emerald-700/70 text-emerald-200 hover:bg-emerald-900/80"
                 : styles.buttonSecondary
             } disabled:opacity-40`}
           >
@@ -525,7 +525,7 @@ export default function StorageManagementCard({ theme = "dark", deviceId = "" })
                   <div
                     onClick={() => handleTogglePeriodGroup(group.key, group.items)}
                     className={`p-3 rounded-lg border flex items-center justify-between cursor-pointer transition ${
-                      isGroupSelected ? "bg-[#064E3B]/30 border-[#064E3B]" : "bg-zinc-900 border-zinc-800"
+                      isGroupSelected ? "bg-[#064E3B]/30 border-[#064E3B]" : "bg-zinc-900 border-zinc-900"
                     }`}
                   >
                     <div className="flex items-center gap-2.5">
@@ -583,7 +583,7 @@ export default function StorageManagementCard({ theme = "dark", deviceId = "" })
                             key={item.id}
                             onClick={() => handleToggleItem(item.id, group.key)}
                             className={`p-2.5 rounded-lg border flex items-center justify-between text-xs cursor-pointer transition ${
-                              isItemSelected ? "bg-zinc-800/40 border-zinc-700" : "bg-zinc-900 border-zinc-800 hover:border-zinc-600"
+                              isItemSelected ? "bg-zinc-800/40 border-zinc-800" : "bg-zinc-900 border-zinc-900 hover:border-zinc-600"
                             }`}
                           >
                             <div className="flex items-center gap-3 min-w-0 pr-2">
@@ -594,9 +594,9 @@ export default function StorageManagementCard({ theme = "dark", deviceId = "" })
                               )}
 
                               {/* Icon Badge */}
-                              {item.category === "web" && <Globe className="w-4 h-4 text-blue-400 shrink-0" />}
-                              {item.category === "logs" && <AlertTriangle className="w-4 h-4 text-amber-400 shrink-0" />}
-                              {item.category === "processes" && <FileText className="w-4 h-4 text-sky-400 shrink-0" />}
+                              {item.category === "web" && <Globe className="w-4 h-4 text-emerald-400 shrink-0" />}
+                              {item.category === "logs" && <AlertTriangle className="w-4 h-4 text-emerald-400 shrink-0" />}
+                              {item.category === "processes" && <FileText className="w-4 h-4 text-emerald-400 shrink-0" />}
                               {item.category === "screenshots" && <Camera className="w-4 h-4 text-emerald-400 shrink-0" />}
 
                               <div className="min-w-0">
@@ -614,7 +614,7 @@ export default function StorageManagementCard({ theme = "dark", deviceId = "" })
                                     target="_blank"
                                     rel="noreferrer"
                                     onClick={(e) => e.stopPropagation()}
-                                    className="text-[11px] text-blue-400 hover:underline truncate block"
+                                    className="text-[11px] text-emerald-400 hover:underline truncate block"
                                   >
                                     {item.url}
                                   </a>
@@ -648,7 +648,7 @@ export default function StorageManagementCard({ theme = "dark", deviceId = "" })
             disabled={cleanLoading || (selectedPeriods.length === 0 && selectedItemIds.length === 0)}
             className={`py-2.5 px-5 text-xs font-bold rounded-lg transition flex items-center gap-2 ${
               selectedItemIds.length > 0 || selectedPeriods.length > 0
-                ? "bg-rose-900/50 border border-rose-700/70 text-rose-200 hover:bg-rose-900/80"
+                ? "bg-emerald-900/50 border border-emerald-700/70 text-emerald-200 hover:bg-emerald-900/80"
                 : styles.buttonSecondary
             } disabled:opacity-40`}
           >

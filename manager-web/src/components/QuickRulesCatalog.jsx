@@ -52,7 +52,7 @@ export default function QuickRulesCatalog({ currentRules = [], onToggleRule, sty
 
       {/* Games Category */}
       <div className="space-y-2">
-        <div className="flex items-center gap-1.5 text-[11px] font-bold text-amber-400">
+        <div className="flex items-center gap-1.5 text-[11px] font-bold text-emerald-400">
           <Gamepad2 className="w-3.5 h-3.5" />
           <span>Game & Nền Tảng Game</span>
         </div>
@@ -64,7 +64,7 @@ export default function QuickRulesCatalog({ currentRules = [], onToggleRule, sty
               <div
                 key={item.id}
                 className={`p-2.5 rounded-lg border flex items-center justify-between text-xs transition ${
-                  active ? "bg-rose-950/20 border-rose-900/50" : styles.card
+                  active ? "bg-emerald-950/20 border-emerald-900/50" : styles.card
                 }`}
               >
                 <div className="flex items-center gap-2.5 overflow-hidden">
@@ -78,7 +78,7 @@ export default function QuickRulesCatalog({ currentRules = [], onToggleRule, sty
                   onClick={() => onToggleRule(item, active, ruleId)}
                   className={`shrink-0 ml-2 text-[10px] font-bold px-2.5 py-1 rounded border transition flex items-center gap-1 ${
                     active
-                      ? "text-rose-400 border-rose-800/40 bg-rose-900/30 hover:bg-rose-900/50 hover:text-rose-300"
+                      ? "text-emerald-400 border-emerald-800/40 bg-emerald-900/30 hover:bg-emerald-900/50 hover:text-emerald-300"
                       : "text-zinc-300 border-zinc-700/50 bg-zinc-800/30 hover:bg-zinc-800/60 hover:text-zinc-100"
                   }`}
                 >
@@ -102,7 +102,7 @@ export default function QuickRulesCatalog({ currentRules = [], onToggleRule, sty
 
       {/* Socials & Media Category */}
       <div className="space-y-2 pt-2 border-t border-zinc-800/60">
-        <div className="flex items-center gap-1.5 text-[11px] font-bold text-blue-400">
+        <div className="flex items-center gap-1.5 text-[11px] font-bold text-emerald-400">
           <Globe className="w-3.5 h-3.5" />
           <span>Mạng Xã Hội & Giải Trí Trực Tuyến</span>
         </div>
@@ -114,7 +114,7 @@ export default function QuickRulesCatalog({ currentRules = [], onToggleRule, sty
               <div
                 key={item.id}
                 className={`p-2.5 rounded-lg border flex items-center justify-between text-xs transition ${
-                  active ? "bg-rose-950/20 border-rose-900/50" : styles.card
+                  active ? "bg-emerald-950/20 border-emerald-900/50" : styles.card
                 }`}
               >
                 <div className="flex items-center gap-2.5 overflow-hidden">
@@ -128,7 +128,7 @@ export default function QuickRulesCatalog({ currentRules = [], onToggleRule, sty
                   onClick={() => onToggleRule(item, active, ruleId)}
                   className={`shrink-0 ml-2 text-[10px] font-bold px-2.5 py-1 rounded border transition flex items-center gap-1 ${
                     active
-                      ? "text-rose-400 border-rose-800/40 bg-rose-900/30 hover:bg-rose-900/50 hover:text-rose-300"
+                      ? "text-emerald-400 border-emerald-800/40 bg-emerald-900/30 hover:bg-emerald-900/50 hover:text-emerald-300"
                       : "text-zinc-300 border-zinc-700/50 bg-zinc-800/30 hover:bg-zinc-800/60 hover:text-zinc-100"
                   }`}
                 >

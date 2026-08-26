@@ -18,15 +18,15 @@ import { api } from "../lib/api";
 
 const themeStyles = {
   dark: {
-    card: "bg-zinc-900 border-zinc-800 text-[#F8E7C9]",
+    card: "bg-zinc-900 border-zinc-900 text-[#F8E7C9]",
     input: "bg-zinc-950 border-zinc-800 text-[#F8E7C9] focus:border-[#064E3B]",
     textBold: "text-[#F8E7C9]",
     textMuted: "text-zinc-400",
     buttonPrimary: "bg-[#064E3B] text-[#F8E7C9] hover:bg-[#065f47]",
     buttonSecondary: "bg-transparent border-zinc-800 text-zinc-400 hover:border-[#064E3B] hover:text-[#F8E7C9]",
     badgeGreen: "bg-[#064E3B]/30 text-emerald-300 border border-zinc-800",
-    badgeRed: "bg-rose-900/20 text-rose-300 border border-rose-800/40",
-    badgeYellow: "bg-amber-900/20 text-amber-300 border border-amber-800/40",
+    badgeRed: "bg-emerald-900/20 text-emerald-300 border border-emerald-800/40",
+    badgeYellow: "bg-emerald-900/20 text-emerald-300 border border-emerald-800/40",
     tabActive: "bg-[#064E3B]/40 border-[#064E3B] text-[#F8E7C9]",
     tabInactive: "border-transparent text-zinc-400 hover:text-[#F8E7C9]",
   },
@@ -38,8 +38,8 @@ const themeStyles = {
     buttonPrimary: "bg-emerald-700 text-white hover:bg-emerald-800",
     buttonSecondary: "bg-transparent border-gray-300 text-gray-600 hover:border-emerald-600 hover:text-gray-900",
     badgeGreen: "bg-emerald-100 text-emerald-700 border border-emerald-200",
-    badgeRed: "bg-rose-100 text-rose-700 border border-rose-200",
-    badgeYellow: "bg-amber-100 text-amber-700 border border-amber-200",
+    badgeRed: "bg-emerald-100 text-emerald-700 border border-emerald-200",
+    badgeYellow: "bg-emerald-100 text-emerald-700 border border-emerald-200",
     tabActive: "bg-emerald-100 border-emerald-500 text-emerald-800",
     tabInactive: "border-transparent text-gray-500 hover:text-gray-800",
   },
@@ -53,8 +53,8 @@ function SectionMessage({ message }) {
     <div
       className={`flex items-center gap-2 px-3 py-2 rounded-lg border text-xs font-bold ${
         message.type === "success"
-          ? "bg-zinc-800/30 border-zinc-700/50 text-zinc-200 text-emerald-300"
-          : "bg-rose-900/30 border-rose-700/50 text-rose-300"
+          ? "bg-zinc-800/30 border-zinc-800/50 text-zinc-200 text-emerald-300"
+          : "bg-emerald-900/30 border-emerald-700/50 text-emerald-300"
       }`}
     >
       {message.type === "success" ? (
@@ -268,7 +268,7 @@ function AllowedHoursSection({ styles, deviceId }) {
               ))}
               <button
                 onClick={() => removeSchedule(idx)}
-                className="ml-auto p-1.5 rounded-lg border border-rose-800/40 text-rose-400 hover:bg-rose-900/20 transition"
+                className="ml-auto p-1.5 rounded-lg border border-emerald-800/40 text-emerald-400 hover:bg-emerald-900/20 transition"
               >
                 <Trash2 className="w-3.5 h-3.5" />
               </button>
@@ -394,7 +394,7 @@ function AppWebRestrictionsSection({ styles, deviceId }) {
   return (
     <div className={`p-4 rounded-xl border space-y-4 ${styles.card}`}>
       <div className="flex items-center gap-2.5">
-        <div className="p-1.5 rounded-md bg-rose-900/30 text-rose-300">
+        <div className="p-1.5 rounded-md bg-emerald-900/30 text-emerald-300">
           <Lock className="w-4 h-4" />
         </div>
         <div>
@@ -421,8 +421,8 @@ function AppWebRestrictionsSection({ styles, deviceId }) {
               className={`flex-1 py-1.5 rounded-lg border text-xs font-bold flex items-center justify-center gap-1.5 transition ${
                 newType === val
                   ? val === "web"
-                    ? "bg-blue-900/40 border-blue-500 text-blue-200"
-                    : "bg-purple-900/40 border-purple-500 text-purple-200"
+                    ? "bg-emerald-900/40 border-emerald-500 text-emerald-200"
+                    : "bg-emerald-900/40 border-emerald-500 text-emerald-200"
                   : `${styles.buttonSecondary} border`
               }`}
             >
@@ -444,9 +444,9 @@ function AppWebRestrictionsSection({ styles, deviceId }) {
         {/* Mode Selector */}
         <div className="flex gap-2">
           {[
-            { val: "ban", label: "Chặn hoàn toàn", cls: "bg-rose-900/40 border-rose-500 text-rose-200" },
+            { val: "ban", label: "Chặn hoàn toàn", cls: "bg-emerald-900/40 border-emerald-500 text-emerald-200" },
             { val: "allow", label: "Chỉ cho phép", cls: "bg-emerald-900/40 border-emerald-500 text-emerald-200" },
-            { val: "limit", label: "Giới hạn thời gian", cls: "bg-amber-900/40 border-amber-500 text-amber-200" },
+            { val: "limit", label: "Giới hạn thời gian", cls: "bg-emerald-900/40 border-emerald-500 text-emerald-200" },
           ].map(({ val, label, cls }) => (
             <button
               key={val}
@@ -501,7 +501,7 @@ function AppWebRestrictionsSection({ styles, deviceId }) {
                 className={`flex items-center justify-between p-2.5 rounded-lg border ${styles.card}`}
               >
                 <div className="flex items-center gap-2">
-                  <div className={`p-1 rounded-md ${r.type === "web" ? "bg-blue-900/30 text-blue-300" : "bg-purple-900/30 text-purple-300"}`}>
+                  <div className={`p-1 rounded-md ${r.type === "web" ? "bg-emerald-900/30 text-emerald-300" : "bg-emerald-900/30 text-emerald-300"}`}>
                     {r.type === "web" ? <Globe className="w-3.5 h-3.5" /> : <AppWindow className="w-3.5 h-3.5" />}
                   </div>
                   <div>
@@ -517,7 +517,7 @@ function AppWebRestrictionsSection({ styles, deviceId }) {
                 </div>
                 <button
                   onClick={() => removeRule(r.id)}
-                  className="p-1.5 rounded-lg border border-rose-800/40 text-rose-400 hover:bg-rose-900/20 transition"
+                  className="p-1.5 rounded-lg border border-emerald-800/40 text-emerald-400 hover:bg-emerald-900/20 transition"
                 >
                   <Trash2 className="w-3.5 h-3.5" />
                 </button>
@@ -555,7 +555,7 @@ export default function TimeControlSettingsCard({ theme = "dark", deviceId }) {
     <div className={`p-4 sm:p-5 rounded-xl border space-y-4 ${styles.card}`}>
       {/* Header */}
       <div className="flex items-center gap-3">
-        <div className="p-2.5 rounded-lg bg-amber-900/30 border border-amber-700/40 text-amber-300">
+        <div className="p-2.5 rounded-lg bg-emerald-900/30 border border-emerald-700/40 text-emerald-300">
           <Clock className="w-5 h-5 stroke-[1.75]" />
         </div>
         <div>

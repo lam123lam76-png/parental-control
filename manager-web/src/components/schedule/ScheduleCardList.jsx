@@ -14,7 +14,7 @@ export function ScheduleCardList({
 
   if (safeTasks.length === 0) {
     return (
-      <div className="lg:hidden p-4 text-center text-xs font-mono text-zinc-500 bg-zinc-900/30 border border-zinc-800 rounded-xl">
+      <div className="lg:hidden p-4 text-center text-xs font-mono text-zinc-500 bg-zinc-900/30 border border-zinc-900 rounded-xl">
         Chưa có lịch trình hay công việc nào.
       </div>
     )
@@ -33,7 +33,7 @@ export function ScheduleCardList({
         return (
           <div
             key={taskId}
-            className="p-3.5 bg-zinc-900/50 border border-zinc-800 rounded-xl space-y-2.5"
+            className="p-3.5 bg-zinc-900/50 border border-zinc-900 rounded-xl space-y-2.5"
           >
             {/* DÒNG 1: STATUS BADGE + KHUNG GIỜ */}
             <div className="flex items-center justify-between text-xs">

@@ -35,7 +35,7 @@ export function Header({
           value={searchQuery || ''}
           onChange={(e) => setSearchQuery && setSearchQuery(e.target.value)}
           placeholder="/ Find command or process..."
-          className="w-full bg-zinc-900 border border-zinc-800 rounded-md pl-8 pr-3 py-1.5 text-xs text-zinc-100 placeholder-zinc-500 font-mono focus:outline-none focus:border-zinc-700 transition"
+          className="w-full bg-zinc-900 border border-zinc-900 rounded-md pl-8 pr-3 py-1.5 text-xs text-zinc-100 placeholder-zinc-500 font-mono focus:outline-none focus:border-zinc-700 transition"
         />
       </div>
 

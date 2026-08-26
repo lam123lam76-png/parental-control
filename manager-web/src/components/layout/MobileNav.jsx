@@ -21,7 +21,7 @@ export function MobileNav({ tabList = [], activeTab = 'overview', changeActiveTa
       case 'todo': return <CheckSquare className="w-5 h-5 stroke-[1.8]" />
       case 'calendar': return <Calendar className="w-5 h-5 stroke-[1.8]" />
       case 'chat': return <MessageSquare className="w-5 h-5 stroke-[1.8]" />
-      case 'ai_analysis': return <Sparkles className="w-5 h-5 text-indigo-400 stroke-[1.8]" />
+      case 'ai_analysis': return <Sparkles className="w-5 h-5 text-emerald-400 stroke-[1.8]" />
       case 'app_usage': return <Activity className="w-5 h-5 stroke-[1.8]" />
       case 'screenshots': return <Camera className="w-5 h-5 stroke-[1.8]" />
       case 'config': return <Settings className="w-5 h-5 stroke-[1.8]" />

@@ -72,7 +72,7 @@ export default function ScreenTimeTodayCard({ deviceId, styles }) {
 
       {/* Hero Stat: Total Screen Time Today */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-        <div className="p-3.5 rounded-lg border bg-zinc-900/50 border-zinc-800 flex flex-col justify-between">
+        <div className="p-3.5 rounded-lg border bg-zinc-900/50 border-zinc-900 flex flex-col justify-between">
           <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-400">
             Tổng Giờ Dùng Hôm Nay
           </span>
@@ -94,12 +94,12 @@ export default function ScreenTimeTodayCard({ deviceId, styles }) {
             Ứng Dụng Dùng Nhiều Nhất
           </span>
           <div className="flex items-center gap-2 mt-1">
-            <Laptop className="w-4 h-4 text-blue-400 shrink-0" />
+            <Laptop className="w-4 h-4 text-emerald-400 shrink-0" />
             <span className={`text-sm font-bold truncate ${styles.textBold}`}>
               {top_apps_today[0] ? top_apps_today[0].name : "Chưa có dữ liệu"}
             </span>
           </div>
-          <span className="text-[11px] font-semibold text-blue-400 mt-1">
+          <span className="text-[11px] font-semibold text-emerald-400 mt-1">
             {top_apps_today[0] ? `${top_apps_today[0].formatted} (${top_apps_today[0].percentage}%)` : "0m"}
           </span>
         </div>
@@ -109,12 +109,12 @@ export default function ScreenTimeTodayCard({ deviceId, styles }) {
             Trang Web Xem Nhiều Nhất
           </span>
           <div className="flex items-center gap-2 mt-1">
-            <Globe className="w-4 h-4 text-amber-400 shrink-0" />
+            <Globe className="w-4 h-4 text-emerald-400 shrink-0" />
             <span className={`text-sm font-bold truncate ${styles.textBold}`}>
               {top_sites_today[0] ? top_sites_today[0].domain : "Chưa có dữ liệu"}
             </span>
           </div>
-          <span className="text-[11px] font-semibold text-amber-400 mt-1">
+          <span className="text-[11px] font-semibold text-emerald-400 mt-1">
             {top_sites_today[0] ? `${top_sites_today[0].formatted} (${top_sites_today[0].percentage}%)` : "0m"}
           </span>
         </div>
@@ -125,7 +125,7 @@ export default function ScreenTimeTodayCard({ deviceId, styles }) {
         {/* Top Applications Today */}
         <div className={`p-3.5 rounded-lg border space-y-2.5 ${styles.card}`}>
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-1.5 text-xs font-bold text-blue-400">
+            <div className="flex items-center gap-1.5 text-xs font-bold text-emerald-400">
               <Laptop className="w-3.5 h-3.5" />
               <span>Top Ứng Dụng Hôm Nay</span>
             </div>
@@ -142,13 +142,13 @@ export default function ScreenTimeTodayCard({ deviceId, styles }) {
                     <span className={`font-semibold truncate max-w-[180px] ${styles.textBold}`} title={app.name}>
                       {app.name}
                     </span>
-                    <span className="font-mono text-[11px] text-blue-400 font-bold">
+                    <span className="font-mono text-[11px] text-emerald-400 font-bold">
                       {app.formatted}
                     </span>
                   </div>
                   <div className="w-full h-1.5 bg-zinc-800 rounded-full overflow-hidden">
                     <div
-                      className="h-full bg-blue-500 rounded-full transition-all duration-500"
+                      className="h-full bg-emerald-500 rounded-full transition-all duration-500"
                       style={{ width: `${app.percentage || 0}%` }}
                     />
                   </div>
@@ -161,7 +161,7 @@ export default function ScreenTimeTodayCard({ deviceId, styles }) {
         {/* Top Websites Today */}
         <div className={`p-3.5 rounded-lg border space-y-2.5 ${styles.card}`}>
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-1.5 text-xs font-bold text-amber-400">
+            <div className="flex items-center gap-1.5 text-xs font-bold text-emerald-400">
               <Globe className="w-3.5 h-3.5" />
               <span>Top Trang Web Hôm Nay</span>
             </div>
@@ -178,13 +178,13 @@ export default function ScreenTimeTodayCard({ deviceId, styles }) {
                     <span className={`font-semibold truncate max-w-[180px] ${styles.textBold}`} title={site.domain}>
                       {site.domain}
                     </span>
-                    <span className="font-mono text-[11px] text-amber-400 font-bold">
+                    <span className="font-mono text-[11px] text-emerald-400 font-bold">
                       {site.formatted}
                     </span>
                   </div>
                   <div className="w-full h-1.5 bg-zinc-800 rounded-full overflow-hidden">
                     <div
-                      className="h-full bg-amber-500 rounded-full transition-all duration-500"
+                      className="h-full bg-emerald-500 rounded-full transition-all duration-500"
                       style={{ width: `${site.percentage || 0}%` }}
                     />
                   </div>

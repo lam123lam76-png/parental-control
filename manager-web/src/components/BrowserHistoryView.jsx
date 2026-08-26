@@ -49,12 +49,12 @@ export default function BrowserHistoryView({ theme = "dark", deviceId = "" }) {
 
   const getBrowserBadgeColor = (name = "") => {
     const lower = name.toLowerCase();
-    if (lower.includes("chrome")) return "bg-blue-900/30 border-blue-800/50 text-blue-300";
-    if (lower.includes("edge")) return "bg-teal-900/30 border-teal-800/50 text-teal-300";
-    if (lower.includes("brave")) return "bg-orange-900/30 border-orange-800/50 text-orange-300";
+    if (lower.includes("chrome")) return "bg-emerald-900/30 border-emerald-800/50 text-emerald-300";
+    if (lower.includes("edge")) return "bg-emerald-900/30 border-emerald-800/50 text-emerald-300";
+    if (lower.includes("brave")) return "bg-emerald-900/30 border-emerald-800/50 text-emerald-300";
     if (lower.includes("cốc cốc") || lower.includes("coccoc")) return "bg-emerald-900/30 border-emerald-800/50 text-emerald-300";
-    if (lower.includes("firefox")) return "bg-amber-900/30 border-amber-800/50 text-amber-300";
-    return "bg-zinc-800 border-zinc-700 text-zinc-300";
+    if (lower.includes("firefox")) return "bg-emerald-900/30 border-emerald-800/50 text-emerald-300";
+    return "bg-zinc-800 border-zinc-800 text-zinc-300";
   };
 
   return (
@@ -63,7 +63,7 @@ export default function BrowserHistoryView({ theme = "dark", deviceId = "" }) {
       {/* HEADER CARD */}
       <div className={`p-4 sm:p-5 rounded-xl border flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 ${styles.card}`}>
         <div className="flex items-center gap-3">
-          <div className="p-2.5 rounded-lg bg-zinc-900/70 border border-zinc-800 border-l-2 border-l-[#064E3B] text-[#F8E7C9]">
+          <div className="p-2.5 rounded-lg bg-zinc-900/70 border border-zinc-900 border-l-2 border-l-[#064E3B] text-[#F8E7C9]">
             <Globe className="w-5 h-5 stroke-[1.75]" />
           </div>
           <div>
@@ -152,7 +152,7 @@ export default function BrowserHistoryView({ theme = "dark", deviceId = "" }) {
                 <div
                   key={item.id}
                   className={`p-3 rounded-xl border flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 transition ${
-                    sensitive ? "bg-rose-950/20 border-rose-800/60" : styles.card
+                    sensitive ? "bg-emerald-950/20 border-emerald-800/60" : styles.card
                   }`}
                 >
                   <div className="flex items-start gap-3 flex-1 min-w-0">
@@ -167,8 +167,8 @@ export default function BrowserHistoryView({ theme = "dark", deviceId = "" }) {
                         </span>
 
                         {sensitive && (
-                          <span className="px-2 py-0.5 rounded bg-rose-900/60 border border-rose-700 text-rose-200 text-[10px] font-extrabold flex items-center gap-1">
-                            <ShieldAlert className="w-3 h-3 text-rose-300" />
+                          <span className="px-2 py-0.5 rounded bg-emerald-900/60 border border-emerald-700 text-emerald-200 text-[10px] font-extrabold flex items-center gap-1">
+                            <ShieldAlert className="w-3 h-3 text-emerald-300" />
                             <span>⚠️ NHẠY CẢM</span>
                           </span>
                         )}

@@ -89,7 +89,7 @@ export default function AgentUpdateManagerCard({ theme = "dark" }) {
       {/* HEADER */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <div className="p-2.5 rounded-lg bg-zinc-900/70 border border-zinc-800 border-l-2 border-l-[#064E3B] text-[#F8E7C9]">
+          <div className="p-2.5 rounded-lg bg-zinc-900/70 border border-zinc-900 border-l-2 border-l-[#064E3B] text-[#F8E7C9]">
             <Cpu className="w-5 h-5 stroke-[1.75]" />
           </div>
           <div>
@@ -113,7 +113,7 @@ export default function AgentUpdateManagerCard({ theme = "dark" }) {
 
       {/* NOTIFICATION BANNER */}
       {message && (
-        <div className={`p-3.5 rounded-lg border text-xs font-bold flex items-center gap-2.5 ${message.includes("❌") ? "bg-rose-900/30 border-rose-800/50 text-rose-300" : "bg-[#064E3B]/25 border-zinc-800 text-[#F8E7C9]"}`}>
+        <div className={`p-3.5 rounded-lg border text-xs font-bold flex items-center gap-2.5 ${message.includes("❌") ? "bg-emerald-900/30 border-emerald-800/50 text-emerald-300" : "bg-[#064E3B]/25 border-zinc-800 text-[#F8E7C9]"}`}>
           <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
           <span className="flex-1">{message}</span>
         </div>
@@ -176,7 +176,7 @@ export default function AgentUpdateManagerCard({ theme = "dark" }) {
             </button>
           </div>
           <p className={`text-[11px] ${styles.textMuted}`}>
-            Ghi chú: Bản vá thông thường sử dụng chuỗi tăng dần: <span className="font-mono text-emerald-400 font-bold">v0001 → v0002 → v0003</span>. Đột phá phiên bản lớn sử dụng: <span className="font-mono text-amber-400 font-bold">v1001</span>.
+            Ghi chú: Bản vá thông thường sử dụng chuỗi tăng dần: <span className="font-mono text-emerald-400 font-bold">v0001 → v0002 → v0003</span>. Đột phá phiên bản lớn sử dụng: <span className="font-mono text-emerald-400 font-bold">v1001</span>.
           </p>
         </div>
 
@@ -193,7 +193,7 @@ export default function AgentUpdateManagerCard({ theme = "dark" }) {
                 ? "bg-emerald-900/40 border-emerald-500/70 text-emerald-300"
                 : newVersion
                 ? "bg-[#064E3B] border-emerald-400 text-[#F8E7C9] hover:bg-[#064E3B]/80 hover:scale-[1.01]"
-                : "bg-zinc-800/50 border-zinc-700 text-zinc-500 opacity-50 cursor-not-allowed"
+                : "bg-zinc-800/50 border-zinc-800 text-zinc-500 opacity-50 cursor-not-allowed"
             }`}
           >
             <Package className={`w-4 h-4 ${packing ? "animate-bounce" : ""}`} />
@@ -207,8 +207,8 @@ export default function AgentUpdateManagerCard({ theme = "dark" }) {
             disabled={deploying || !isPacked}
             className={`p-4 rounded-xl border font-bold text-xs flex items-center justify-center gap-2.5 transition shadow-lg ${
               isPacked
-                ? "bg-gradient-to-r from-emerald-600 to-teal-600 border-emerald-300 text-white hover:brightness-110 hover:scale-[1.01] animate-pulse"
-                : "bg-zinc-800/50 border-zinc-700 text-zinc-500 opacity-50 cursor-not-allowed"
+                ? "bg-gradient-to-r from-emerald-600 to-emerald-600 border-emerald-300 text-white hover:brightness-110 hover:scale-[1.01] animate-pulse"
+                : "bg-zinc-800/50 border-zinc-800 text-zinc-500 opacity-50 cursor-not-allowed"
             }`}
           >
             <Rocket className={`w-4 h-4 ${deploying ? "animate-spin" : ""}`} />

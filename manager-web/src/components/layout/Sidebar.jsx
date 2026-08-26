@@ -89,7 +89,7 @@ export function Sidebar({
 
       {/* USER ROLE FOOTER */}
       <div className="pt-4 border-t border-zinc-800 space-y-2">
-        <div className="p-2.5 rounded-lg bg-zinc-900/50 border border-zinc-800 flex items-center justify-between text-xs">
+        <div className="p-2.5 rounded-lg bg-zinc-900/50 border border-zinc-900 flex items-center justify-between text-xs">
           <div className="flex items-center gap-2 truncate">
             <UserCheck className="w-4 h-4 text-zinc-400 stroke-[1.5]" />
             <span className="truncate text-zinc-300 font-mono text-xs">

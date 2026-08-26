@@ -10,13 +10,13 @@ const dotVariants = cva('relative flex h-2 w-2', {
     status: {
       ready: 'bg-green-500',
       online: 'bg-green-500',
-      paused: 'bg-yellow-500',
-      warning: 'bg-yellow-500',
-      limited: 'bg-yellow-500',
-      offline: 'bg-red-500',
-      blocked: 'bg-red-500',
-      forbidden: 'bg-red-500',
-      danger: 'bg-red-500',
+      paused: 'bg-emerald-500',
+      warning: 'bg-emerald-500',
+      limited: 'bg-emerald-500',
+      offline: 'bg-emerald-500',
+      blocked: 'bg-emerald-500',
+      forbidden: 'bg-emerald-500',
+      danger: 'bg-emerald-500',
     },
   },
   defaultVariants: {
@@ -29,9 +29,9 @@ const pingVariants = cva('absolute inline-flex h-full w-full rounded-full opacit
     status: {
       ready: 'bg-green-500 animate-ping',
       online: 'bg-green-500 animate-ping',
-      paused: 'bg-yellow-500 animate-ping',
-      warning: 'bg-yellow-500 animate-ping',
-      limited: 'bg-yellow-500 animate-ping',
+      paused: 'bg-emerald-500 animate-ping',
+      warning: 'bg-emerald-500 animate-ping',
+      limited: 'bg-emerald-500 animate-ping',
       offline: 'hidden',
       blocked: 'hidden',
       forbidden: 'hidden',
@@ -78,8 +78,8 @@ export function StatusDot({
       {/* Nhãn */}
       <span className={cn('font-mono text-xs font-medium', {
         'text-green-400': ['ready', 'online'].includes(status),
-        'text-yellow-400': ['paused', 'warning', 'limited'].includes(status),
-        'text-red-400': ['offline', 'blocked', 'forbidden', 'danger'].includes(status),
+        'text-emerald-400': ['paused', 'warning', 'limited'].includes(status),
+        'text-emerald-400': ['offline', 'blocked', 'forbidden', 'danger'].includes(status),
       })}>
         {displayLabel}
       </span>

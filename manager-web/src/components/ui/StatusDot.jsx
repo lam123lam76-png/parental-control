@@ -16,7 +16,7 @@ const dotVariants = cva('relative flex h-2 w-2', {
       offline: 'bg-emerald-500',
       blocked: 'bg-emerald-500',
       forbidden: 'bg-emerald-500',
-      danger: 'bg-emerald-500',
+      danger: 'bg-rose-500',
     },
   },
   defaultVariants: {
@@ -79,7 +79,8 @@ export function StatusDot({
       <span className={cn('font-mono text-xs font-medium', {
         'text-green-400': ['ready', 'online'].includes(status),
         'text-emerald-400': ['paused', 'warning', 'limited'].includes(status),
-        'text-emerald-400': ['offline', 'blocked', 'forbidden', 'danger'].includes(status),
+        'text-emerald-400': ['offline', 'blocked', 'forbidden'].includes(status),
+        'text-rose-400': ['danger'].includes(status),
       })}>
         {displayLabel}
       </span>

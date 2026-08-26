@@ -931,13 +931,13 @@ export default function FastAPIDashboard() {
               
               {/* Lock Screen Switch Toggle */}
               <div className="flex items-center gap-3">
-                <div className={`p-2 rounded-lg ${isLocked ? "bg-emerald-900/30 border border-emerald-800/50 text-emerald-300" : "bg-zinc-900/70 border border-zinc-900 border-l-2 border-l-[#064E3B] text-[#F8E7C9]"}`}>
+                <div className={`p-2 rounded-lg ${isLocked ? "bg-rose-900/30 border border-rose-800/50 text-rose-300" : "bg-zinc-900/70 border border-zinc-900 border-l-2 border-l-[#064E3B] text-[#F8E7C9]"}`}>
                   {isLocked ? <Lock className="w-4 h-4" /> : <Unlock className="w-4 h-4" />}
                 </div>
                 <div>
                   <div className="flex items-center gap-2">
                     <span className={`text-xs font-extrabold ${styles.textBold}`}>Khóa Màn Hình</span>
-                    <span className={`text-[9px] font-extrabold px-1.5 py-0.5 rounded ${isLocked ? "bg-emerald-900/60 text-emerald-200" : "bg-[#064E3B] text-[#F8E7C9]"}`}>
+                    <span className={`text-[9px] font-extrabold px-1.5 py-0.5 rounded ${isLocked ? "bg-rose-900/60 text-rose-200" : "bg-[#064E3B] text-[#F8E7C9]"}`}>
                       {isLocked ? "ĐANG KHÓA (ON)" : "MỞ KHÓA (OFF)"}
                     </span>
                   </div>
@@ -950,7 +950,7 @@ export default function FastAPIDashboard() {
                 <button
                   onClick={handleToggleLock}
                   className={`w-12 h-6 rounded-full p-0.5 transition-colors duration-300 flex items-center ${
-                    isLocked ? "bg-emerald-600 justify-end" : "bg-zinc-700 justify-start"
+                    isLocked ? "bg-rose-600 justify-end" : "bg-zinc-700 justify-start"
                   }`}
                   title={isLocked ? "Tắt khóa màn hình" : "Bật khóa màn hình"}
                 >
@@ -1311,7 +1311,7 @@ export default function FastAPIDashboard() {
                         onClick={() => handleDeleteRule(rule.id)}
                         className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 hover:text-emerald-700 px-2 py-0.5 rounded border border-emerald-800/40 hover:bg-emerald-900/30 transition flex items-center gap-1"
                       >
-                        <Trash2 className="w-3 h-3 text-emerald-600 dark:text-emerald-400" />
+                        <Trash2 className="w-3 h-3 text-rose-600 dark:text-rose-400" />
                         <span>Xóa</span>
                       </button>
                     </div>

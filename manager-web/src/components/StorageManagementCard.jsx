@@ -440,7 +440,7 @@ export default function StorageManagementCard({ theme = "dark", deviceId = "" })
 
       {/* RECYCLE BIN BANNER */}
       <div className="p-3 rounded-lg border bg-[#064E3B]/10 border-zinc-800 flex items-center gap-2.5 text-xs">
-        <Trash2 className="w-4 h-4 text-emerald-400 shrink-0" />
+        <Trash2 className="w-4 h-4 text-rose-400 shrink-0" />
         <span className={styles.textMuted}>
           <strong className="text-[#F8E7C9]">Thùng Rác Server (storage/trash/):</strong> File ảnh và bản ghi đã xóa được sao lưu tạm vào thùng rác. Hệ thống tự động dọn dẹp vĩnh viễn các dữ liệu đi vào thùng rác quá <strong className="text-emerald-400">7 ngày</strong>.
         </span>

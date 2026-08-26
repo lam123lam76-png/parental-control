@@ -112,7 +112,7 @@ export default function SystemConsoleLogBox({ theme = "dark", realLogs = [], ale
       case "WARN":
         return <AlertTriangle className="w-3.5 h-3.5 text-emerald-400 shrink-0" title="WARN" />;
       case "ERROR":
-        return <XCircle className="w-3.5 h-3.5 text-emerald-400 shrink-0" title="ERROR" />;
+        return <XCircle className="w-3.5 h-3.5 text-rose-400 shrink-0" title="ERROR" />;
       default:
         return <Info className="w-3.5 h-3.5 text-emerald-400 shrink-0" title="INFO" />;
     }
@@ -174,7 +174,7 @@ export default function SystemConsoleLogBox({ theme = "dark", realLogs = [], ale
             className={`p-1.5 px-2.5 rounded-lg border text-xs font-bold flex items-center gap-1 ${styles.buttonSecondary}`}
             title="Xóa sạch nhật ký"
           >
-            <Trash2 className="w-3 h-3 text-emerald-500" />
+            <Trash2 className="w-3 h-3 text-rose-500" />
             <span>Clear</span>
           </button>
         </div>

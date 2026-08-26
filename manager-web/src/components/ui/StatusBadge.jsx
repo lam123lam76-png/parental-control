@@ -11,7 +11,7 @@ const statusConfig = {
   offline:  { dot: 'bg-emerald-500', ping: 'hidden', text: 'text-emerald-400', bg: 'bg-emerald-500/10', border: 'border-emerald-500/20', label: 'Offline', pingable: false },
   blocked:  { dot: 'bg-emerald-500', ping: 'hidden', text: 'text-emerald-400', bg: 'bg-emerald-500/10', border: 'border-emerald-500/20', label: 'Blocked', pingable: false },
   forbidden:{ dot: 'bg-emerald-500', ping: 'hidden', text: 'text-emerald-400', bg: 'bg-emerald-500/10', border: 'border-emerald-500/20', label: 'Forbidden', pingable: false },
-  danger:   { dot: 'bg-emerald-500', ping: 'hidden', text: 'text-emerald-400', bg: 'bg-emerald-500/10', border: 'border-emerald-500/20', label: 'Danger', pingable: false },
+  danger:   { dot: 'bg-rose-500', ping: 'hidden', text: 'text-rose-400', bg: 'bg-rose-500/10', border: 'border-rose-500/20', label: 'Danger', pingable: false },
 };
 
 export function StatusBadge({ status = 'ready', label, className = '' }) {

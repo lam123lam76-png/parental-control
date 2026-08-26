@@ -86,9 +86,9 @@ export default function TelegramConfigModal({ isOpen, onClose, theme = "dark" })
 
         {statusMsg && (
           <div className={`p-2.5 rounded text-xs font-bold flex items-center gap-2 ${
-            isError ? "bg-emerald-900/30 border border-emerald-800 text-emerald-300" : "bg-[#064E3B]/20 border border-[#064E3B] text-[#F8E7C9]"
+            isError ? "bg-rose-900/30 border border-rose-800 text-rose-300" : "bg-[#064E3B]/20 border border-[#064E3B] text-[#F8E7C9]"
           }`}>
-            {isError ? <AlertCircle className="w-4 h-4 shrink-0 text-emerald-400" /> : <CheckCircle2 className="w-4 h-4 shrink-0 text-emerald-400" />}
+            {isError ? <AlertCircle className="w-4 h-4 shrink-0 text-rose-400" /> : <CheckCircle2 className="w-4 h-4 shrink-0 text-emerald-400" />}
             <span>{statusMsg}</span>
           </div>
         )}

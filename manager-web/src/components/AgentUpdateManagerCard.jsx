@@ -113,7 +113,7 @@ export default function AgentUpdateManagerCard({ theme = "dark" }) {
 
       {/* NOTIFICATION BANNER */}
       {message && (
-        <div className={`p-3.5 rounded-lg border text-xs font-bold flex items-center gap-2.5 ${message.includes("❌") ? "bg-emerald-900/30 border-emerald-800/50 text-emerald-300" : "bg-[#064E3B]/25 border-zinc-800 text-[#F8E7C9]"}`}>
+        <div className={`p-3.5 rounded-lg border text-xs font-bold flex items-center gap-2.5 ${message.includes("❌") ? "bg-rose-900/30 border-rose-800/50 text-rose-300" : "bg-[#064E3B]/25 border-zinc-800 text-[#F8E7C9]"}`}>
           <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
           <span className="flex-1">{message}</span>
         </div>

@@ -37,7 +37,14 @@ logger = logging.getLogger(__name__)
 def _init_schema_background():
     """Create/migrate schema in a background thread so a slow or unreachable DB
     never blocks uvicorn startup (tables already exist from migration; requests
-    use pool_pre_ping and recover when Supabase is reachable)."""
+    use pool_pre_ping and recover when Supabase is reachable).
+
+    NOTE: we deliberately DO NOT run raw ALTER TABLE ADD COLUMN here — those
+    columns already exist (migration + models), and a redundant ALTER takes an
+    AccessExclusiveLock on the table, blocking all queries (seen in Supabase logs:
+    'column is_system_admin already exists' + 90s lock waits -> web hangs loading).
+    ensure_schema() below conditionally adds only genuinely-missing columns.
+    """
     try:
         models.Base.metadata.create_all(bind=engine)
     except Exception as e:
@@ -46,17 +53,6 @@ def _init_schema_background():
         ensure_schema(engine)
     except Exception as e:
         logger.warning(f"ensure_schema failed (background): {e}")
-    # Auto-migrate SQLite schema columns if missing
-    for _col_sql in [
-        "ALTER TABLE devices ADD COLUMN is_locked BOOLEAN DEFAULT 0;",
-        "ALTER TABLE users ADD COLUMN is_system_admin BOOLEAN DEFAULT 0;",
-    ]:
-        try:
-            with engine.connect() as conn:
-                conn.execute(text(_col_sql))
-                conn.commit()
-        except Exception:
-            pass
 
 
 threading.Thread(target=_init_schema_background, daemon=True).start()

@@ -1,9 +1,11 @@
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form
+from sqlalchemy import select
 from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
 import uuid
 from datetime import datetime
 
-from database import get_db
+from database import get_db, get_db_async
 import models
 import schemas
 from core.security import verify_api_key, require_permission, VALID_API_KEYS
@@ -89,7 +91,7 @@ async def upload_screenshot(
     device_id: str = Form(...),
     file: UploadFile = File(...),
     auth_token: str = Depends(verify_api_key),
-    db: Session = Depends(get_db)
+    db: AsyncSession = Depends(get_db_async)
 ):
     """
     Upload a screenshot from a device agent.
@@ -99,11 +101,13 @@ async def upload_screenshot(
     target_device = None
     try:
         dev_uuid = uuid.UUID(device_id)
-        target_device = db.query(models.Device).filter(models.Device.id == dev_uuid).first()
+        target_device = (await db.execute(select(models.Device).where(models.Device.id == dev_uuid))).scalars().first()
     except Exception:
-        target_device = db.query(models.Device).filter(
-            (models.Device.secret_token == device_id) | (models.Device.device_name == device_id)
-        ).first()
+        target_device = (await db.execute(
+            select(models.Device).where(
+                (models.Device.secret_token == device_id) | (models.Device.device_name == device_id)
+            )
+        )).scalars().first()
 
     if not target_device:
         raise HTTPException(status_code=401, detail="Device not registered")
@@ -134,8 +138,8 @@ async def upload_screenshot(
         image_url=image_url
     )
     db.add(db_shot)
-    db.commit()
-    db.refresh(db_shot)
+    await db.commit()
+    await db.refresh(db_shot)
 
     return schemas.StandardResponse(
         data={"screenshot_id": str(db_shot.id), "image_url": image_url},

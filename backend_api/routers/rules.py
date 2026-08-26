@@ -1,10 +1,12 @@
 from fastapi import APIRouter, Depends, HTTPException
+from sqlalchemy import select, delete
 from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
 from typing import List, Optional, Any
 from pydantic import BaseModel, Field, conint
 import uuid
 
-from database import get_db
+from database import get_db, get_db_async
 import models
 import schemas
 from core.security import verify_api_key, require_permission
@@ -47,7 +49,7 @@ def get_device_rules(device_id: str, db: Session = Depends(get_db)):
 async def create_device_rule(
     device_id: str,
     rule_data: schemas.RuleCreate,
-    db: Session = Depends(get_db)
+    db: AsyncSession = Depends(get_db_async)
 ):
     """
     Creates a new rule for the specified device.
@@ -68,14 +70,14 @@ async def create_device_rule(
         allowed_end=rule_data.allowed_end
     )
     db.add(db_rule)
-    db.commit()
-    db.refresh(db_rule)
+    await db.commit()
+    await db.refresh(db_rule)
 
     # Fetch all rules for the device
     device_id_str = str(device_uuid)
-    all_rules = db.query(models.Rule).filter(
-        models.Rule.device_id == device_uuid
-    ).all()
+    all_rules = (await db.execute(
+        select(models.Rule).where(models.Rule.device_id == device_uuid)
+    )).scalars().all()
     rules_list = [
         schemas.RuleResponse.model_validate(r).model_dump(mode="json")
         for r in all_rules
@@ -94,7 +96,7 @@ async def create_device_rule(
 
 
 @router.delete("/api/rules/{rule_id}", response_model=schemas.StandardResponse, dependencies=[Depends(require_permission("can_manage_rules"))])
-async def delete_rule(rule_id: str, db: Session = Depends(get_db)):
+async def delete_rule(rule_id: str, db: AsyncSession = Depends(get_db_async)):
     """
     Deletes specified rule.
     Pushes 'refresh_rules' command with updated rules via WebSocket if device is online.
@@ -104,18 +106,18 @@ async def delete_rule(rule_id: str, db: Session = Depends(get_db)):
     except Exception:
         raise HTTPException(status_code=400, detail="Invalid rule ID format")
 
-    db_rule = db.query(models.Rule).filter(models.Rule.id == rule_uuid).first()
+    db_rule = (await db.execute(select(models.Rule).where(models.Rule.id == rule_uuid))).scalars().first()
     if not db_rule:
         raise HTTPException(status_code=404, detail="Rule not found")
 
     device_id_str = str(db_rule.device_id)
-    db.delete(db_rule)
-    db.commit()
+    await db.delete(db_rule)
+    await db.commit()
 
     # Fetch remaining rules for the device
-    all_rules = db.query(models.Rule).filter(
-        models.Rule.device_id == uuid.UUID(device_id_str)
-    ).all()
+    all_rules = (await db.execute(
+        select(models.Rule).where(models.Rule.device_id == uuid.UUID(device_id_str))
+    )).scalars().all()
     rules_list = [
         schemas.RuleResponse.model_validate(r).model_dump(mode="json")
         for r in all_rules
@@ -160,11 +162,29 @@ FOCUS_MODE_TARGETS = [
     {"rule_type": "web", "target": "twitch.tv"},
 ]
 
+
+def _send_notification(text: str) -> None:
+    """Sends a Telegram notification via its own short-lived SYNC session.
+
+    core.notifications.send_telegram_notification only supports a sync
+    Session (it calls db.query), so async endpoints must not hand it the
+    AsyncSession. A fresh sync session keeps the notification working
+    without touching the async one.
+    """
+    from core.notifications import send_telegram_notification
+    from database import SessionLocal
+    ndb = SessionLocal()
+    try:
+        send_telegram_notification(ndb, text)
+    finally:
+        ndb.close()
+
+
 @router.post("/api/device/{device_id}/focus-mode", response_model=schemas.StandardResponse, dependencies=[Depends(require_permission("can_manage_rules"))])
 async def toggle_focus_mode(
     device_id: str,
     req: FocusModeRequest,
-    db: Session = Depends(get_db)
+    db: AsyncSession = Depends(get_db_async)
 ):
     """
     Toggle 1-Click Focus Mode (Chế độ Học Bài).
@@ -174,8 +194,8 @@ async def toggle_focus_mode(
     if not device_uuid:
         raise HTTPException(status_code=404, detail="Device not found")
 
-    device = db.query(models.Device).filter(models.Device.id == device_uuid).first()
-    existing_rules = db.query(models.Rule).filter(models.Rule.device_id == device_uuid).all()
+    device = (await db.execute(select(models.Device).where(models.Device.id == device_uuid))).scalars().first()
+    existing_rules = (await db.execute(select(models.Rule).where(models.Rule.device_id == device_uuid))).scalars().all()
     existing_targets = {(r.rule_type, r.target.lower()) for r in existing_rules if r.target}
 
     device_id_str = str(device_uuid)
@@ -193,17 +213,15 @@ async def toggle_focus_mode(
                 )
                 db.add(new_r)
                 added_count += 1
-        db.commit()
+        await db.commit()
 
         # Push to agent
-        all_rules = db.query(models.Rule).filter(models.Rule.device_id == device_uuid).all()
+        all_rules = (await db.execute(select(models.Rule).where(models.Rule.device_id == device_uuid))).scalars().all()
         rules_list = [schemas.RuleResponse.model_validate(r).model_dump(mode="json") for r in all_rules]
         if manager.is_online(device_id_str):
             await manager.send_command(device_id_str, {"type": "command", "command": "refresh_rules", "payload": {"rules": rules_list}})
 
-        from core.notifications import send_telegram_notification
-        send_telegram_notification(
-            db,
+        _send_notification(
             f"🎯 <b>[CHẾ ĐỘ HỌC BÀI]</b> Đã kích hoạt Focus Mode ({req.duration_minutes} phút) cho thiết bị <b>{device.device_name if device else 'Máy Con'}</b>! Đã bật chặn các ứng dụng game và mạng xã hội."
         )
 
@@ -217,18 +235,16 @@ async def toggle_focus_mode(
         focus_target_names = {t["target"].lower() for t in FOCUS_MODE_TARGETS}
         for r in existing_rules:
             if r.target and r.target.lower() in focus_target_names:
-                db.delete(r)
+                await db.delete(r)
                 deleted_count += 1
-        db.commit()
+        await db.commit()
 
-        all_rules = db.query(models.Rule).filter(models.Rule.device_id == device_uuid).all()
+        all_rules = (await db.execute(select(models.Rule).where(models.Rule.device_id == device_uuid))).scalars().all()
         rules_list = [schemas.RuleResponse.model_validate(r).model_dump(mode="json") for r in all_rules]
         if manager.is_online(device_id_str):
             await manager.send_command(device_id_str, {"type": "command", "command": "refresh_rules", "payload": {"rules": rules_list}})
 
-        from core.notifications import send_telegram_notification
-        send_telegram_notification(
-            db,
+        _send_notification(
             f"🟢 <b>[TẮT CHẾ ĐỘ HỌC BÀI]</b> Đã tắt Focus Mode cho thiết bị <b>{device.device_name if device else 'Máy Con'}</b>. Đã khôi phục quy tắc thông thường."
         )
 
@@ -252,16 +268,18 @@ class TimeControlRequest(BaseModel):
 
 
 @router.get("/api/settings/time-control/allowed-hours", response_model=schemas.StandardResponse)
-async def get_time_control(device_id: Optional[str] = None, db: Session = Depends(get_db)):
+async def get_time_control(device_id: Optional[str] = None, db: AsyncSession = Depends(get_db_async)):
     """Fetch allowed operating hours for device."""
     device_uuid = _resolve_device_uuid(device_id, db)
     if not device_uuid:
         return schemas.StandardResponse(data={"schedules": []}, status_code=200)
 
-    rules = db.query(models.Rule).filter(
-        models.Rule.device_id == device_uuid,
-        models.Rule.rule_type == "time"
-    ).all()
+    rules = (await db.execute(
+        select(models.Rule).where(
+            models.Rule.device_id == device_uuid,
+            models.Rule.rule_type == "time"
+        )
+    )).scalars().all()
     
     # Group rules by start and end time to reconstruct schedules array
     schedules_dict = {}
@@ -300,7 +318,7 @@ async def get_time_control(device_id: Optional[str] = None, db: Session = Depend
 
 
 @router.put("/api/settings/time-control/allowed-hours", response_model=schemas.StandardResponse, dependencies=[Depends(require_permission("can_manage_rules"))])
-async def update_time_control(req: TimeControlRequest, db: Session = Depends(get_db)):
+async def update_time_control(req: TimeControlRequest, db: AsyncSession = Depends(get_db_async)):
     """Update allowed operating hours and push refresh_rules immediately to agent."""
     device_uuid = _resolve_device_uuid(req.device_id, db)
     if not device_uuid:
@@ -308,10 +326,12 @@ async def update_time_control(req: TimeControlRequest, db: Session = Depends(get
     
     try:
         # 1. Delete all existing time rules for device
-        db.query(models.Rule).filter(
-            models.Rule.device_id == device_uuid,
-            models.Rule.rule_type == "time"
-        ).delete()
+        await db.execute(
+            delete(models.Rule).where(
+                models.Rule.device_id == device_uuid,
+                models.Rule.rule_type == "time"
+            )
+        )
         
         # 2. Add new time rules
         from datetime import time
@@ -323,7 +343,7 @@ async def update_time_control(req: TimeControlRequest, db: Session = Depends(get
                 st = time(start_hour, start_min)
                 et = time(end_hour, end_min)
             except Exception as parse_e:
-                db.rollback()
+                await db.rollback()
                 return schemas.StandardResponse(error=f"Định dạng giờ không hợp lệ: {schedule.start} - {schedule.end}", status_code=400)
                 
             for day in schedule.days:
@@ -338,14 +358,14 @@ async def update_time_control(req: TimeControlRequest, db: Session = Depends(get
                 db.add(new_r)
                 added_count += 1
                 
-        db.commit()
+        await db.commit()
     except Exception as e:
-        db.rollback()
+        await db.rollback()
         return schemas.StandardResponse(error=f"Lỗi khi lưu thời gian: {str(e)}", status_code=500)
     
     # 3. Push to agent
     device_id_str = str(device_uuid)
-    all_rules = db.query(models.Rule).filter(models.Rule.device_id == device_uuid).all()
+    all_rules = (await db.execute(select(models.Rule).where(models.Rule.device_id == device_uuid))).scalars().all()
     rules_list = [schemas.RuleResponse.model_validate(r).model_dump(mode="json") for r in all_rules]
     if manager.is_online(device_id_str):
         await manager.send_command(device_id_str, {"type": "command", "command": "refresh_rules", "payload": {"rules": rules_list}})
@@ -354,16 +374,18 @@ async def update_time_control(req: TimeControlRequest, db: Session = Depends(get
 
 
 @router.get("/api/settings/time-control/restrictions", response_model=schemas.StandardResponse)
-async def get_time_control_restrictions(device_id: Optional[str] = None, db: Session = Depends(get_db)):
+async def get_time_control_restrictions(device_id: Optional[str] = None, db: AsyncSession = Depends(get_db_async)):
     """Fetch App/Web restrictions list for TimeControlSettingsCard Tab 2."""
     device_uuid = _resolve_device_uuid(device_id, db)
     if not device_uuid:
         return schemas.StandardResponse(data={"rules": []}, status_code=200)
 
-    rules = db.query(models.Rule).filter(
-        models.Rule.device_id == device_uuid,
-        models.Rule.rule_type.in_(["app", "web"])
-    ).all()
+    rules = (await db.execute(
+        select(models.Rule).where(
+            models.Rule.device_id == device_uuid,
+            models.Rule.rule_type.in_(["app", "web"])
+        )
+    )).scalars().all()
 
     items = []
     for r in rules:
@@ -380,7 +402,7 @@ async def get_time_control_restrictions(device_id: Optional[str] = None, db: Ses
 
 
 @router.put("/api/settings/time-control/restrictions", response_model=schemas.StandardResponse, dependencies=[Depends(require_permission("can_manage_rules"))])
-async def update_time_control_restrictions(req: schemas.RestrictionsRequest, db: Session = Depends(get_db)):
+async def update_time_control_restrictions(req: schemas.RestrictionsRequest, db: AsyncSession = Depends(get_db_async)):
     """Update App/Web restrictions in batch and push refresh_rules to agent."""
     device_uuid = _resolve_device_uuid(req.device_id, db)
     if not device_uuid:
@@ -388,10 +410,12 @@ async def update_time_control_restrictions(req: schemas.RestrictionsRequest, db:
 
     try:
         # Delete existing app and web rules
-        db.query(models.Rule).filter(
-            models.Rule.device_id == device_uuid,
-            models.Rule.rule_type.in_(["app", "web"])
-        ).delete()
+        await db.execute(
+            delete(models.Rule).where(
+                models.Rule.device_id == device_uuid,
+                models.Rule.rule_type.in_(["app", "web"])
+            )
+        )
 
         for item in req.rules:
             target = item.target.strip()
@@ -407,14 +431,14 @@ async def update_time_control_restrictions(req: schemas.RestrictionsRequest, db:
             )
             db.add(db_rule)
 
-        db.commit()
+        await db.commit()
     except Exception as e:
-        db.rollback()
+        await db.rollback()
         return schemas.StandardResponse(error=f"Lỗi khi lưu quy tắc: {str(e)}", status_code=500)
 
     # Push to agent
     device_id_str = str(device_uuid)
-    all_rules = db.query(models.Rule).filter(models.Rule.device_id == device_uuid).all()
+    all_rules = (await db.execute(select(models.Rule).where(models.Rule.device_id == device_uuid))).scalars().all()
     rules_list = [schemas.RuleResponse.model_validate(r).model_dump(mode="json") for r in all_rules]
     if manager.is_online(device_id_str):
         await manager.send_command(device_id_str, {"type": "command", "command": "refresh_rules", "payload": {"rules": rules_list}})

@@ -1,10 +1,11 @@
 from fastapi import APIRouter, Depends, Header, HTTPException, status
 from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
 import uuid
 from datetime import datetime, timezone
 from typing import Optional
 
-from database import get_db
+from database import get_db, get_db_async
 import models
 import schemas
 from core.security import verify_api_key, require_permission, VALID_API_KEYS, decode_access_token
@@ -112,7 +113,7 @@ def get_device_browser_history(
 async def send_chat_message(
     device_id: str,
     req: schemas.ChatMessageSend,
-    db: Session = Depends(get_db)
+    db: AsyncSession = Depends(get_db_async)
 ):
     """Admin posts a chat message to child device."""
     dev_uuid = _resolve_device_uuid(device_id, db)
@@ -126,8 +127,8 @@ async def send_chat_message(
         timestamp=datetime.now(timezone.utc)
     )
     db.add(chat_entry)
-    db.commit()
-    db.refresh(chat_entry)
+    await db.commit()
+    await db.refresh(chat_entry)
 
     # Push to device if online via WebSocket
     cmd_payload = {

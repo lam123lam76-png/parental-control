@@ -1,12 +1,14 @@
 import json
 import logging
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect, Depends, HTTPException, status
+from sqlalchemy import select
 from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
 from datetime import datetime, timezone
 import uuid
 import asyncio
 
-from database import get_db, SessionLocal
+from database import get_db, get_db_async, SessionLocal
 import models
 import schemas
 from core.manager import manager
@@ -22,6 +24,22 @@ router = APIRouter(tags=["websockets"])
 def _get_session() -> Session:
     """Create a new DB session (caller must close it)."""
     return SessionLocal()
+
+
+def _send_notification(text: str) -> None:
+    """Sends a Telegram notification via its own short-lived SYNC session.
+
+    core.notifications.send_telegram_notification only supports a sync
+    Session (it calls db.query), so async endpoints must not hand it the
+    AsyncSession. A fresh sync session keeps the notification working
+    without touching the async one.
+    """
+    from core.notifications import send_telegram_notification
+    ndb = SessionLocal()
+    try:
+        send_telegram_notification(ndb, text)
+    finally:
+        ndb.close()
 
 
 @router.websocket("/ws/device/{device_id}")
@@ -138,10 +156,10 @@ from core.security import verify_api_key, require_permission, require_system_adm
 async def send_device_command(
     device_id: str,
     command: schemas.DeviceCommand,
-    db: Session = Depends(get_db)
+    db: AsyncSession = Depends(get_db_async)
 ):
     """Parent sends a command to a connected device."""
-    device = db.query(models.Device).filter(models.Device.id == device_id).first()
+    device = (await db.execute(select(models.Device).where(models.Device.id == device_id))).scalars().first()
     if not device:
         raise HTTPException(status_code=404, detail="Device not found")
     
@@ -168,7 +186,7 @@ async def send_device_command(
             device.is_locked = True
         elif command.command == "unlock_screen":
             device.is_locked = False
-        db.commit()
+        await db.commit()
         return schemas.StandardResponse(
             data={"msg": f"Device is offline. Command '{command.command}' queued for Fallback polling."},
             status_code=200
@@ -191,18 +209,16 @@ async def send_device_command(
                 status_code=408
             )
 
-        from core.notifications import send_telegram_notification
-
         if command.command == "lock_screen":
             device.is_locked = True
-            db.commit()
-            send_telegram_notification(db, f"🔒 <b>[KHÓA THIẾT BỊ]</b> Thiết bị <b>{device.device_name}</b> đã bị khóa màn hình từ xa!")
+            await db.commit()
+            _send_notification(f"🔒 <b>[KHÓA THIẾT BỊ]</b> Thiết bị <b>{device.device_name}</b> đã bị khóa màn hình từ xa!")
         elif command.command == "unlock_screen":
             device.is_locked = False
-            db.commit()
-            send_telegram_notification(db, f"🔓 <b>[MỞ KHÓA THIẾT BỊ]</b> Thiết bị <b>{device.device_name}</b> đã được mở khóa từ xa!")
+            await db.commit()
+            _send_notification(f"🔓 <b>[MỞ KHÓA THIẾT BỊ]</b> Thiết bị <b>{device.device_name}</b> đã được mở khóa từ xa!")
         elif command.command == "shutdown_pc":
-            send_telegram_notification(db, f"⚡ <b>[TẮT NGUỒN TỪ XA]</b> Lệnh tắt nguồn máy tính đã được gửi tới thiết bị <b>{device.device_name}</b>!")
+            _send_notification(f"⚡ <b>[TẮT NGUỒN TỪ XA]</b> Lệnh tắt nguồn máy tính đã được gửi tới thiết bị <b>{device.device_name}</b>!")
 
         return schemas.StandardResponse(
             data={"msg": f"Command '{command.command}' sent to device {device_id}"},
@@ -219,11 +235,10 @@ async def send_device_command(
 async def shutdown_device(
     device_id: str,
     payload: dict = None,
-    db: Session = Depends(get_db)
+    db: AsyncSession = Depends(get_db_async)
 ):
     """Sends a graceful shutdown command to the remote device."""
-    from core.notifications import send_telegram_notification
-    dev = db.query(models.Device).filter(models.Device.id == uuid.UUID(device_id)).first()
+    dev = (await db.execute(select(models.Device).where(models.Device.id == uuid.UUID(device_id)))).scalars().first()
     if not dev:
         return schemas.StandardResponse(error="Device not found", status_code=404)
 
@@ -239,7 +254,7 @@ async def shutdown_device(
 
     success = await manager.send_command(device_id, cmd_payload)
     if success:
-        send_telegram_notification(db, f"⚡ <b>[TẮT NGUỒN TỪ XA]</b> Đã phát lệnh tắt nguồn tới <b>{dev.device_name}</b>!")
+        _send_notification(f"⚡ <b>[TẮT NGUỒN TỪ XA]</b> Đã phát lệnh tắt nguồn tới <b>{dev.device_name}</b>!")
         return schemas.StandardResponse(
             data={"msg": f"Lệnh tắt nguồn đã được gửi tới thiết bị {dev.device_name} (Hẹn giờ 10s)"},
             status_code=200
@@ -252,8 +267,8 @@ async def shutdown_device(
             payload=json.dumps(cmd_payload.get("payload", {}))
         )
         db.add(pending)
-        db.commit()
-        send_telegram_notification(db, f"⚡ <b>[TẮT NGUỒN TỪ XA]</b> {dev.device_name} đang ngoại tuyến — lệnh đã vào hàng đợi dự phòng.")
+        await db.commit()
+        _send_notification(f"⚡ <b>[TẮT NGUỒN TỪ XA]</b> {dev.device_name} đang ngoại tuyến — lệnh đã vào hàng đợi dự phòng.")
         return schemas.StandardResponse(
             data={"msg": f"{dev.device_name} đang ngoại tuyến — lệnh tắt nguồn đã vào hàng đợi dự phòng."},
             status_code=200
@@ -261,7 +276,7 @@ async def shutdown_device(
 
 
 @router.post("/api/devices/force-update-all", response_model=schemas.StandardResponse, dependencies=[Depends(require_system_admin)])
-async def force_update_all_devices(db: Session = Depends(get_db)):
+async def force_update_all_devices(db: AsyncSession = Depends(get_db_async)):
     """Broadcasts WebSocket force_update command to all online devices;
     queues it for offline devices so they update when they come back (fallback)."""
     from core.config import UPDATES_DIR
@@ -288,7 +303,7 @@ async def force_update_all_devices(db: Session = Depends(get_db)):
 
     # Queue for offline devices (fallback polling will deliver it)
     queued = 0
-    offline_devices = db.query(models.Device).all()
+    offline_devices = (await db.execute(select(models.Device))).scalars().all()
     for dev in offline_devices:
         dev_id_str = str(dev.id)
         if dev_id_str in online_ids:
@@ -299,7 +314,7 @@ async def force_update_all_devices(db: Session = Depends(get_db)):
             payload=json.dumps(vdata)
         ))
         queued += 1
-    db.commit()
+    await db.commit()
 
     return schemas.StandardResponse(
         data={"notified_devices": broadcast_count, "queued_offline": queued, "version": vdata["version"]},

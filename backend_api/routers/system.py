@@ -5,11 +5,12 @@ import json
 import logging
 from fastapi import APIRouter, Depends, UploadFile, File, Form, BackgroundTasks
 from sqlalchemy.orm import Session
-from sqlalchemy import text, cast, String
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import text, cast, String, select
 from datetime import datetime, timezone, timedelta
 from pathlib import Path
 
-from database import get_db, SessionLocal
+from database import get_db, get_db_async, SessionLocal
 import models
 import schemas
 from core.security import verify_api_key, require_system_admin
@@ -467,10 +468,10 @@ def get_period_settings(db: Session = Depends(get_db)):
 
 
 @router.put("/api/settings/periods", response_model=schemas.StandardResponse, dependencies=[Depends(require_system_admin)])
-async def update_period_settings(req: schemas.PeriodSettingsRequest, db: Session = Depends(get_db)):
+async def update_period_settings(req: schemas.PeriodSettingsRequest, db: AsyncSession = Depends(get_db_async)):
     """Update period settings and optionally push updated interval config to agent."""
-    def _upsert_setting(k: str, v: str):
-        row = db.query(models.SystemSetting).filter(models.SystemSetting.key == k).first()
+    async def _upsert_setting(k: str, v: str):
+        row = (await db.execute(select(models.SystemSetting).where(models.SystemSetting.key == k))).scalars().first()
         if not row:
             row = models.SystemSetting(key=k, value=str(v))
             db.add(row)
@@ -478,13 +479,13 @@ async def update_period_settings(req: schemas.PeriodSettingsRequest, db: Session
             row.value = str(v)
 
     if req.screenshot_interval_seconds is not None:
-        _upsert_setting("screenshot_interval_seconds", str(req.screenshot_interval_seconds))
+        await _upsert_setting("screenshot_interval_seconds", str(req.screenshot_interval_seconds))
     if req.heartbeat_interval_seconds is not None:
-        _upsert_setting("heartbeat_interval_seconds", str(req.heartbeat_interval_seconds))
+        await _upsert_setting("heartbeat_interval_seconds", str(req.heartbeat_interval_seconds))
     if req.log_batch_interval_seconds is not None:
-        _upsert_setting("log_batch_interval_seconds", str(req.log_batch_interval_seconds))
+        await _upsert_setting("log_batch_interval_seconds", str(req.log_batch_interval_seconds))
 
-    db.commit()
+    await db.commit()
 
     # Push config command to ALL online devices since this is a global setting
     from core.manager import manager

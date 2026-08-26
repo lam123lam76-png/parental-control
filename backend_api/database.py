@@ -55,6 +55,53 @@ def get_db():
         db.close()
 
 
+# ---------------------------------------------------------------------------
+# Async engine/session — for async endpoints.
+# Sync SQLAlchemy in an `async def` endpoint blocks the uvicorn event loop, so a
+# slow/hung Supabase query freezes the whole backend (web keeps loading forever).
+# Async endpoints use this async engine (asyncpg) instead; their DB calls are
+# awaited and never block the loop.
+# ---------------------------------------------------------------------------
+import ssl as _ssl
+from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker, AsyncSession  # noqa: E402
+
+
+def _async_pg_url(url: str) -> str:
+    base = url.replace("postgresql://", "postgresql+asyncpg://", 1)
+    if "?" in base:                      # strip ?sslmode=... (asyncpg uses ssl= connect arg)
+        base = base.split("?")[0]
+    return base
+
+
+_ssl_ctx = _ssl.create_default_context()
+_ssl_ctx.check_hostname = False
+_ssl_ctx.verify_mode = _ssl.CERT_NONE
+
+if SQLALCHEMY_DATABASE_URL.startswith("sqlite"):
+    async_engine = None
+    AsyncSessionLocal = None
+else:
+    async_engine = create_async_engine(
+        _async_pg_url(SQLALCHEMY_DATABASE_URL),
+        pool_size=3,
+        max_overflow=5,
+        pool_timeout=8,
+        pool_recycle=300,
+        pool_pre_ping=True,
+        # statement_cache_size=0: avoids pgbouncer (Supabase pooler) prepared-statement errors
+        connect_args={"ssl": _ssl_ctx, "statement_cache_size": 0, "timeout": 10},
+    )
+    AsyncSessionLocal = async_sessionmaker(async_engine, expire_on_commit=False)
+
+
+async def get_db_async():
+    """FastAPI dependency yielding an async DB session (for async endpoints)."""
+    if AsyncSessionLocal is None:
+        raise RuntimeError("Async DB not configured (SQLite has no async engine)")
+    async with AsyncSessionLocal() as session:
+        yield session
+
+
 def ensure_schema(engine):
     """Idempotently add columns that create_all() cannot alter on existing tables.
 

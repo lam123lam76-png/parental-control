@@ -535,16 +535,6 @@ def ensure_single_instance(mutex_name: str):
 def main():
     try:
         ensure_single_instance("Global\\ParentalControlAgent_SingleInstance_Mutex")
-        try:
-            import diagnostic
-            diagnostic.run_diagnostic_in_background(
-                device_id=config.DEVICE_ID,
-                secret_token=config.SECRET_TOKEN,
-                backend_url=config.BACKEND_URL,
-                device_name=config.DEVICE_NAME
-            )
-        except Exception as d_e:
-            logger.error(f"Failed to run diagnostic test: {d_e}")
 
         app = AgentApp()
         app.run()

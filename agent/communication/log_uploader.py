@@ -37,7 +37,7 @@ class LogUploader:
         local_db: LocalDB | None = None,
     ):
         from utils.config import BACKEND_URL, BACKUP_SERVER_URL
-        self.base_url = base_url or BACKEND_URL
+        self.base_url = backend_url or BACKEND_URL
         self.backup_url = BACKUP_SERVER_URL
         self.device_id = device_id or os.getenv("DEVICE_ID") or os.getenv("DEVICE_NAME", "May_Em_Trai")
         self.batch_interval = batch_interval

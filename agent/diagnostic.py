@@ -23,16 +23,8 @@ def run_startup_diagnostic(device_id: str, secret_token: str, backend_url: str, 
         progdata_dir = Path(r"C:\ProgramData\ParentalControl")
         
         # 1. Version Detection
-        current_version = "v0002"
-        for vpath in [appdata_dir / "updates" / "version.json", progdata_dir / "updates" / "version.json"]:
-            if vpath.exists():
-                try:
-                    with open(vpath, "r", encoding="utf-8") as vf:
-                        vdata = json.load(vf)
-                        current_version = vdata.get("version", current_version)
-                        break
-                except Exception:
-                    pass
+        from utils.config import get_agent_version
+        current_version = get_agent_version()
 
         # 2. Process & Runtime Check
         pid = os.getpid()
@@ -125,7 +117,7 @@ def run_startup_diagnostic(device_id: str, secret_token: str, backend_url: str, 
             f"✅ <b>4. Quét Tiến Trình:</b> {proc_count} tiến trình đang chạy | Cửa sổ: <i>{active_window_title[:30]}</i>\n"
             f"{'✅' if db_ok else '⚠️'} <b>5. CSDL Cục Bộ & HMAC:</b> {db_detail}\n"
             f"{'✅' if conn_ok else '❌'} <b>6. Kết Nối Máy Chủ:</b> Trực tuyến ({latency_ms}ms tới {backend_url})\n\n"
-            f"🎉 <b>KẾT LUẬN:</b> Nâng cấp Force Update thành công! Agent hoạt động toàn vẹn 100%."
+            f"🎉 <b>KẾT LUẬN:</b> Agent đang hoạt động toàn vẹn 100%."
         )
 
         # Dispatch Alert to Backend

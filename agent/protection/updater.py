@@ -16,7 +16,13 @@ import requests
 
 logger = logging.getLogger(__name__)
 
-CURRENT_AGENT_VERSION = "2.0.0"
+# Current version read from the installer-written version.json so the
+# auto-update comparison matches the actual build (not a stale hardcode).
+try:
+    from utils.config import get_agent_version
+    CURRENT_AGENT_VERSION = get_agent_version()
+except Exception:
+    CURRENT_AGENT_VERSION = "v0009"
 
 class AutoUpdater:
     def __init__(self, backend_url: str):

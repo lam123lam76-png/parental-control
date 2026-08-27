@@ -69,3 +69,32 @@ VN_TZ = timezone(timedelta(hours=7))
 def get_vn_now() -> datetime:
     """Trả về thời gian hiện tại theo múi giờ Việt Nam (UTC+7)."""
     return datetime.now(timezone.utc).astimezone(VN_TZ)
+
+
+# === Phiên bản Agent (single source of truth) ===
+# The build writes version.json (AGENT_VERSION) to backend storage; the installer
+# copies it to the install dir (C:\ProgramData\ParentalControl\version.json).
+# Reading that file at runtime keeps reports/updater consistent with the build.
+import json as _json
+
+# Fallback only used if the installer-written version.json is missing.
+DEFAULT_AGENT_VERSION = "v0010"
+
+
+def get_agent_version() -> str:
+    """Return the installed agent version (reads the installer-written version.json)."""
+    candidates = [
+        Path(r"C:\ProgramData\ParentalControl\version.json"),
+        Path(os.environ.get("APPDATA", "C:\\")) / "ParentalControl" / "version.json",
+        Path(r"C:\ProgramData\ParentalControl\updates\version.json"),
+        Path(os.environ.get("APPDATA", "C:\\")) / "ParentalControl" / "updates" / "version.json",
+    ]
+    for p in candidates:
+        try:
+            if p.exists():
+                v = _json.loads(p.read_text(encoding="utf-8")).get("version")
+                if v:
+                    return str(v)
+        except Exception:
+            continue
+    return DEFAULT_AGENT_VERSION

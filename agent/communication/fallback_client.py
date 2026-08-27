@@ -14,7 +14,7 @@ class FallbackClient:
     queued commands through the same handler used by the WebSocket path.
     """
 
-    POLL_INTERVAL = 30  # seconds
+    POLL_INTERVAL = 5  # seconds — primary command channel (no home WS; ~5s command latency)
 
     def __init__(self, dispatch_callback, device_id: str, secret_token: str = "", backup_url: str = ""):
         self.dispatch_callback = dispatch_callback

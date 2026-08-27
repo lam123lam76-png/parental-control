@@ -378,10 +378,12 @@ class AgentApp:
         # Start communication workers
         self.alert_sender.start()
         self.log_uploader.start()
-        self.ws_client.start()
+        # NOTE: home WebSocket removed — commands + heartbeat now go through the
+        # 5s HTTP polling (FallbackClient below) to the cloud backend (Vercel).
 
-        # Fallback polling client (Vercel backup API): while FALLBACK_MODE is on,
-        # polls pending commands every 30s and dispatches them like WS commands.
+        # Polling command client (primary channel, no home WS): polls pending
+        # commands every 5s and dispatches them like WS commands did. Also
+        # refreshes last_seen_at (online status) via the commands endpoint.
         try:
             self.fallback_client = FallbackClient(
                 dispatch_callback=self.handle_server_command,
@@ -389,7 +391,7 @@ class AgentApp:
                 secret_token=self.secret_token,
             )
             self.fallback_client.start()
-            logger.info("FallbackClient started (backup polling active).")
+            logger.info("FallbackClient started (5s polling primary).")
         except Exception as e:
             logger.warning(f"Could not start FallbackClient: {e}")
 

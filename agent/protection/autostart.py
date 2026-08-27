@@ -31,6 +31,28 @@ def get_agent_launch_cmd() -> str:
     return f'"{exec_path}" "{main_py}"'
 
 
+def get_watchdog_launch_cmd() -> str:
+    """Returns the silent execution command for the Watchdog SUPERVISOR.
+
+    Autostart must launch the WATCHDOG (not the agent directly): the watchdog owns
+    the agent single-instance mutex + supervises/spawns exactly ONE agent. Launching
+    the agent directly via the Run key while the watchdog ALSO spawns it is what
+    created duplicate agents (Run-key agent + watchdog-spawned agent = 2 processes).
+    """
+    is_frozen = getattr(sys, 'frozen', False)
+    if is_frozen:
+        prog_data_exe = Path(r"C:\ProgramData\ParentalControl\ParentalControlWatchdog.exe")
+        if prog_data_exe.exists():
+            return f'"{prog_data_exe}"'
+        return f'"{sys.executable}"'
+
+    python_exe = sys.executable
+    pythonw_exe = Path(python_exe).parent / "pythonw.exe"
+    exec_path = str(pythonw_exe) if pythonw_exe.exists() else python_exe
+    watchdog_py = Path(__file__).resolve().parent.parent / "protection" / "watchdog.py"
+    return f'"{exec_path}" "{watchdog_py}"'
+
+
 import subprocess
 
 
@@ -115,9 +137,9 @@ def remove_scheduled_task() -> bool:
 
 
 def install_autostart() -> bool:
-    """Add agent silent launch command to Windows Registry Startup and setup persistence Task Scheduler."""
+    """Add watchdog silent launch command to Windows Registry Startup and setup persistence Task Scheduler."""
     success = False
-    cmd = get_agent_launch_cmd()
+    cmd = get_watchdog_launch_cmd()
     try:
         key = winreg.OpenKey(winreg.HKEY_CURRENT_USER, REG_PATH, 0, winreg.KEY_WRITE)
         winreg.SetValueEx(key, APP_NAME, 0, winreg.REG_SZ, cmd)

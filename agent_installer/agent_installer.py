@@ -45,6 +45,9 @@ DEFAULT_BACKEND_URL = "https://nguyentruclam.io.vn"
 # BACKUP_SERVER_URL mặc định trỏ về chính Worker (nguyentruclam.io.vn) — Worker đã
 # xử lý failover home→backup, nên agent không cần biết URL Vercel cụ thể.
 DEFAULT_BACKUP_URL = "https://nguyentruclam.io.vn"
+# Cloud update package source (R2). Home machine removed -> download agent
+# package from here (fallback to backend static path for legacy).
+CLOUD_UPDATE_URL = "https://pub-68ac9fad65e94c8f886542276f2e490c.r2.dev"
 DEFAULT_TARGET_DIR = Path(r"C:\ProgramData\ParentalControl")
 ZIP_NAME = "agent-update.zip"
 VERSION_JSON = "version.json"
@@ -150,19 +153,32 @@ def _cache_bust(url: str) -> str:
     return f"{url}{sep}t={int(time.time())}"
 
 
+def _update_candidates(backend_url: str, filename: str) -> list[str]:
+    """Ordered download URLs for an update file: cloud (R2) first, then backend static."""
+    return [
+        f"{CLOUD_UPDATE_URL}/{filename}",
+        f"{backend_url}/static/updates/{filename}",
+    ]
+
+
 def fetch_version_info(backend_url: str) -> dict:
-    """GET {url}/static/updates/version.json -> {version, download_url}."""
-    url = _cache_bust(f"{backend_url}/static/updates/{VERSION_JSON}")
-    log(f"Fetching version info: {url}")
-    resp = requests.get(url, timeout=30)
-    if resp.status_code != 200:
-        raise RuntimeError(f"HTTP {resp.status_code} from {url}")
-    return resp.json()
+    """GET version.json from cloud (R2) first, then backend static path."""
+    for base_url in _update_candidates(backend_url, VERSION_JSON):
+        url = _cache_bust(base_url)
+        log(f"Fetching version info: {url}")
+        try:
+            resp = requests.get(url, timeout=30)
+            if resp.status_code == 200:
+                return resp.json()
+        except Exception:
+            continue
+    raise RuntimeError(f"HTTP error fetching {VERSION_JSON} from all sources")
 
 
 def download_zip(backend_url: str, dest: Path) -> None:
     """Download agent-update.zip into dest with stream, progress, resume, and retries."""
-    url = f"{backend_url}/static/updates/{ZIP_NAME}"
+    # Cloud (R2) is the package source now that the home machine is removed.
+    url = f"{CLOUD_UPDATE_URL}/{ZIP_NAME}"
     
     max_retries = 5
     downloaded = 0

@@ -42,7 +42,13 @@ class AutoUpdater:
 
         logger.info(f"[AutoUpdater] Executing update to version '{new_version}' (current: {CURRENT_AGENT_VERSION})...")
 
-        full_url = download_url if download_url.startswith("http") else f"{self.backend_url}{download_url}"
+        # Cloud (R2) is the package source now that the home machine is removed.
+        # A relative download_url (e.g. /static/updates/agent-update.zip) is resolved
+        # against the cloud URL; an absolute http(s) URL is used as-is.
+        if download_url.startswith("http"):
+            full_url = download_url
+        else:
+            full_url = f"https://pub-68ac9fad65e94c8f886542276f2e490c.r2.dev/{os.path.basename(download_url)}"
         zip_path = self.updates_dir / "agent-update.zip"
         staged_dir = self.updates_dir / "staged"
 

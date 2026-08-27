@@ -310,27 +310,33 @@ def install_agent(backend_url: str, target_dir: Path, extracted: Path, enable_au
         log("  autostart skipped (--no-autostart test mode)")
         return
 
-    # 2. Register autostart (Registry Run + Scheduled Task battery-safe Highest)
-    #    Import from agent/protection/autostart.py (reuse existing logic).
+    # 2. Register autostart (Registry Run + Scheduled Task battery-safe Highest).
+    #    Reuse agent/protection/autostart.py if importable; if the `protection`
+    #    package isn't bundled into this exe (PyInstaller lazy-import miss), fall
+    #    back gracefully — the WATCHDOG registers autostart itself on startup
+    #    (watchdog.py calls install_autostart), so this step must never abort install.
+    install_autostart = None
+    install_scheduled_task = None
     try:
         from protection.autostart import install_autostart, install_scheduled_task
-    except ImportError:
-        # Fallback: try adding the agent dir to sys.path
-        agent_dir = Path(__file__).resolve().parent.parent / "agent"
-        sys.path.insert(0, str(agent_dir))
-        from protection.autostart import install_autostart, install_scheduled_task
+    except Exception:
+        install_autostart = None
+        install_scheduled_task = None
 
-    try:
-        install_autostart()
-        log("  autostart registered (Registry + Scheduled Task)")
-    except Exception as e:
-        # Scheduled task may need elevation; fall back to task-only attempt
-        log(f"  autostart error: {e}")
+    if install_autostart:
         try:
-            install_scheduled_task()
-            log("  scheduled task registered")
-        except Exception as e2:
-            raise RuntimeError(f"Failed to register autostart: {e2}") from e2
+            install_autostart()
+            log("  autostart registered (Registry + Scheduled Task)")
+        except Exception as e:
+            # Scheduled task may need elevation; fall back to task-only attempt
+            log(f"  autostart error (watchdog will re-register): {e}")
+            try:
+                install_scheduled_task()
+                log("  scheduled task registered")
+            except Exception as e2:
+                log(f"  scheduled task error (watchdog will re-register): {e2}")
+    else:
+        log("  autostart import unavailable — watchdog will register autostart on first run")
 
 
 def start_watchdog(target_dir: Path) -> None:

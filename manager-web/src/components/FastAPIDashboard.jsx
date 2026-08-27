@@ -354,10 +354,10 @@ export default function FastAPIDashboard() {
       await api.sendCommand(deviceId, "lock_screen", { reason: "Khóa màn hình từ Web Dashboard" });
       setIsLocked(true);
       setMessage("Đã gửi lệnh khóa màn hình tới thiết bị.");
-      addConsoleLog("SUCCESS", "LUỒNG 1: WS", "Gửi lệnh: Lock Screen -> Device OK");
+      addConsoleLog("SUCCESS", "LUỒNG 1: CLOUD", "Gửi lệnh: Lock Screen -> Device OK");
     } catch (err) {
       setMessage(`Lỗi gửi lệnh khóa: ${err.message}`);
-      addConsoleLog("ERROR", "LUỒNG 1: WS", `Lỗi khóa màn hình: ${err.message}`);
+      addConsoleLog("ERROR", "LUỒNG 1: CLOUD", `Lỗi khóa màn hình: ${err.message}`);
     }
   };
 
@@ -366,10 +366,10 @@ export default function FastAPIDashboard() {
       await api.sendCommand(deviceId, "unlock_screen", {});
       setIsLocked(false);
       setMessage("Đã gửi lệnh Mở khóa màn hình tới thiết bị.");
-      addConsoleLog("SUCCESS", "LUỒNG 1: WS", "Gửi lệnh: Unlock Screen -> Device OK");
+      addConsoleLog("SUCCESS", "LUỒNG 1: CLOUD", "Gửi lệnh: Unlock Screen -> Device OK");
     } catch (err) {
       setMessage(`Lỗi gửi lệnh mở khóa: ${err.message}`);
-      addConsoleLog("ERROR", "LUỒNG 1: WS", `Lỗi mở khóa màn hình: ${err.message}`);
+      addConsoleLog("ERROR", "LUỒNG 1: CLOUD", `Lỗi mở khóa màn hình: ${err.message}`);
     }
   };
 
@@ -393,14 +393,14 @@ export default function FastAPIDashboard() {
       const res = await api.shutdownDevice(deviceId, shutdownReason);
       if (res && res.data) {
         setMessage(`⚡ ${res.data.msg || "Đã gửi lệnh tắt máy từ xa thành công!"}`);
-        addConsoleLog("SUCCESS", "LUỒNG 1: WS", `Đã gửi lệnh tắt nguồn tới thiết bị ${deviceId} OK`);
+        addConsoleLog("SUCCESS", "LUỒNG 1: CLOUD", `Đã gửi lệnh tắt nguồn tới thiết bị ${deviceId} OK`);
       } else {
         setMessage("⚠️ Đã gửi lệnh tắt máy tính tới thiết bị.");
       }
       setShowShutdownModal(false);
     } catch (err) {
       setMessage(`Lỗi gửi lệnh tắt máy: ${err.message}`);
-      addConsoleLog("ERROR", "LUỒNG 1: WS", `Lỗi tắt máy từ xa: ${err.message}`);
+      addConsoleLog("ERROR", "LUỒNG 1: CLOUD", `Lỗi tắt máy từ xa: ${err.message}`);
     } finally {
       setIsShuttingDown(false);
     }
@@ -414,8 +414,8 @@ export default function FastAPIDashboard() {
       waitingForScreenshotRef.current = true;
 
       await api.requestScreenshot(deviceId);
-      setMessage("⏳ Đã gửi lệnh Chụp màn hình qua WebSocket. Đang chờ Agent chụp và tải ảnh lên...");
-      addConsoleLog("SUCCESS", "LUỒNG 1: WS", `Đã gửi lệnh WebSocket 'take_screenshot' thành công. Đang chờ Agent tải ảnh lên...`);
+      setMessage("⏳ Đã gửi lệnh Chụp màn hình. Đang chờ Agent chụp và tải ảnh lên...");
+      addConsoleLog("SUCCESS", "LỆNH", `Đã gửi lệnh 'take_screenshot'. Đang chờ Agent tải ảnh lên...`);
 
       if (screenshotTimeoutRef.current) clearTimeout(screenshotTimeoutRef.current);
       screenshotTimeoutRef.current = setTimeout(() => {
@@ -833,8 +833,8 @@ export default function FastAPIDashboard() {
 
       {/* Origin / backend indicator line */}
       <div className="flex-none px-4 py-1 text-[10px] font-mono text-zinc-500 border-b border-zinc-800 flex items-center gap-2">
-        <span className={(() => { const h = typeof window !== 'undefined' ? window.location.hostname : ''; const isLocal = ['localhost','127.0.0.1','::1'].includes(h); const isVercel = serverSource === 'vercel' || h.includes('vercel.app'); return isLocal || !isVercel ? 'text-emerald-400' : 'text-sky-400'; })()}>●</span>
-        <span>Nguồn: <b className="text-zinc-300">{(() => { const h = typeof window !== 'undefined' ? window.location.hostname : ''; if (['localhost','127.0.0.1','::1'].includes(h)) return 'Local'; if (serverSource === 'vercel') return 'Vercel'; if (serverSource === 'home') return 'Tunnel → Local'; return h.includes('vercel.app') ? 'Vercel' : 'Tunnel → Local'; })()}</b></span>
+        <span className={(() => { const h = typeof window !== 'undefined' ? window.location.hostname : ''; const isLocal = ['localhost','127.0.0.1','::1'].includes(h); return isLocal ? 'text-emerald-400' : 'text-sky-400'; })()}>●</span>
+        <span>Nguồn: <b className="text-zinc-300">{(() => { const h = typeof window !== 'undefined' ? window.location.hostname : ''; if (['localhost','127.0.0.1','::1'].includes(h)) return 'Local'; return (serverSource === 'vercel' ? 'Cloud (Vercel)' : 'Cloud'); })()}</b></span>
         <span className="opacity-60">{typeof window !== 'undefined' ? window.location.hostname : 'localhost'}</span>
         <span className="opacity-40">·</span>
         <span>DB: <b className="text-zinc-300">Supabase</b></span>
@@ -1590,7 +1590,7 @@ export default function FastAPIDashboard() {
               <div>
                 <div className={`text-xs font-extrabold flex items-center gap-1.5 ${styles.textBold}`}>
                   <Monitor className="w-3.5 h-3.5 stroke-[1.75]" />
-                  <span className={status.is_online ? "" : "text-rose-400"}>{status.is_online ? "WS CONNECTED" : "OFFLINE"}</span>
+                  <span className={status.is_online ? "" : "text-rose-400"}>{status.is_online ? "CONNECTED" : "OFFLINE"}</span>
                 </div>
                 <div className={`text-[10px] font-medium ${styles.textMuted}`}>
                   Heartbeat 15s interval

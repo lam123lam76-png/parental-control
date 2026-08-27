@@ -82,7 +82,7 @@ export default function StreamFlowInspector({ theme = "dark", deviceId }) {
       {/* 3 STREAM VISUAL CARDS GRID */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         
-        {/* LUỒNG 1: TUYẾN SINH TỬ (WEBSOCKET REALTIME) */}
+        {/* LUỒNG 1: TUYẾN SINH TỬ (CLOUD POLLING 5s) */}
         <div className={`p-5 rounded-xl border flex flex-col justify-between relative overflow-hidden ${styles.card}`}>
           <div className="space-y-3">
             <div className="flex items-center justify-between">
@@ -104,7 +104,7 @@ export default function StreamFlowInspector({ theme = "dark", deviceId }) {
             <div>
               <h4 className={`text-xs font-bold flex items-center gap-1.5 ${styles.textBold}`}>
                 <Zap className="w-4 h-4 text-emerald-400 stroke-[1.75]" />
-                <span>WebSocket Real-time Channel</span>
+                <span>Cloud Polling Channel (5s)</span>
               </h4>
               <p className={`text-[11px] mt-1 ${styles.textMuted}`}>
                 Lắng nghe lệnh tức thì & duy trì nhịp tim Heartbeat.
@@ -131,7 +131,7 @@ export default function StreamFlowInspector({ theme = "dark", deviceId }) {
 
           <div className={`mt-4 pt-3 border-t border-opacity-20 text-[10px] font-mono flex items-center gap-1 ${styles.textBold}`}>
             <CheckCircle2 className="w-3 h-3" />
-            <span>{isOnline ? "Kênh WebSocket đang kết nối liên tục" : "Chờ Agent kết nối lại..."}</span>
+            <span>{isOnline ? "Agent đang online (polling 5s)" : "Chờ Agent kết nối lại..."}</span>
           </div>
         </div>
 
@@ -173,7 +173,7 @@ export default function StreamFlowInspector({ theme = "dark", deviceId }) {
 
           <div className={`mt-4 pt-3 border-t border-opacity-20 text-[10px] font-mono flex items-center gap-1 ${styles.textBold}`}>
             <ShieldCheck className="w-3 h-3 text-emerald-400" />
-            <span>Tuyến Báo Động độc lập với WebSocket</span>
+            <span>Tuyến Báo Động độc lập với kênh polling</span>
           </div>
         </div>
 

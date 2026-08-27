@@ -26,8 +26,7 @@ export function Header({
   // Origin / backend indicator: which server is serving this page (for monitoring)
   const host = typeof window !== 'undefined' ? window.location.hostname : '';
   const isLocal = ['localhost', '127.0.0.1', '::1'].includes(host);
-  const isVercel = host.includes('vercel.app');
-  const sourceLabel = isLocal ? 'Local' : (isVercel ? 'Vercel' : (host ? `Tunnel` : 'Local'));
+  const sourceLabel = isLocal ? 'Local' : 'Cloud (Vercel)';
 
   return (
     <>

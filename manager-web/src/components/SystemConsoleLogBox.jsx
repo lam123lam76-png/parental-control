@@ -39,10 +39,10 @@ export default function SystemConsoleLogBox({ theme = "dark", realLogs = [], ale
           id: statusId,
           time: new Date().toLocaleTimeString(),
           level: status.is_online ? "SUCCESS" : "WARN",
-          stream: "LUỒNG 1: WS",
+          stream: "LUỒNG 1: CLOUD",
           msg: status.is_online
-            ? "WebSocket Connection Established & Active (Heartbeat OK)"
-            : (isInitial ? "WebSocket Connection Offline — Agent Disconnected" : "WebSocket Connection Lost — Agent Disconnected")
+            ? "Cloud Polling Active — Agent Online (last_seen updated)"
+            : (isInitial ? "Cloud Polling — Agent Offline (no recent heartbeat)" : "Cloud Polling Lost — Agent Disconnected")
         });
       }
     }
@@ -226,7 +226,7 @@ export default function SystemConsoleLogBox({ theme = "dark", realLogs = [], ale
         {/* Terminal Bottom Status Bar */}
         <div className="px-4 py-1.5 bg-zinc-950 border-t border-zinc-800 flex justify-between items-center text-[10px] text-[#F8E7C9] opacity-80">
           <span>System Status: <span className="text-emerald-400 font-bold">OPERATIONAL</span></span>
-          <span>WebSocket Stream 1 • Alert Stream 2 • Batch Stream 3</span>
+          <span>Cloud Poll Stream 1 • Alert Stream 2 • Batch Stream 3</span>
         </div>
 
       </div>

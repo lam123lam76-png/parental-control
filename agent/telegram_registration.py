@@ -182,10 +182,22 @@ def run_telegram_registration(backend_url: str) -> bool:
                         else:
                             logger.error("Approved but missing device_id/secret_token.")
                             return False
-                    elif current_status in ("rejected", "expired"):
-                        logger.warning(f"Registration {current_status}.")
+                    elif current_status == "rejected":
+                        logger.warning("Registration rejected. Self-uninstalling agent.")
                         self_uninstall_and_exit()
                         return False
+                    elif current_status == "expired":
+                        # Parent never responded within the window. Do NOT uninstall —
+                        # resend the request and keep waiting. Only an explicit REJECT
+                        # triggers self-uninstall (backend resend refreshes expires_at).
+                        logger.warning("Registration expired — resending registration request.")
+                        try:
+                            requests.post(
+                                f"{target_backend_url.rstrip('/')}/api/register-request/{registration_id}/resend",
+                                headers=headers, timeout=10,
+                            )
+                        except Exception as _rs:
+                            logger.debug(f"Resend failed: {_rs}")
             except Exception as e:
                 logger.debug(f"Error polling status: {e}")
             

@@ -39,6 +39,23 @@ def request_registration(request: Request, body: RegisterRequest, db: Session = 
             data={"registration_id": str(existing.id), "status": "pending"},
             status_code=200
         )
+
+    # If this hardware was already APPROVED, reuse its device credentials instead of
+    # starting a new registration (prevents duplicate devices on reinstall).
+    approved = db.query(models.PendingRegistration).filter(
+        models.PendingRegistration.hardware_uuid == body.hardware_uuid,
+        models.PendingRegistration.status == "approved"
+    ).first()
+    if approved and approved.device_id and approved.secret_token:
+        return schemas.StandardResponse(
+            data={
+                "registration_id": str(approved.id),
+                "status": "approved",
+                "device_id": str(approved.device_id),
+                "secret_token": approved.secret_token,
+            },
+            status_code=200
+        )
         
     tg_setting = db.query(models.TelegramSetting).first()
     if not tg_setting or not tg_setting.bot_token or not tg_setting.chat_id:
@@ -117,6 +134,7 @@ def resend_registration(request: Request, reg_id: str, db: Session = Depends(get
     msg_id = send_registration_message(reg, tg_setting.bot_token, tg_setting.chat_id)
     if msg_id:
         reg.tg_message_id = msg_id
+        reg.expires_at = datetime.now(timezone.utc) + timedelta(hours=24)  # refresh window on resend
         db.commit()
         return schemas.StandardResponse(data={"msg": "Resent successfully"}, status_code=200)
     else:

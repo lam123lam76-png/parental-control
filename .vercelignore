@@ -1,0 +1,17 @@
+.vercel/
+.git/
+node_modules/
+manager-web/node_modules/
+agent/
+backend_api/
+dist/
+build/
+__pycache__/
+*.spec
+*.zip
+*.db
+*.sqlite
+*.log
+.env
+.env.*
+backups/

@@ -8,9 +8,11 @@ cd /d "%~dp0"
 set "PROJECT_ROOT=%~dp0.."
 set "AGENT_DIR=%PROJECT_ROOT%agent"
 
-echo [1/3] Building AgentInstaller.exe ...
-python -m PyInstaller --onefile --console --name="AgentInstaller" ^
+echo [1/3] Building PC_Installer.exe ...
+python -m PyInstaller --onefile --noconsole --name="PC_Installer" --uac-admin ^
   --paths "%AGENT_DIR%" ^
+  --icon="icon2.ico" ^
+  --add-data "new_logo.png;." ^
   --hidden-import="requests" ^
   agent_installer.py
 if errorlevel 1 (
@@ -20,15 +22,15 @@ if errorlevel 1 (
 
 echo [2/3] Copy sang C:\Test ...
 if not exist "C:\Test" mkdir "C:\Test"
-copy /y "dist\AgentInstaller.exe" "C:\Test\AgentInstaller.exe" >nul
+copy /y "dist\PC_Installer.exe" "C:\Test\PC_Installer.exe" >nul
 
 echo [3/3] Xong.
 echo ============================================================
-echo   DONE: C:\Test\AgentInstaller.exe
+echo   DONE: C:\Test\PC_Installer.exe
 echo   Su dung:
-echo     AgentInstaller.exe --url https://nguyentruclam.io.vn --install
-echo     AgentInstaller.exe --url https://nguyentruclam.io.vn --update
-echo     AgentInstaller.exe --url https://nguyentruclam.io.vn --auto
+echo     PC_Installer.exe --url https://nguyentruclam.io.vn --install
+echo     PC_Installer.exe --url https://nguyentruclam.io.vn --update
+echo     PC_Installer.exe --url https://nguyentruclam.io.vn --auto
 echo ============================================================
 pause
 exit /b 0

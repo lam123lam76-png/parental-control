@@ -55,7 +55,7 @@ if exist "%INSTALLER_DIR%\dist" rmdir /s /q "%INSTALLER_DIR%\dist" 2>nul
 if exist "%INSTALLER_DIR%\build" rmdir /s /q "%INSTALLER_DIR%\build" 2>nul
 del /f /q "%INSTALLER_DIR%\AgentInstaller.spec" 2>nul
 cd /d "%INSTALLER_DIR%"
-python -m PyInstaller --console --onefile --name="AgentInstaller" --paths "%AGENT_DIR%" --hidden-import="requests" agent_installer.py
+python -m PyInstaller --console --onefile --name="AgentInstaller" --uac-admin --paths "%AGENT_DIR%" --hidden-import="requests" agent_installer.py
 if errorlevel 1 (
     echo     [ERROR] AgentInstaller build FAILED - xem output o tren.
     goto :failed

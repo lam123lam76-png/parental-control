@@ -32,3 +32,19 @@ backup_*/
 
 backend_api/postgres_data/
 backend_api/storage/
+
+# PyInstaller spec artifacts (generated during build)
+*.spec
+agent_installer/*.spec
+
+# Unused installer dev helpers (not referenced by any build script)
+agent_installer/add_gui.py
+agent_installer/update_installer.py
+agent_installer/convert_icon.ps1
+
+# Stray/scratch files
+query
+backend_api/_diag_*.py
+backend_api/_chk_*.py
+backend_api/_test_*.py
+backend_api/_cleanup_*.py

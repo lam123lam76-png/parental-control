@@ -172,7 +172,13 @@ async def lifespan(app: FastAPI):
         asyncio.run(periodic_sync_task(SessionLocal))
     threading.Thread(target=_run_sync, daemon=True).start()
 
-    threading.Thread(target=get_updates_poller, daemon=True).start()
+    # Telegram approval poller: run ONLY on the home backend (not Vercel serverless),
+    # otherwise home + Vercel both poll getUpdates with the same bot token and steal
+    # each other's updates. Override with TELEGRAM_POLLER_ENABLED=1 if needed.
+    _on_vercel = bool(os.getenv("VERCEL") or os.getenv("VERCEL_ENV"))
+    _poller_override = os.getenv("TELEGRAM_POLLER_ENABLED", "").strip().lower() in ("1", "true", "yes")
+    if _poller_override or not _on_vercel:
+        threading.Thread(target=get_updates_poller, daemon=True).start()
 
     # Run purge in a separate thread so it doesn't block async loop if IO bound
     from routers.system import purge_old_trash

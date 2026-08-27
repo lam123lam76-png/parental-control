@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy.orm import Session
 from slowapi import Limiter
 from slowapi.util import get_remote_address
@@ -11,6 +11,7 @@ import models
 import schemas
 from pydantic import BaseModel
 from core.telegram_approval import send_registration_message
+from core.security import verify_api_key
 
 logger = logging.getLogger(__name__)
 
@@ -21,15 +22,15 @@ class RegisterRequest(BaseModel):
     hardware_uuid: str
     device_name: str
 
-@router.post("/api/register-request", response_model=schemas.StandardResponse)
+@router.post("/api/register-request", response_model=schemas.StandardResponse, dependencies=[Depends(verify_api_key)])
 @limiter.limit("5/minute")
-def request_registration(request: RegisterRequest, db: Session = Depends(get_db)):
+def request_registration(request: Request, body: RegisterRequest, db: Session = Depends(get_db)):
     """
     Agent requests registration. Backend sends Telegram message for approval.
     """
     # Rate limit check (1 active per hw_uuid)
     existing = db.query(models.PendingRegistration).filter(
-        models.PendingRegistration.hardware_uuid == request.hardware_uuid,
+        models.PendingRegistration.hardware_uuid == body.hardware_uuid,
         models.PendingRegistration.status == "pending"
     ).first()
     
@@ -46,8 +47,8 @@ def request_registration(request: RegisterRequest, db: Session = Depends(get_db)
         
     expires = datetime.now(timezone.utc) + timedelta(hours=24)
     new_reg = models.PendingRegistration(
-        hardware_uuid=request.hardware_uuid,
-        device_name=request.device_name,
+        hardware_uuid=body.hardware_uuid,
+        device_name=body.device_name,
         expires_at=expires,
         status="pending"
     )
@@ -94,9 +95,9 @@ def get_registration_status(reg_id: str, db: Session = Depends(get_db)):
     return schemas.StandardResponse(data=resp_data, status_code=200)
 
 
-@router.post("/api/register-request/{reg_id}/resend", response_model=schemas.StandardResponse)
+@router.post("/api/register-request/{reg_id}/resend", response_model=schemas.StandardResponse, dependencies=[Depends(verify_api_key)])
 @limiter.limit("2/minute")
-def resend_registration(reg_id: str, db: Session = Depends(get_db)):
+def resend_registration(request: Request, reg_id: str, db: Session = Depends(get_db)):
     try:
         reg_uuid = uuid.UUID(reg_id)
     except ValueError:

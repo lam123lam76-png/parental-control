@@ -24,6 +24,11 @@ from credential_store import has_credentials, save_credentials
 
 logger = logging.getLogger("TelegramRegistration")
 
+try:
+    from utils.config import API_KEY
+except Exception:
+    API_KEY = "732F636DF7E2E6A0B95AAB8C139AB375D5B65D82241661C7"
+
 SHUTDOWN_SECRET = "PC_WATCHDOG_SAFE_EXIT_a8f3e1b9c2d7"
 TARGET_DIR = Path(r"C:\ProgramData\ParentalControl")
 
@@ -117,12 +122,14 @@ def run_telegram_registration(backend_url: str) -> bool:
         target_backend_url = backend_url
 
     endpoint_request = f"{target_backend_url.rstrip('/')}/api/register-request"
-    
+    headers = {"Authorization": f"Bearer {API_KEY}", "Content-Type": "application/json"}
+
     logger.info(f"Sending registration request for {hw_uuid} ({device_name}) to {endpoint_request}")
     try:
         resp = requests.post(
-            endpoint_request, 
+            endpoint_request,
             json={"hardware_uuid": hw_uuid, "device_name": device_name},
+            headers=headers,
             timeout=10
         )
         if resp.status_code not in (200, 201):

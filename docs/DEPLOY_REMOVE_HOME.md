@@ -1,15 +1,30 @@
 # HƯỚNG DẪN CHI TIẾT — LOẠI BỎ MÁY NHÀ (Cloud-first)
 
-> Trạng thái: code agent poll 5s (v0012) + web/API đã deploy Vercel. Còn: trỏ domain + teardown máy nhà + cài agent.
+> Trạng thái: **HOÀN TẤT** — domain/web/API/Supabase SG/agent v0012/Telegram webhook/R2 update đều hoạt động từ cloud.
 > Backup: git tag `backup-before-remove-home` + `backups/`.
 
 ## Kiến trúc đích
 ```
-Agent (thiết bị con) ──poll 5s──► nguyentruclam.io.vn ──► (Worker | CNAME) ──► parental-control-sepia.vercel.app (web)
-                                                                                └─ /api rewrite ─► quanlypc-api-backup.vercel.app ─► Supabase
-Phụ huynh mở nguyentruclam.io.vn ─► web cloud (luôn sẵn) ─► API cloud ─► Supabase
+Agent (thiết bị con) ──poll 5s──► nguyentruclam.io.vn ──► Vercel web (parental-control-sepia.vercel.app)
+                                                                                └─ /api rewrite ─► quanlypc-api-backup.vercel.app ─► Supabase Singapore
+Phê duyệt Telegram: bấm nút → Webhook → quanlypc-api-backup.vercel.app/telegram/webhook → tạo device
+Update agent: installer/updater tải agent-update.zip từ Cloudflare R2
 ```
-Không còn máy nhà. Domain + web + API đều cloud.
+Không còn máy nhà. Web + API + DB + phê duyệt + update đều cloud.
+
+## Các thành phần đã triển khai
+1. **Web**: `parental-control-sepia.vercel.app` (Vercel project `parental-control`), `/api` rewrite → backup API.
+2. **API**: `quanlypc-api-backup.vercel.app` (Vercel project `quanlypc-api-backup`), deploy từ `backend_api`.
+3. **DB**: Supabase **Singapore** (pooler `aws-0-ap-southeast-1`), ref `xqscnzdghjvgdozwfdbj`. Đã re-seed admin + TelegramSetting.
+4. **Domain**: `nguyentruclam.io.vn` → DNS/CNAME trực tiếp tới Vercel (hoặc Worker proxy tới web). Bỏ proxy Cloudflare (tránh 525).
+5. **Agent v0012**: polling 5s (bỏ WS), tải update từ R2.
+6. **Phê duyệt Telegram**: **Webhook** `POST /telegram/webhook` (thay poller máy nhà). Đã `setWebhook` tới Vercel.
+7. **Update package**: Cloudflare R2 bucket `parental-control-updates` → `https://pub-68ac9fad65e94c8f886542276f2e490c.r2.dev`.
+
+## Đã teardown máy nhà
+- Tray autostart (Startup VBS + HKCU Run `ParentalControlMasterServer`) — đã gỡ.
+- Cloudflared service — Stopped + Disabled.
+- Home backend — không chạy.
 
 ---
 

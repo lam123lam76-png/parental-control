@@ -139,3 +139,25 @@ def resend_registration(request: Request, reg_id: str, db: Session = Depends(get
         return schemas.StandardResponse(data={"msg": "Resent successfully"}, status_code=200)
     else:
         return schemas.StandardResponse(error="Failed to send Telegram message", status_code=500)
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Telegram webhook — cloud-only approval (home machine removed). Telegram POSTs
+# updates (callback_query Yes/No/Resend) here; no getUpdates poller needed.
+# ─────────────────────────────────────────────────────────────────────────────
+import asyncio
+from core.telegram_approval import process_callback_query
+
+
+@router.post("/telegram/webhook")
+async def telegram_webhook(request: Request, db: Session = Depends(get_db)):
+    try:
+        update = await request.json()
+    except Exception:
+        return {"ok": False}
+    tg = db.query(models.TelegramSetting).first()
+    if not tg or not tg.bot_token or not tg.chat_id:
+        return {"ok": False, "detail": "Telegram not configured"}
+    # Run sync DB+Telegram work off the event loop.
+    await asyncio.to_thread(process_callback_query, update, db, tg.bot_token, tg.chat_id)
+    return {"ok": True}

@@ -262,3 +262,15 @@ class SystemSetting(Base):
     updated_at = Column(UTCDateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
 
 
+class PendingRegistration(Base):
+    __tablename__ = "pending_registrations"
+    
+    id = Column(GUID, primary_key=True, default=uuid.uuid4, index=True)
+    hardware_uuid = Column(String, nullable=False, index=True)
+    device_name = Column(String, nullable=False)
+    status = Column(String, default="pending")  # pending, approved, rejected, expired
+    device_id = Column(GUID, nullable=True)
+    secret_token = Column(String, nullable=True)
+    tg_message_id = Column(Integer, nullable=True)
+    expires_at = Column(UTCDateTime, nullable=False)
+    created_at = Column(UTCDateTime, default=lambda: datetime.now(timezone.utc))

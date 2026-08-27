@@ -27,6 +27,14 @@ import tempfile
 import time
 import zipfile
 from pathlib import Path
+import threading
+import queue
+import tkinter as tk
+from tkinter import ttk, messagebox
+try:
+    from PIL import Image, ImageTk
+except ImportError:
+    pass
 
 import requests
 
@@ -66,9 +74,17 @@ def setup_logging() -> None:
     )
 
 
+
+GUI_QUEUE = queue.Queue()
+
 def log(message: str) -> None:
     logger.info(message)
-    print(message)
+    try:
+        print(message)
+    except Exception:
+        pass
+    if GUI_QUEUE is not None:
+        GUI_QUEUE.put(("log", message))
 
 
 # ---------------------------------------------------------------------------
@@ -145,14 +161,70 @@ def fetch_version_info(backend_url: str) -> dict:
 
 
 def download_zip(backend_url: str, dest: Path) -> None:
-    """Download agent-update.zip into dest."""
-    url = _cache_bust(f"{backend_url}/static/updates/{ZIP_NAME}")
-    log(f"Downloading {url} ...")
-    resp = requests.get(url, timeout=120)
-    if resp.status_code != 200:
-        raise RuntimeError(f"HTTP {resp.status_code} from {url}")
-    dest.write_bytes(resp.content)
-    log(f"Downloaded {len(resp.content)} bytes -> {dest}")
+    """Download agent-update.zip into dest with stream, progress, resume, and retries."""
+    url = f"{backend_url}/static/updates/{ZIP_NAME}"
+    
+    max_retries = 5
+    downloaded = 0
+    total_size = 0
+    
+    for attempt in range(max_retries):
+        try:
+            headers = {}
+            if downloaded > 0:
+                headers["Range"] = f"bytes={downloaded}-"
+                log(f"Đang tiếp tục tải từ {downloaded / (1024*1024):.2f} MB (Lần thử {attempt+1}/{max_retries})...")
+            else:
+                log(f"Đang chuẩn bị tải về (Lần thử {attempt+1}/{max_retries}) ...")
+
+            resp = requests.get(_cache_bust(url), headers=headers, stream=True, timeout=30)
+            
+            if resp.status_code not in (200, 206):
+                raise RuntimeError(f"HTTP {resp.status_code} from {url}")
+            
+            if resp.status_code == 200:
+                # Start from scratch
+                downloaded = 0
+                total_size = int(resp.headers.get("content-length", 0))
+                if attempt == 0 and total_size > 0:
+                    log(f"Kích thước file: {total_size / (1024*1024):.2f} MB")
+            
+            mode = "ab" if downloaded > 0 else "wb"
+            block_size = 1024 * 64
+            last_log_percent = 0
+            
+            with open(dest, mode) as f:
+                for data in resp.iter_content(block_size):
+                    if not data:
+                        break
+                    f.write(data)
+                    downloaded += len(data)
+                    
+                    if total_size > 0:
+                        percent = int(downloaded * 100 / total_size)
+                        if GUI_QUEUE is not None:
+                            GUI_QUEUE.put(("progress", percent))
+                        
+                        # Log to console box every 10% to show it's alive
+                        if percent >= last_log_percent + 10:
+                            log(f"  -> Đã tải {percent}% ...")
+                            last_log_percent = (percent // 10) * 10
+
+            if total_size > 0 and downloaded >= total_size:
+                log(f"Đã tải xong {downloaded / (1024*1024):.2f} MB -> {dest}")
+                return
+            elif total_size == 0 and downloaded > 0:
+                log(f"Đã tải xong {downloaded / (1024*1024):.2f} MB (không rõ tổng) -> {dest}")
+                return
+                
+        except Exception as e:
+            log(f"Lỗi mạng trong lúc tải: {e}")
+            if attempt < max_retries - 1:
+                log("Sẽ tiếp tục tải lại sau 3 giây...")
+                time.sleep(3)
+            else:
+                raise RuntimeError(f"Không thể hoàn tất tải file sau {max_retries} lần thử.")
+
 
 
 def extract_zip(zip_path: Path, out_dir: Path) -> None:
@@ -425,6 +497,129 @@ def cmd_auto(args) -> int:
 # ---------------------------------------------------------------------------
 # Main
 # ---------------------------------------------------------------------------
+
+class InstallerGUI(tk.Tk):
+    def __init__(self, args):
+        super().__init__()
+        self.args = args
+        self.title("Parental Control Agent Installer")
+        self.geometry("600x420")
+        self.configure(bg="#09090b")
+        self.resizable(False, False)
+        self.eval("tk::PlaceWindow . center")
+        
+        # Styles for dark mode
+        style = ttk.Style()
+        style.theme_use("default")
+        style.configure("TProgressbar", thickness=8, background="#064E3B", troughcolor="#27272a", bordercolor="#09090b", lightcolor="#064E3B", darkcolor="#064E3B")
+        
+        # Header
+        header = tk.Frame(self, bg="#09090b")
+        header.pack(fill=tk.X, padx=20, pady=20)
+        
+        self.logo_img = None
+        try:
+            base_path = getattr(sys, "_MEIPASS", os.path.dirname(os.path.abspath(__file__)))
+            img_path = os.path.join(base_path, "new_logo.png")
+            if os.path.exists(img_path):
+                img = Image.open(img_path)
+                img = img.resize((64, 64), Image.Resampling.LANCZOS)
+                self.logo_img = ImageTk.PhotoImage(img)
+                lbl = tk.Label(header, image=self.logo_img, bg="#09090b")
+                
+                lbl.pack(side=tk.LEFT, padx=(0, 15))
+                try:
+                    self.iconphoto(False, self.logo_img)
+                except Exception:
+                    pass
+        except Exception as e:
+            pass
+            
+        title_lbl = tk.Label(header, text="Agent Installer", font=("Segoe UI", 18, "bold"), fg="#F8E7C9", bg="#09090b")
+        title_lbl.pack(side=tk.LEFT, anchor="w")
+        
+        # Progress and status
+        self.status = tk.Label(self, text="Nhấn 'Cài đặt' để bắt đầu...", font=("Segoe UI", 11, "bold"), fg="#d4d4d8", bg="#09090b", justify=tk.LEFT)
+        self.status.pack(fill=tk.X, padx=20, pady=(5, 5))
+        
+        self.progress = ttk.Progressbar(self, style="TProgressbar", mode="indeterminate")
+        self.progress.pack(fill=tk.X, padx=20, pady=5)
+        
+        # Console output
+        log_frame = tk.Frame(self, bg="#18181b", bd=1, relief=tk.SOLID, highlightbackground="#27272a", highlightthickness=1)
+        log_frame.pack(fill=tk.BOTH, expand=True, padx=20, pady=10)
+        
+        self.log_text = tk.Text(log_frame, height=6, bg="#18181b", fg="#a1a1aa", font=("Consolas", 9), bd=0, highlightthickness=0)
+        self.log_text.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
+        
+        # Buttons
+        btn_frame = tk.Frame(self, bg="#09090b")
+        btn_frame.pack(fill=tk.X, padx=20, pady=(0, 20))
+        
+        self.start_btn = tk.Button(btn_frame, text="Cài đặt", font=("Segoe UI", 10, "bold"), bg="#064E3B", fg="#F8E7C9", bd=0, activebackground="#059669", activeforeground="#F8E7C9", cursor="hand2", command=self.start_install, width=15)
+        self.start_btn.pack(side=tk.RIGHT)
+        
+        self.process_queue()
+        
+    def start_install(self):
+        self.start_btn.config(state=tk.DISABLED, bg="#27272a", text="Đang xử lý...")
+        self.progress["mode"] = "indeterminate"
+        self.progress.start(15)
+        self.status.config(text="Đang tải xuống và cấu hình...", fg="#F8E7C9")
+        threading.Thread(target=self.run_install, daemon=True).start()
+        
+    def run_install(self):
+        try:
+            if self.args.install:
+                res = cmd_install(self.args)
+            elif self.args.update:
+                res = cmd_update(self.args)
+            else:
+                res = cmd_auto(self.args)
+            GUI_QUEUE.put(("done", res))
+        except Exception as e:
+            GUI_QUEUE.put(("error", str(e)))
+            
+    def process_queue(self):
+        try:
+            while True:
+                msg_type, content = GUI_QUEUE.get_nowait()
+                if msg_type == "log":
+                    self.log_text.insert(tk.END, content + "\\n")
+                    self.log_text.see(tk.END)
+                    if "extracting" in content.lower() or "installing" in content.lower() or "cập nhật" in content.lower():
+                        self.progress.stop()
+                        self.progress["mode"] = "indeterminate"
+                        self.progress.start(15)
+                    if "hoàn tất" in content.lower():
+                        self.status.config(text=content, fg="#34d399")
+                    else:
+                        self.status.config(text=content)
+                elif msg_type == "progress":
+                    self.progress["mode"] = "determinate"
+                    self.progress["value"] = content
+                    self.status.config(text=f"Đang tải dữ liệu: {content}%", fg="#34d399")
+                elif msg_type == "done":
+                    self.progress.stop()
+                    self.progress["mode"] = "determinate"
+                    self.progress["value"] = 100
+                    if content == 0:
+                        self.status.config(text="Hoàn tất!", fg="#34d399")
+                        self.start_btn.config(text="Đóng", state=tk.NORMAL, bg="#064E3B", command=self.destroy)
+                        messagebox.showinfo("Thành công", "Cài đặt / Cập nhật thành công!", parent=self)
+                    else:
+                        self.status.config(text="Thất bại!", fg="#f87171")
+                        self.start_btn.config(text="Thử lại", state=tk.NORMAL, bg="#064E3B", command=self.start_install)
+                        messagebox.showerror("Lỗi", f"Có lỗi xảy ra (mã lỗi {content}). Vui lòng xem log.", parent=self)
+                elif msg_type == "error":
+                    self.progress.stop()
+                    self.status.config(text="Lỗi nghiêm trọng", fg="#f87171")
+                    self.start_btn.config(text="Thử lại", state=tk.NORMAL, bg="#064E3B", command=self.start_install)
+                    messagebox.showerror("Lỗi", f"Lỗi không mong muốn:\\n{content}", parent=self)
+        except queue.Empty:
+            pass
+        self.after(50, self.process_queue)
+
 def main() -> int:
     parser = argparse.ArgumentParser(description="Parental Control Agent Installer")
     parser.add_argument("--url", default=None, help="Backend URL (default: https://nguyentruclam.io.vn)")
@@ -435,20 +630,20 @@ def main() -> int:
     parser.add_argument("--target", default=None, help="Dev/test: custom install directory")
     parser.add_argument("--no-autostart", action="store_true", help="Dev/test: copy files only, skip autostart")
     parser.add_argument("--no-start", action="store_true", help="Dev/test: do not start watchdog after install")
+    parser.add_argument("--cli", action="store_true", help="Run without GUI")
     args = parser.parse_args()
 
     setup_logging()
-    log(f"Agent Installer started. url={resolve_backend_url(args.url)}")
-
-    if args.install:
-        return cmd_install(args)
-    if args.update:
-        return cmd_update(args)
-    if args.auto:
+    
+    if args.cli:
+        log(f"Agent Installer CLI started. url={resolve_backend_url(args.url)}")
+        if args.install: return cmd_install(args)
+        if args.update: return cmd_update(args)
         return cmd_auto(args)
-
-    # No explicit mode -> auto
-    return cmd_auto(args)
+    else:
+        app = InstallerGUI(args)
+        app.mainloop()
+        return 0
 
 
 if __name__ == "__main__":

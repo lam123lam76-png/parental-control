@@ -28,15 +28,17 @@ def send_telegram_notification(db: Session, text: str):
     try:
         t_setting = db.query(models.TelegramSetting).first()
         token = (t_setting.bot_token if t_setting and t_setting.bot_token else None) or os.getenv("TELEGRAM_BOT_TOKEN")
-        chat_id = (t_setting.chat_id if t_setting and t_setting.chat_id else None) or os.getenv("TELEGRAM_CHAT_ID")
+        chat_id_str = (t_setting.chat_id if t_setting and t_setting.chat_id else None) or os.getenv("TELEGRAM_CHAT_ID")
         
-        if token and chat_id:
-            # Dispatch asynchronously in daemon thread to avoid blocking request cycle
-            threading.Thread(
-                target=_dispatch_http,
-                args=(token, chat_id, text),
-                daemon=True
-            ).start()
+        if token and chat_id_str:
+            chat_ids = [cid.strip() for cid in chat_id_str.split(",") if cid.strip()]
+            for chat_id in chat_ids:
+                # Dispatch asynchronously in daemon thread to avoid blocking request cycle
+                threading.Thread(
+                    target=_dispatch_http,
+                    args=(token, chat_id, text),
+                    daemon=True
+                ).start()
     except Exception as e:
         logger.warning(f"Failed to prepare Telegram notification: {e}")
 

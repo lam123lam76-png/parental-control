@@ -78,7 +78,7 @@ def get_vn_now() -> datetime:
 import json as _json
 
 # Fallback only used if the installer-written version.json is missing.
-DEFAULT_AGENT_VERSION = "v0010"
+DEFAULT_AGENT_VERSION = "v0011"
 
 
 def get_agent_version() -> str:

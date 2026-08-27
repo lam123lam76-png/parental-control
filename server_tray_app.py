@@ -162,6 +162,8 @@ def _start_tunnel_proc(icon=None):
             print("[TRAY TUNNEL] Cloudflared service already RUNNING — using it; skipping duplicate tunnel.")
             tunnel_url = OFFICIAL_DOMAIN
             tunnel_proc = _DummyProc()  # poll() returns None -> supervisor treats it as running
+            if icon:
+                icon.title = f"Parental Control Active\n{OFFICIAL_DOMAIN}"
             return
     except Exception as e:
         print(f"[TRAY TUNNEL] service check skipped: {e}")

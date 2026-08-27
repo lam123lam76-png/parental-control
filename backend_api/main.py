@@ -24,11 +24,13 @@ from routers.rules import router as rules_router
 from routers.logs import router as logs_router
 from routers.websockets import router as websockets_router
 from routers.system import router as system_router
+from routers.registration import router as registration_router
 
 # Core
 from core.config import SCREENSHOTS_DIR, UPDATES_DIR, SYSTEM_ADMIN_EMAIL, SYSTEM_ADMIN_PASSWORD, PROJECT_ROOT
 from core.state import device_online_state, device_graceful_shutdown
 from core.notifications import send_telegram_notification
+from core.telegram_approval import get_updates_poller
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -170,6 +172,8 @@ async def lifespan(app: FastAPI):
         asyncio.run(periodic_sync_task(SessionLocal))
     threading.Thread(target=_run_sync, daemon=True).start()
 
+    threading.Thread(target=get_updates_poller, daemon=True).start()
+
     # Run purge in a separate thread so it doesn't block async loop if IO bound
     from routers.system import purge_old_trash
     asyncio.create_task(asyncio.to_thread(purge_old_trash))
@@ -229,7 +233,7 @@ app.include_router(rules_router)
 app.include_router(logs_router)
 app.include_router(websockets_router)
 app.include_router(system_router)
-
+app.include_router(registration_router)
 
 # Fallback WEB SPA
 WEB_DIST_DIR = PROJECT_ROOT.parent / "manager-web" / "dist"

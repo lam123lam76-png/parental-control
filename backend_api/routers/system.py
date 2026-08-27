@@ -435,16 +435,32 @@ import requests as http_requests
 @router.post("/api/telegram/test", response_model=schemas.StandardResponse)
 def test_telegram_notification(req: schemas.TelegramConfigRequest, db: Session = Depends(get_db)):
     url = f"https://api.telegram.org/bot{req.bot_token}/sendMessage"
-    payload = {
-        "chat_id": req.chat_id,
-        "text": "🔔 <b>[Parental Control]</b> Thử nghiệm kết nối Telegram Bot thành công!",
-        "parse_mode": "HTML"
-    }
+    
+    chat_ids = [cid.strip() for cid in req.chat_id.split(",") if cid.strip()]
+    if not chat_ids:
+        return schemas.StandardResponse(error="Vui lòng nhập Chat ID hợp lệ.", status_code=400)
+    
+    errors = []
+    success_count = 0
     try:
-        res = http_requests.post(url, json=payload, timeout=10)
-        if res.status_code == 200:
+        for cid in chat_ids:
+            payload = {
+                "chat_id": cid,
+                "text": "🔔 <b>[Parental Control]</b> Thử nghiệm kết nối Telegram Bot thành công!",
+                "parse_mode": "HTML"
+            }
+            res = http_requests.post(url, json=payload, timeout=10)
+            if res.status_code == 200:
+                success_count += 1
+            else:
+                errors.append(f"{cid}: {res.text}")
+                
+        if success_count > 0:
             save_telegram_config(req, db)
-            return schemas.StandardResponse(data={"msg": "Gửi thông báo thành công!"}, status_code=200)
+            msg = "Gửi thông báo thành công!" if len(errors) == 0 else f"Gửi thành công {success_count} ID, một số lỗi: {errors}"
+            return schemas.StandardResponse(data={"msg": msg}, status_code=200)
+        else:
+            return schemas.StandardResponse(error=f"Tất cả đều thất bại: {errors}", status_code=500)
     except Exception as e:
         return schemas.StandardResponse(error=f"Không thể kết nối Telegram: {e}", status_code=500)
 

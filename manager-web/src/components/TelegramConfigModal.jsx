@@ -108,10 +108,13 @@ export default function TelegramConfigModal({ isOpen, onClose, theme = "dark" })
           </div>
 
           <div>
-            <label className="block font-bold uppercase text-[10px] opacity-75 mb-1">Telegram Chat ID Phụ Huynh</label>
+            <label className="block font-bold uppercase text-[10px] opacity-75 mb-1">
+              Telegram Chat ID Phụ Huynh 
+              <span className="normal-case opacity-60 ml-1">(Phân cách nhiều ID bằng dấu phẩy)</span>
+            </label>
             <input
               type="text"
-              placeholder="e.g., 1326412172"
+              placeholder="e.g., 1326412172, 987654321"
               value={chatId}
               onChange={(e) => setChatId(e.target.value)}
               className={`w-full p-2 rounded-md border focus:outline-none font-mono text-[11px] ${

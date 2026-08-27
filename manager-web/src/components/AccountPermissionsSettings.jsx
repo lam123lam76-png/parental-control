@@ -257,13 +257,13 @@ export default function AccountPermissionsSettings({ theme = "dark", adminEmail 
                 </div>
 
                 {/* Granular Permission Toggles */}
-                <div className="pt-2 border-t border-opacity-20 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2 text-[11px]">
+                <div className="pt-4 mt-2 border-t border-zinc-800/80 grid grid-cols-3 sm:grid-cols-5 gap-y-5 gap-x-2 w-full justify-items-center px-1">
                   {[
-                    { key: "can_view_screenshots", label: "Ảnh Màn Hình" },
-                    { key: "can_manage_rules", label: "Quy Tắc Cấm" },
-                    { key: "can_view_logs", label: "Nhật Ký Log" },
-                    { key: "can_remote_control", label: "Điều Khiển" },
-                    { key: "can_manage_users", label: "Phân Quyền" },
+                    { key: "can_view_screenshots", label: "Ảnh màn hình" },
+                    { key: "can_manage_rules", label: "Quy tắc cấm" },
+                    { key: "can_view_logs", label: "Nhật ký" },
+                    { key: "can_remote_control", label: "Điều khiển" },
+                    { key: "can_manage_users", label: "Phân quyền" },
                   ].map((p) => {
                     const isAllowed = u.permissions?.[p.key] ?? true;
                     const isAdmin = u.role === "admin";
@@ -272,18 +272,21 @@ export default function AccountPermissionsSettings({ theme = "dark", adminEmail 
                         key={p.key}
                         disabled={isAdmin}
                         onClick={() => handleTogglePermission(u.id, p.key, isAllowed)}
-                        className={`p-2 rounded-lg border text-left transition flex items-center justify-between ${
-                          isAllowed
-                            ? "bg-zinc-900/70 border border-zinc-900 border-l-2 border-l-[#064E3B] text-[#F8E7C9]"
-                            : "bg-emerald-900/10 border-emerald-900/30 text-emerald-300 opacity-70"
-                        } ${isAdmin ? "cursor-not-allowed opacity-90" : "hover:border-emerald-500"}`}
+                        className={`flex flex-col items-center gap-2.5 transition-all ${
+                          isAdmin ? "cursor-not-allowed opacity-60" : "hover:-translate-y-0.5 active:translate-y-0"
+                        }`}
+                        title={isAdmin ? "Admin luôn có toàn quyền" : `Nhấn để ${isAllowed ? "tắt" : "bật"} quyền ${p.label}`}
                       >
-                        <span className="font-bold truncate">{p.label}</span>
-                        <span className={`text-[9px] font-extrabold px-1.5 py-0.5 rounded ${
-                          isAllowed ? "bg-[#064E3B] text-[#F8E7C9]" : "bg-emerald-900/40 text-emerald-300"
+                        <span className={`text-[10px] sm:text-xs font-bold whitespace-nowrap transition-colors ${
+                          isAllowed ? "text-[#F8E7C9]" : "text-zinc-500"
                         }`}>
-                          {isAllowed ? "BẬT" : "TẮT"}
+                          {p.label}
                         </span>
+                        <div className={`w-3 h-3 rounded-full transition-all ${
+                          isAllowed 
+                            ? "bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.6)]" 
+                            : "bg-rose-500 shadow-[0_0_6px_rgba(244,63,94,0.3)]"
+                        }`} />
                       </button>
                     );
                   })}

@@ -68,7 +68,7 @@ from enforcement.time_enforcer import check_time_rules
 from enforcement.web_enforcer import enforce_web_rules
 from local_store.integrity import sign_rules, verify_rules
 from local_store.local_db import LocalDB
-from pairing_ui import run_pairing_ui
+from telegram_registration import run_telegram_registration
 from protection.blocker import BlockerUI
 from protection.chat_window import ChatWindow
 from protection.shutdown_handler import register_shutdown_handlers
@@ -95,11 +95,10 @@ class AgentApp:
         
         # 1. Check Credentials
         if not credential_store.has_credentials():
-            logger.info("No credentials found. Launching Pairing UI...")
-            success = run_pairing_ui(config.BACKEND_URL)
+            logger.info("No credentials found. Starting Telegram registration...")
+            success = run_telegram_registration(config.BACKEND_URL)
             if not success:
-                logger.critical("Pairing cancelled or failed. Activating Fail-Closed lock!")
-                self.trigger_fail_closed()
+                logger.critical("Registration rejected or failed.")
                 return False
         
         self.device_id, self.secret_token = credential_store.load_credentials()

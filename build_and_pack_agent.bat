@@ -16,7 +16,7 @@ set "BACKEND_STORAGE=%PROJECT_ROOT%backend_api\storage\updates"
 set "ZIP_PATH=%BACKEND_STORAGE%\agent-update.zip"
 
 rem --- Nho TANG so version moi lan build (v0004, v0005, ...) ---
-set "AGENT_VERSION=v0011"
+set "AGENT_VERSION=v0012"
 
 if not exist "%BACKEND_STORAGE%" mkdir "%BACKEND_STORAGE%"
 

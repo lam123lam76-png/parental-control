@@ -147,6 +147,7 @@ def resend_registration(request: Request, reg_id: str, db: Session = Depends(get
 # ─────────────────────────────────────────────────────────────────────────────
 import asyncio
 from core.telegram_approval import process_callback_query
+from core.telegram_bot import handle_message, handle_dev_callback, answer_cb
 
 
 @router.post("/telegram/webhook")
@@ -158,6 +159,18 @@ async def telegram_webhook(request: Request, db: Session = Depends(get_db)):
     tg = db.query(models.TelegramSetting).first()
     if not tg or not tg.bot_token or not tg.chat_id:
         return {"ok": False, "detail": "Telegram not configured"}
-    # Run sync DB+Telegram work off the event loop.
-    await asyncio.to_thread(process_callback_query, update, db, tg.bot_token, tg.chat_id)
+
+    if update.get("message"):
+        # Text command (e.g. /devices, /lock, /shot)
+        await asyncio.to_thread(handle_message, update, tg.bot_token, tg.chat_id, db)
+    elif update.get("callback_query"):
+        cb = update["callback_query"]
+        data = cb.get("data", "")
+        if data.startswith("dev:"):
+            # Device-control buttons (lock/unlock/shot)
+            await asyncio.to_thread(handle_dev_callback, data, db, tg.bot_token, tg.chat_id)
+            await asyncio.to_thread(answer_cb, tg.bot_token, cb["id"], "Đã xử lý")
+        else:
+            # Registration approval (approve/reject/resend)
+            await asyncio.to_thread(process_callback_query, update, db, tg.bot_token, tg.chat_id)
     return {"ok": True}

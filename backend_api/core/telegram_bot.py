@@ -135,8 +135,8 @@ def cmd_shot(token, chat_id, db, arg):
     _queue_command(db, dev, "take_screenshot", {})
     send_message(token, chat_id, f"📸 Đã yêu cầu chụp màn hình <b>{dev.device_name}</b>. Đang chờ ảnh...")
 
-    # Poll for a NEW screenshot (timeout ~20s).
-    for _ in range(20):
+    # Poll for a NEW screenshot (timeout ~30s — allows boto3 cold start on Vercel).
+    for _ in range(30):
         time.sleep(1)
         shot = db.query(models.Screenshot).filter(
             models.Screenshot.device_id == dev.id

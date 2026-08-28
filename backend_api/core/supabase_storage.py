@@ -14,8 +14,13 @@ import requests
 
 logger = logging.getLogger(__name__)
 
-PROJECT_URL = os.getenv("SUPABASE_PROJECT_URL", "https://xqscnzdghjvgdozwfdbj.supabase.co")
-SERVICE_KEY = os.getenv("SUPABASE_SERVICE_KEY", "")
+PROJECT_URL = os.getenv("SUPABASE_PROJECT_URL") or os.getenv("SUPABASE_URL") or "https://xqscnzdghjvgdozwfdbj.supabase.co"
+SERVICE_KEY = (
+    os.getenv("SUPABASE_SERVICE_KEY")
+    or os.getenv("SUPABASE_SERVICE_ROLE_KEY")
+    or os.getenv("SUPABASE_SECRET_KEY")
+    or ""
+)
 BUCKET = os.getenv("SUPABASE_STORAGE_BUCKET", "screenshots")
 PUBLIC_BASE = f"{PROJECT_URL}/storage/v1/object/public/{BUCKET}"
 # Quota: if bucket total >= LIMIT_MB, delete oldest until <= TARGET_MB.

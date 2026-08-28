@@ -127,12 +127,12 @@ async def upload_screenshot(
             ext = "jpg" if mime_ext == "jpeg" else mime_ext
 
     unique_filename = f"shot_{uuid.uuid4().hex[:8]}_{int(datetime.now().timestamp())}.{ext}"
-    file_path = SCREENSHOTS_DIR / unique_filename
-    with open(file_path, "wb") as f:
-        content = await file.read()
-        f.write(content)
+    content = await file.read()
 
-    image_url = f"/static/screenshots/{unique_filename}"
+    # Upload to Supabase Storage (cloud-first); returns public URL.
+    from core.supabase_storage import upload_file, enforce_screenshot_quota, _filename_from_url
+    image_url = upload_file(content, unique_filename, content_type=f"image/{ext}")
+
     db_shot = models.Screenshot(
         device_id=target_device_id,
         image_url=image_url
@@ -140,6 +140,21 @@ async def upload_screenshot(
     db.add(db_shot)
     await db.commit()
     await db.refresh(db_shot)
+
+    # Auto-cleanup: delete oldest storage objects when bucket nears 47MB, and
+    # remove the matching DB rows.
+    try:
+        deleted = enforce_screenshot_quota()
+        if deleted:
+            keys = set(deleted)
+            from sqlalchemy import select as _select
+            all_shots = (await db.execute(_select(models.Screenshot))).scalars().all()
+            for s in all_shots:
+                if _filename_from_url(s.image_url) in keys:
+                    await db.delete(s)
+            await db.commit()
+    except Exception as _q:
+        logger.warning(f"Screenshot quota cleanup failed: {_q}")
 
     return schemas.StandardResponse(
         data={"screenshot_id": str(db_shot.id), "image_url": image_url},

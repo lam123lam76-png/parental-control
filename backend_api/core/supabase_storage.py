@@ -34,6 +34,9 @@ def _json_headers():
 
 def upload_file(content: bytes, filename: str, content_type: str = "image/jpeg") -> str:
     """Upload a screenshot to Supabase Storage; return its public URL."""
+    # Supabase Storage rejects 'image/jpg' — normalize to standard MIME.
+    if content_type in ("image/jpg", "image/jpe"):
+        content_type = "image/jpeg"
     url = f"{PROJECT_URL}/storage/v1/object/{BUCKET}/{filename}"
     headers = {"Authorization": f"Bearer {SERVICE_KEY}", "Content-Type": content_type}
     resp = requests.post(url, data=content, headers=headers, timeout=30)

@@ -92,16 +92,16 @@ export default function DeviceChatBox({ theme = "dark", deviceId = "", isOnline 
       {/* HEADER */}
       <div className="flex items-center justify-between pb-3 border-b border-opacity-20 shrink-0">
         <div className="flex items-center gap-2.5">
-          <div className="p-2 rounded-lg bg-zinc-900/70 border border-zinc-900 border-l-2 border-l-[#064E3B] text-[#F8E7C9]">
+          <div className="p-2 rounded-lg bg-zinc-900/70 border border-zinc-900 border-l-2 border-l-[#0E3746] text-[#F4F2EC]">
             <MessageSquare className="w-4 h-4" />
           </div>
           <div>
-            <h3 className={`text-sm font-extrabold flex items-center gap-2 ${styles.textBold}`}>
+            <h3 className={`text-sm font-bold flex items-center gap-2 ${styles.textBold}`}>
               <span>Trò Chuyện 2 Chiều Real-Time</span>
-              <span className={`w-2 h-2 rounded-full ${isOnline ? "bg-emerald-400 animate-pulse" : "bg-rose-500"}`} />
+              <span className={`w-2 h-2 rounded-full ${isOnline ? "bg-primary animate-pulse" : "bg-rose-500"}`} />
             </h3>
-            <p className={`text-[11px] ${styles.textMuted}`}>
-              {isOnline ? "Thiết bị đang online — Tin nhắn nhận tức thì" : "Thiết bị offline — Tin nhắn lưu trong DB"}
+            <p className={`text-xs ${styles.textMuted}`}>
+              
             </p>
           </div>
         </div>
@@ -133,24 +133,24 @@ export default function DeviceChatBox({ theme = "dark", deviceId = "", isOnline 
                 className={`flex items-end gap-2 ${isAdmin ? "justify-end" : "justify-start"}`}
               >
                 {!isAdmin && (
-                  <div className="px-2 py-0.5 rounded-full bg-emerald-900/40 border border-emerald-700/50 flex items-center justify-center text-emerald-300 text-[10px] font-bold shrink-0">
+                  <div className="px-2 py-0.5 rounded-full bg-primary/40 border border-primary/50 flex items-center justify-center text-primary text-[10px] font-bold shrink-0">
                     Máy Con
                   </div>
                 )}
 
                 <div className={`max-w-[75%] rounded-2xl px-3.5 py-2 space-y-1 ${
                   isAdmin
-                    ? "bg-[#064E3B] text-[#F8E7C9] rounded-br-none border border-[#064E3B]"
-                    : "bg-emerald-950/60 text-zinc-100 rounded-bl-none border border-emerald-900/50"
+                    ? "bg-[#0E3746] text-[#F4F2EC] rounded-br-none border border-[#0E3746]"
+                    : "bg-primary/60 text-zinc-100 rounded-bl-none border border-primary/50"
                 }`}>
                   <div className="font-bold text-xs break-words">{c.message}</div>
-                  <div className={`text-[9px] text-right font-medium opacity-70`}>
+                  <div className={`text-[10px] text-right font-medium opacity-70`}>
                     {c.timestamp ? new Date(c.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : "—"}
                   </div>
                 </div>
 
                 {isAdmin && (
-                  <div className="px-2 py-0.5 rounded-full bg-[#064E3B]/40 border border-zinc-800 flex items-center justify-center text-[#F8E7C9] text-[10px] font-bold shrink-0">
+                  <div className="px-2 py-0.5 rounded-full bg-[#0E3746]/40 border border-zinc-800 flex items-center justify-center text-[#F4F2EC] text-[10px] font-bold shrink-0">
                     Bạn
                   </div>
                 )}

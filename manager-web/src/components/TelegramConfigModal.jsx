@@ -72,7 +72,7 @@ export default function TelegramConfigModal({ isOpen, onClose, theme = "dark" })
   return (
     <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4">
       <div className={`max-w-md w-full p-6 rounded-xl border shadow-2xl space-y-4 ${
-        theme === "dark" ? "bg-zinc-900 border-zinc-900 text-[#F8E7C9]" : "bg-[#FFFFFF] border-[#DECC9F] text-[#064E3B]"
+        theme === "dark" ? "bg-zinc-900 border-zinc-900 text-[#F4F2EC]" : "bg-[#FFFFFF] border-[#DECC9F] text-[#0E3746]"
       }`}>
         <div className="flex justify-between items-center border-b pb-3 border-opacity-20">
           <h3 className="text-sm font-bold flex items-center gap-2">
@@ -86,9 +86,9 @@ export default function TelegramConfigModal({ isOpen, onClose, theme = "dark" })
 
         {statusMsg && (
           <div className={`p-2.5 rounded text-xs font-bold flex items-center gap-2 ${
-            isError ? "bg-rose-900/30 border border-rose-800 text-rose-300" : "bg-[#064E3B]/20 border border-[#064E3B] text-[#F8E7C9]"
+            isError ? "bg-rose-900/30 border border-rose-800 text-rose-300" : "bg-[#0E3746]/20 border border-[#0E3746] text-[#F4F2EC]"
           }`}>
-            {isError ? <AlertCircle className="w-4 h-4 shrink-0 text-rose-400" /> : <CheckCircle2 className="w-4 h-4 shrink-0 text-emerald-400" />}
+            {isError ? <AlertCircle className="w-4 h-4 shrink-0 text-rose-400" /> : <CheckCircle2 className="w-4 h-4 shrink-0 text-primary" />}
             <span>{statusMsg}</span>
           </div>
         )}
@@ -101,8 +101,8 @@ export default function TelegramConfigModal({ isOpen, onClose, theme = "dark" })
               placeholder="e.g., 8754890738:AAEGB2dZCXJzlQ-Bzk1zwN3n2HLxAyj8imA"
               value={botToken}
               onChange={(e) => setBotToken(e.target.value)}
-              className={`w-full p-2 rounded-md border focus:outline-none font-mono text-[11px] ${
-                theme === "dark" ? "bg-zinc-950 border-zinc-800 text-[#F8E7C9]" : "bg-[#F8E7C9]/40 border-[#DECC9F] text-[#064E3B]"
+              className={`w-full p-2 rounded-md border focus:outline-none font-mono text-xs ${
+                theme === "dark" ? "bg-zinc-950 border-zinc-800 text-[#F4F2EC]" : "bg-[#F4F2EC]/40 border-[#DECC9F] text-[#0E3746]"
               }`}
             />
           </div>
@@ -117,8 +117,8 @@ export default function TelegramConfigModal({ isOpen, onClose, theme = "dark" })
               placeholder="e.g., 1326412172, 987654321"
               value={chatId}
               onChange={(e) => setChatId(e.target.value)}
-              className={`w-full p-2 rounded-md border focus:outline-none font-mono text-[11px] ${
-                theme === "dark" ? "bg-zinc-950 border-zinc-800 text-[#F8E7C9]" : "bg-[#F8E7C9]/40 border-[#DECC9F] text-[#064E3B]"
+              className={`w-full p-2 rounded-md border focus:outline-none font-mono text-xs ${
+                theme === "dark" ? "bg-zinc-950 border-zinc-800 text-[#F4F2EC]" : "bg-[#F4F2EC]/40 border-[#DECC9F] text-[#0E3746]"
               }`}
             />
           </div>
@@ -128,7 +128,7 @@ export default function TelegramConfigModal({ isOpen, onClose, theme = "dark" })
               type="button"
               onClick={handleSave}
               disabled={loading}
-              className="px-3 py-1.5 rounded border border-[#064E3B] opacity-90 hover:opacity-100 font-bold flex items-center gap-1.5"
+              className="px-3 py-1.5 rounded border border-[#0E3746] opacity-90 hover:opacity-100 font-bold flex items-center gap-1.5"
             >
               <Save className="w-3.5 h-3.5" />
               <span>Lưu Cấu Hình</span>
@@ -137,7 +137,7 @@ export default function TelegramConfigModal({ isOpen, onClose, theme = "dark" })
               type="button"
               onClick={handleTestSend}
               disabled={loading}
-              className="px-4 py-1.5 bg-[#064E3B] text-[#F8E7C9] font-bold rounded hover:opacity-90 shadow-sm active:scale-[0.98] flex items-center gap-1.5"
+              className="px-4 py-1.5 bg-[#0E3746] text-[#F4F2EC] font-bold rounded hover:opacity-90 shadow-sm active:scale-[0.98] flex items-center gap-1.5"
             >
               <Send className="w-3.5 h-3.5" />
               <span>{loading ? "Đang xử lý..." : "Gửi Thử Nghiệm"}</span>

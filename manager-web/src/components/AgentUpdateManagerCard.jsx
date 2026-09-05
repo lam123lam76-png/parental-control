@@ -89,16 +89,14 @@ export default function AgentUpdateManagerCard({ theme = "dark" }) {
       {/* HEADER */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <div className="p-2.5 rounded-lg bg-zinc-900/70 border border-zinc-900 border-l-2 border-l-[#064E3B] text-[#F8E7C9]">
+          <div className="p-2.5 rounded-lg bg-zinc-900/70 border border-zinc-900 border-l-2 border-l-[#0E3746] text-[#F4F2EC]">
             <Cpu className="w-5 h-5 stroke-[1.75]" />
           </div>
           <div>
-            <h3 className={`text-sm font-extrabold ${styles.textBold}`}>
+            <h3 className={`text-sm font-bold ${styles.textBold}`}>
               Quy Trình Đóng Gói & Cập Nhật Agent Từ Xa
             </h3>
-            <p className={`text-xs font-medium ${styles.textMuted}`}>
-              Đóng gói tự động qua script hệ thống và phát hành cưỡng chế tới máy đích.
-            </p>
+            
           </div>
         </div>
 
@@ -113,8 +111,8 @@ export default function AgentUpdateManagerCard({ theme = "dark" }) {
 
       {/* NOTIFICATION BANNER */}
       {message && (
-        <div className={`p-3.5 rounded-lg border text-xs font-bold flex items-center gap-2.5 ${message.includes("❌") ? "bg-rose-900/30 border-rose-800/50 text-rose-300" : "bg-[#064E3B]/25 border-zinc-800 text-[#F8E7C9]"}`}>
-          <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+        <div className={`p-3.5 rounded-lg border text-xs font-bold flex items-center gap-2.5 ${message.includes("❌") ? "bg-rose-900/30 border-rose-800/50 text-rose-300" : "bg-[#0E3746]/25 border-zinc-800 text-[#F4F2EC]"}`}>
+          <CheckCircle2 className="w-4 h-4 text-primary shrink-0" />
           <span className="flex-1">{message}</span>
         </div>
       )}
@@ -123,15 +121,15 @@ export default function AgentUpdateManagerCard({ theme = "dark" }) {
       <div className={`p-4 rounded-xl border flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 ${styles.card}`}>
         <div>
           <div className={`text-[10px] font-bold uppercase ${styles.textMuted}`}>PHIÊN BẢN ĐANG PHÁT HÀNH TRÊN SERVER</div>
-          <div className="text-base font-extrabold text-[#F8E7C9] flex items-center gap-2.5 mt-0.5">
-            <span>Phiên Bản Hiện Tại: <span className="text-emerald-400">{versionInfo?.version || "v0001"}</span></span>
-            <span className="px-2 py-0.5 rounded bg-[#064E3B] text-[#F8E7C9] text-[10px] font-bold tracking-wider">ACTIVE</span>
+          <div className={`text-sm font-bold flex items-center gap-2.5 mt-0.5 ${styles.textBold}`}>
+            <span>Phiên Bản Hiện Tại: <span className="text-primary">{versionInfo?.version || "v0001"}</span></span>
+            <span className="px-2 py-0.5 rounded bg-primary text-primary-foreground text-[10px] font-bold tracking-wider">ACTIVE</span>
           </div>
         </div>
 
         <div className="text-right">
           <div className={`text-[10px] font-bold ${styles.textMuted}`}>Đường Dẫn Gói Nâng Cấp:</div>
-          <div className="text-xs font-mono text-[#F8E7C9] bg-black/40 px-2.5 py-1 rounded border border-white/10 mt-1">
+          <div className="text-xs font-mono text-white bg-zinc-700/60 px-2.5 py-1 rounded border border-zinc-600/50 mt-1">
             {versionInfo?.download_url || "/static/updates/agent-update.zip"}
           </div>
         </div>
@@ -146,7 +144,7 @@ export default function AgentUpdateManagerCard({ theme = "dark" }) {
             <label className={`text-xs font-bold uppercase tracking-wider ${styles.textBold}`}>
               1. CHỌN/ĐIỀN SỐ PHIÊN BẢN MỚI
             </label>
-            <span className="text-[10px] text-emerald-400 font-bold flex items-center gap-1">
+            <span className="text-[10px] text-primary font-bold flex items-center gap-1">
               <Sparkles className="w-3 h-3" /> Gợi ý tiếp theo: {suggestNextVersion(versionInfo?.version)}
             </span>
           </div>
@@ -175,9 +173,7 @@ export default function AgentUpdateManagerCard({ theme = "dark" }) {
               Gợi Ý Tiếp Theo
             </button>
           </div>
-          <p className={`text-[11px] ${styles.textMuted}`}>
-            Ghi chú: Bản vá thông thường sử dụng chuỗi tăng dần: <span className="font-mono text-emerald-400 font-bold">v0001 → v0002 → v0003</span>. Đột phá phiên bản lớn sử dụng: <span className="font-mono text-emerald-400 font-bold">v1001</span>.
-          </p>
+          
         </div>
 
         {/* WORKFLOW BUTTONS */}
@@ -188,11 +184,11 @@ export default function AgentUpdateManagerCard({ theme = "dark" }) {
             type="button"
             onClick={handlePackZip}
             disabled={packing || !newVersion}
-            className={`p-4 rounded-xl border font-bold text-xs flex items-center justify-center gap-2.5 transition shadow-lg ${
+            className={`p-4 rounded-xl border text-sm font-bold flex items-center justify-center gap-2.5 transition shadow-lg ${
               isPacked
-                ? "bg-emerald-900/40 border-emerald-500/70 text-emerald-300"
+                ? "bg-primary/40 border-primary/70 text-primary"
                 : newVersion
-                ? "bg-[#064E3B] border-emerald-400 text-[#F8E7C9] hover:bg-[#064E3B]/80 hover:scale-[1.01]"
+                ? "bg-[#0E3746] border-primary text-[#F4F2EC] hover:bg-[#0E3746]/80 hover:scale-[1.01]"
                 : "bg-zinc-800/50 border-zinc-800 text-zinc-500 opacity-50 cursor-not-allowed"
             }`}
           >
@@ -205,9 +201,9 @@ export default function AgentUpdateManagerCard({ theme = "dark" }) {
             type="button"
             onClick={handlePublishAndDeploy}
             disabled={deploying || !isPacked}
-            className={`p-4 rounded-xl border font-bold text-xs flex items-center justify-center gap-2.5 transition shadow-lg ${
+            className={`p-4 rounded-xl border text-sm font-bold flex items-center justify-center gap-2.5 transition shadow-lg ${
               isPacked
-                ? "bg-gradient-to-r from-emerald-600 to-emerald-600 border-emerald-300 text-white hover:brightness-110 hover:scale-[1.01] animate-pulse"
+                ? "bg-gradient-to-r from-primary to-primary border-primary text-white hover:brightness-110 hover:scale-[1.01] animate-pulse"
                 : "bg-zinc-800/50 border-zinc-800 text-zinc-500 opacity-50 cursor-not-allowed"
             }`}
           >
@@ -222,3 +218,5 @@ export default function AgentUpdateManagerCard({ theme = "dark" }) {
     </div>
   );
 }
+
+

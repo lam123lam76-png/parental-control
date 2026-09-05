@@ -49,11 +49,11 @@ export default function BrowserHistoryView({ theme = "dark", deviceId = "" }) {
 
   const getBrowserBadgeColor = (name = "") => {
     const lower = name.toLowerCase();
-    if (lower.includes("chrome")) return "bg-emerald-900/30 border-emerald-800/50 text-emerald-300";
-    if (lower.includes("edge")) return "bg-emerald-900/30 border-emerald-800/50 text-emerald-300";
-    if (lower.includes("brave")) return "bg-emerald-900/30 border-emerald-800/50 text-emerald-300";
-    if (lower.includes("cốc cốc") || lower.includes("coccoc")) return "bg-emerald-900/30 border-emerald-800/50 text-emerald-300";
-    if (lower.includes("firefox")) return "bg-emerald-900/30 border-emerald-800/50 text-emerald-300";
+    if (lower.includes("chrome")) return "bg-primary/30 border-primary/50 text-primary";
+    if (lower.includes("edge")) return "bg-primary/30 border-primary/50 text-primary";
+    if (lower.includes("brave")) return "bg-primary/30 border-primary/50 text-primary";
+    if (lower.includes("cốc cốc") || lower.includes("coccoc")) return "bg-primary/30 border-primary/50 text-primary";
+    if (lower.includes("firefox")) return "bg-primary/30 border-primary/50 text-primary";
     return "bg-zinc-800 border-zinc-800 text-zinc-300";
   };
 
@@ -63,16 +63,13 @@ export default function BrowserHistoryView({ theme = "dark", deviceId = "" }) {
       {/* HEADER CARD */}
       <div className={`p-4 sm:p-5 rounded-xl border flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 ${styles.card}`}>
         <div className="flex items-center gap-3">
-          <div className="p-2.5 rounded-lg bg-zinc-900/70 border border-zinc-900 border-l-2 border-l-[#064E3B] text-[#F8E7C9]">
+          <div className="p-2.5 rounded-lg bg-zinc-900/70 border border-zinc-900 border-l-2 border-l-[#0E3746] text-[#F4F2EC]">
             <Globe className="w-5 h-5 stroke-[1.75]" />
           </div>
           <div>
-            <h2 className={`text-base font-extrabold ${styles.textBold}`}>
+            <h2 className={`text-sm font-bold ${styles.textBold}`}>
               Lịch Sử Truy Cập Trình Duyệt (Browser History Log Engine)
             </h2>
-            <p className={`text-xs font-medium ${styles.textMuted}`}>
-              Thu thập nhật ký mở trang web từ Chrome, Edge, Brave, Cốc Cốc, Firefox với tính năng cảnh báo từ khóa nhạy cảm.
-            </p>
           </div>
         </div>
 
@@ -109,7 +106,7 @@ export default function BrowserHistoryView({ theme = "dark", deviceId = "" }) {
 
         {/* Browser Filter Badges */}
         <div className="flex flex-wrap items-center gap-2 text-xs">
-          <span className={`text-[11px] font-bold uppercase tracking-wider flex items-center gap-1 mr-1 ${styles.textMuted}`}>
+          <span className={`text-xs font-bold uppercase tracking-wider flex items-center gap-1 mr-1 ${styles.textMuted}`}>
             <Filter className="w-3 h-3" /> Lọc Trình Duyệt:
           </span>
           {["all", "Chrome", "Edge", "Brave", "Cốc Cốc", "Firefox"].map((b) => (
@@ -118,7 +115,7 @@ export default function BrowserHistoryView({ theme = "dark", deviceId = "" }) {
               onClick={() => setSelectedBrowser(b)}
               className={`px-3 py-1.5 rounded-lg border text-xs font-bold transition ${
                 selectedBrowser === b
-                  ? "bg-[#064E3B] border-[#F8E7C9] text-[#F8E7C9]"
+                  ? "bg-[#0E3746] border-[#F4F2EC] text-[#F4F2EC]"
                   : styles.card + " opacity-70 hover:opacity-100"
               }`}
             >
@@ -132,7 +129,7 @@ export default function BrowserHistoryView({ theme = "dark", deviceId = "" }) {
       <div className={`p-4 sm:p-5 rounded-xl border space-y-4 ${styles.card}`}>
         <div className="flex items-center justify-between">
           <h3 className={`text-sm font-bold flex items-center gap-2 ${styles.textBold}`}>
-            <Clock className="w-4 h-4 text-emerald-400" />
+            <Clock className="w-4 h-4 text-primary" />
             <span>Nhật Ký Trang Web Đã Mở ({history.length} mục)</span>
           </h3>
         </div>
@@ -152,11 +149,11 @@ export default function BrowserHistoryView({ theme = "dark", deviceId = "" }) {
                 <div
                   key={item.id}
                   className={`p-3 rounded-xl border flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 transition ${
-                    sensitive ? "bg-emerald-950/20 border-emerald-800/60" : styles.card
+                    sensitive ? "bg-primary/20 border-primary/60" : styles.card
                   }`}
                 >
                   <div className="flex items-start gap-3 flex-1 min-w-0">
-                    <div className="p-2 rounded-lg bg-zinc-800/50 text-emerald-400 shrink-0 mt-0.5">
+                    <div className="p-2 rounded-lg bg-zinc-800/50 text-primary shrink-0 mt-0.5">
                       <Globe className="w-4 h-4" />
                     </div>
 
@@ -167,13 +164,13 @@ export default function BrowserHistoryView({ theme = "dark", deviceId = "" }) {
                         </span>
 
                         {sensitive && (
-                          <span className="px-2 py-0.5 rounded bg-emerald-900/60 border border-emerald-700 text-emerald-200 text-[10px] font-extrabold flex items-center gap-1">
-                            <ShieldAlert className="w-3 h-3 text-emerald-300" />
+                          <span className="px-2 py-0.5 rounded bg-primary/60 border border-primary text-primary text-[10px] font-extrabold flex items-center gap-1">
+                            <ShieldAlert className="w-3 h-3 text-primary" />
                             <span>⚠️ NHẠY CẢM</span>
                           </span>
                         )}
 
-                        <span className={`text-[11px] font-extrabold truncate ${styles.textBold}`}>
+                        <span className={`text-xs font-extrabold truncate ${styles.textBold}`}>
                           {item.page_title || "Trang không tiêu đề"}
                         </span>
                       </div>
@@ -183,7 +180,7 @@ export default function BrowserHistoryView({ theme = "dark", deviceId = "" }) {
                           href={item.url}
                           target="_blank"
                           rel="noreferrer"
-                          className="text-[11px] text-emerald-400 hover:underline flex items-center gap-1 truncate max-w-full"
+                          className="text-xs text-primary hover:underline flex items-center gap-1 truncate max-w-full"
                         >
                           <span className="truncate">{item.url}</span>
                           <ExternalLink className="w-3 h-3 shrink-0" />

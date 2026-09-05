@@ -54,7 +54,7 @@ import {
 
 export default function FastAPIDashboard() {
   // Theme mode: 'dark' | 'light'
-  const [theme, setTheme] = useState("dark");
+  const [theme, setTheme] = useState("light");
   const styles = getThemeStyles(theme);
 
   // Auth state (persisted in localStorage/sessionStorage with token validation)
@@ -174,6 +174,7 @@ export default function FastAPIDashboard() {
   const handleAuth = async (e) => {
     if (e) e.preventDefault();
     if (!parentEmail || !parentPassword) return setAuthError("Vui lòng nhập Email và Mật khẩu.");
+
     setAuthLoading(true);
     setAuthError("");
     try {
@@ -583,8 +584,8 @@ export default function FastAPIDashboard() {
         <div className="w-full max-w-sm">
           <div className="text-center mb-8">
             <div className="inline-flex items-center gap-2 mb-3">
-              <span className="w-4 h-4 rounded-full bg-[#064E3B] border border-[#F8E7C9]" />
-              <span className="text-lg font-extrabold tracking-wider text-[#F8E7C9]">
+              <span className="w-4 h-4 rounded-full bg-[#0E3746] border border-[#F4F2EC]" />
+              <span className="text-lg font-extrabold tracking-wider text-[#F4F2EC]">
                 PARENTAL<span className="font-normal opacity-90">CONTROL</span>
               </span>
             </div>
@@ -597,7 +598,7 @@ export default function FastAPIDashboard() {
                 type="button"
                 onClick={() => setAuthMode("login")}
                 className={`flex-1 py-2 text-xs font-bold rounded-md transition ${
-                  authMode === "login" ? "bg-[#064E3B] text-[#F8E7C9]" : "text-zinc-500 hover:text-zinc-300"
+                  authMode === "login" ? "bg-[#0E3746] text-[#F4F2EC]" : "text-zinc-500 hover:text-zinc-300"
                 }`}
               >
                 Đăng Nhập
@@ -606,7 +607,7 @@ export default function FastAPIDashboard() {
                 type="button"
                 onClick={() => setAuthMode("register")}
                 className={`flex-1 py-2 text-xs font-bold rounded-md transition ${
-                  authMode === "register" ? "bg-[#064E3B] text-[#F8E7C9]" : "text-zinc-500 hover:text-zinc-300"
+                  authMode === "register" ? "bg-[#0E3746] text-[#F4F2EC]" : "text-zinc-500 hover:text-zinc-300"
                 }`}
               >
                 Đăng Ký Mới
@@ -618,7 +619,7 @@ export default function FastAPIDashboard() {
               placeholder="Email phụ huynh"
               value={parentEmail}
               onChange={(e) => setParentEmail(e.target.value)}
-              className="w-full p-3 text-sm font-bold rounded-lg border border-zinc-800 bg-zinc-950 text-zinc-100 placeholder-zinc-600 focus:outline-none focus:border-emerald-600"
+              className="w-full p-3 text-sm font-bold rounded-lg border border-zinc-800 bg-zinc-950 text-zinc-100 placeholder-zinc-600 focus:outline-none focus:border-primary"
               required
             />
             <input
@@ -626,7 +627,7 @@ export default function FastAPIDashboard() {
               placeholder="Mật khẩu"
               value={parentPassword}
               onChange={(e) => setParentPassword(e.target.value)}
-              className="w-full p-3 text-sm font-bold rounded-lg border border-zinc-800 bg-zinc-950 text-zinc-100 placeholder-zinc-600 focus:outline-none focus:border-emerald-600"
+              className="w-full p-3 text-sm font-bold rounded-lg border border-zinc-800 bg-zinc-950 text-zinc-100 placeholder-zinc-600 focus:outline-none focus:border-primary"
               required
             />
 
@@ -636,7 +637,7 @@ export default function FastAPIDashboard() {
                 id="rememberMe"
                 checked={rememberMe}
                 onChange={(e) => setRememberMe(e.target.checked)}
-                className="w-4 h-4 rounded border-zinc-800 bg-zinc-950 text-[#064E3B] focus:ring-[#064E3B]"
+                className="w-4 h-4 rounded border-zinc-800 bg-zinc-950 text-[#0E3746] focus:ring-[#0E3746]"
               />
               <label htmlFor="rememberMe" className="text-xs text-zinc-400 font-medium cursor-pointer select-none">
                 Ghi nhớ đăng nhập (60 ngày)
@@ -644,7 +645,7 @@ export default function FastAPIDashboard() {
             </div>
 
             {authError && (
-              <div className="p-2.5 rounded-lg bg-emerald-900/30 border border-emerald-800/50 text-xs text-emerald-300 font-bold">
+              <div className="p-2.5 rounded-lg bg-primary/30 border border-primary/50 text-xs text-primary font-bold">
                 {authError}
               </div>
             )}
@@ -652,7 +653,7 @@ export default function FastAPIDashboard() {
             <button
               type="submit"
               disabled={authLoading}
-              className="w-full py-3 text-sm font-bold rounded-lg bg-[#064E3B] text-[#F8E7C9] hover:bg-[#065f46] transition disabled:opacity-50"
+              className="w-full py-3 text-sm font-bold rounded-lg bg-[#0E3746] text-[#F4F2EC] hover:bg-[#065f46] transition disabled:opacity-50"
             >
               {authLoading ? "Đang xử lý..." : authMode === "login" ? "Đăng Nhập" : "Đăng Ký & Đăng Nhập"}
             </button>
@@ -672,13 +673,13 @@ export default function FastAPIDashboard() {
           {/* Logo & Desktop Nav */}
           <div className="flex items-center gap-4 sm:gap-6">
             <div className="flex items-center gap-2">
-              <span className="w-3.5 h-3.5 rounded-full bg-[#064E3B] border border-[#F8E7C9]" />
+              <span className="w-3.5 h-3.5 rounded-full bg-[#0E3746] border border-[#F4F2EC]" />
               <span className={`font-extrabold tracking-wider text-sm sm:text-base ${styles.textBold}`}>
                 PARENTAL<span className="font-normal opacity-90">CONTROL</span>
               </span>
             </div>
 
-            <nav className="hidden md:flex items-center gap-5 text-xs font-bold">
+            <nav className="hidden md:flex items-center gap-6 text-sm font-bold">
               <span onClick={() => setActiveNav("overview")} className={`cursor-pointer hover:opacity-100 transition ${styles.text}`}>Home</span>
               <span onClick={() => setActiveNav("system_logs")} className={`cursor-pointer hover:opacity-100 transition ${styles.text}`}>System Console</span>
               <span onClick={() => setActiveNav("screenshots")} className={`cursor-pointer hover:opacity-100 transition ${styles.text}`}>Screenshots</span>
@@ -700,7 +701,7 @@ export default function FastAPIDashboard() {
 
             {/* System Admin Badge */}
             {isSystemAdmin && (
-              <span className="hidden lg:flex items-center gap-1 px-2.5 py-1 rounded-lg text-[10px] font-extrabold tracking-wider bg-emerald-900/30 border border-emerald-600/60 text-emerald-300">
+              <span className="hidden lg:flex items-center gap-1 px-2.5 py-1 rounded-lg text-[10px] font-extrabold tracking-wider bg-primary/30 border border-primary/60 text-primary">
                 <Shield className="w-3 h-3" />
                 SYSTEM ADMIN
               </span>
@@ -713,13 +714,13 @@ export default function FastAPIDashboard() {
             >
               {theme === "dark" ? (
                 <>
-                  <Sun className="w-3.5 h-3.5 text-[#F8E7C9]" />
-                  <span className="hidden sm:inline text-[#F8E7C9]">Light</span>
+                  <Sun className="w-3.5 h-3.5 text-[#F4F2EC]" />
+                  <span className="hidden sm:inline text-[#F4F2EC]">Light</span>
                 </>
               ) : (
                 <>
-                  <Moon className="w-3.5 h-3.5 text-[#064E3B]" />
-                  <span className="hidden sm:inline text-[#064E3B]">Dark</span>
+                  <Moon className="w-3.5 h-3.5 text-[#0E3746]" />
+                  <span className="hidden sm:inline text-[#0E3746]">Dark</span>
                 </>
               )}
             </button>
@@ -822,7 +823,7 @@ export default function FastAPIDashboard() {
               )}
               <button
                 onClick={handleLogout}
-                className="w-full py-2 text-xs font-bold rounded-md bg-emerald-900/40 border border-emerald-800/50 text-emerald-300 hover:bg-emerald-900/60 transition"
+                className="w-full py-2 text-xs font-bold rounded-md bg-primary/40 border border-primary/50 text-primary hover:bg-primary/60 transition"
               >
                 Đăng Xuất
               </button>
@@ -833,7 +834,7 @@ export default function FastAPIDashboard() {
 
       {/* Origin / backend indicator line */}
       <div className="flex-none px-4 py-1 text-[10px] font-mono text-zinc-500 border-b border-zinc-800 flex items-center gap-2">
-        <span className={(() => { const h = typeof window !== 'undefined' ? window.location.hostname : ''; const isLocal = ['localhost','127.0.0.1','::1'].includes(h); return isLocal ? 'text-emerald-400' : 'text-sky-400'; })()}>●</span>
+        <span className={(() => { const h = typeof window !== 'undefined' ? window.location.hostname : ''; const isLocal = ['localhost','127.0.0.1','::1'].includes(h); return isLocal ? 'text-primary' : 'text-sky-400'; })()}>●</span>
         <span>Nguồn: <b className="text-zinc-300">{(() => { const h = typeof window !== 'undefined' ? window.location.hostname : ''; if (['localhost','127.0.0.1','::1'].includes(h)) return 'Local'; return (serverSource === 'vercel' ? 'Cloud (Vercel)' : 'Cloud'); })()}</b></span>
         <span className="opacity-60">{typeof window !== 'undefined' ? window.location.hostname : 'localhost'}</span>
         <span className="opacity-40">·</span>
@@ -849,7 +850,7 @@ export default function FastAPIDashboard() {
           
           {/* Section 1: Navigation Menu */}
           <div>
-            <h4 className={`text-[11px] font-bold uppercase tracking-wider mb-2 px-3 ${styles.textBold}`}>
+            <h4 className={`text-xs font-bold uppercase tracking-wider mb-2 px-3 ${styles.textBold}`}>
               SECTIONS
             </h4>
             <div className="space-y-1">
@@ -879,7 +880,7 @@ export default function FastAPIDashboard() {
                       <IconComponent className="w-4 h-4 stroke-[1.75]" />
                       <span>{item.label}</span>
                     </span>
-                    {isActive && <span className="w-1.5 h-1.5 rounded-full bg-[#F8E7C9]" />}
+                    {isActive && <span className="w-1.5 h-1.5 rounded-full bg-[#F4F2EC]" />}
                   </button>
                 );
               })}
@@ -888,7 +889,7 @@ export default function FastAPIDashboard() {
 
           {/* Section 2: Active Rule Discriminators */}
           <div>
-            <h4 className={`text-[11px] font-bold uppercase tracking-wider mb-2 px-3 ${styles.textBold}`}>
+            <h4 className={`text-xs font-bold uppercase tracking-wider mb-2 px-3 ${styles.textBold}`}>
               DISCRIMINATORS
             </h4>
             <div className="space-y-1 text-xs">
@@ -923,7 +924,7 @@ export default function FastAPIDashboard() {
           </div>
 
           {/* System Footer Info */}
-          <div className={`p-3.5 rounded-xl border text-[11px] space-y-1 ${styles.card}`}>
+          <div className={`p-3.5 rounded-xl border text-xs space-y-1 ${styles.card}`}>
             <div className={`font-extrabold ${styles.textBold}`}>Parental Control MVP v2.0</div>
             <div className={`font-medium ${styles.textMuted}`}>Architecture: Decoupled 3-Stream</div>
             <div className={`font-medium ${styles.textMuted}`}>Security: DPAPI + HMAC Fail-Closed</div>
@@ -951,17 +952,17 @@ export default function FastAPIDashboard() {
               
               {/* Lock Screen Switch Toggle */}
               <div className="flex items-center gap-3">
-                <div className={`p-2 rounded-lg ${isLocked ? "bg-rose-900/30 border border-rose-800/50 text-rose-300" : "bg-zinc-900/70 border border-zinc-900 border-l-2 border-l-[#064E3B] text-[#F8E7C9]"}`}>
+                <div className={`p-2 rounded-lg ${isLocked ? "bg-rose-900/30 border border-rose-800/50 text-rose-300" : "bg-zinc-900/70 border border-zinc-900 border-l-2 border-l-[#0E3746] text-[#F4F2EC]"}`}>
                   {isLocked ? <Lock className="w-4 h-4" /> : <Unlock className="w-4 h-4" />}
                 </div>
                 <div>
                   <div className="flex items-center gap-2">
                     <span className={`text-xs font-extrabold ${styles.textBold}`}>Khóa Màn Hình</span>
-                    <span className={`text-[9px] font-extrabold px-1.5 py-0.5 rounded ${isLocked ? "bg-rose-900/60 text-rose-200" : "bg-[#064E3B] text-[#F8E7C9]"}`}>
+                    <span className={`text-[10px] font-extrabold px-1.5 py-0.5 rounded ${isLocked ? "bg-rose-900/60 text-rose-200" : "bg-[#0E3746] text-[#F4F2EC]"}`}>
                       {isLocked ? "ĐANG KHÓA (ON)" : "MỞ KHÓA (OFF)"}
                     </span>
                   </div>
-                  <p className={`text-[10px] ${styles.textMuted}`}>Bật/Tắt màn hình khóa phủ đen từ xa</p>
+                  
                 </div>
               </div>
 
@@ -1006,10 +1007,10 @@ export default function FastAPIDashboard() {
                   <span className={`text-[10px] font-bold uppercase tracking-wider ${styles.textMuted}`}>Trạng Thái</span>
                   <div className="flex items-center gap-2">
                     <span className={`relative flex h-2.5 w-2.5 shrink-0`}>
-                      <span className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 ${status.is_online ? "bg-emerald-400" : "bg-rose-500"}`} />
-                      <span className={`relative inline-flex rounded-full h-2.5 w-2.5 ${status.is_online ? "bg-emerald-500" : "bg-rose-500"}`} />
+                      <span className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 ${status.is_online ? "bg-primary" : "bg-rose-500"}`} />
+                      <span className={`relative inline-flex rounded-full h-2.5 w-2.5 ${status.is_online ? "bg-primary" : "bg-rose-500"}`} />
                     </span>
-                    <span className={`text-sm font-extrabold ${status.is_online ? styles.textBold : "text-rose-400"}`}>{status.is_online ? "Online" : "Offline"}</span>
+                    <span className={`text-sm font-bold ${status.is_online ? styles.textBold : "text-rose-400"}`}>{status.is_online ? "Online" : "Offline"}</span>
                   </div>
                   <span className={`text-[10px] ${styles.textMuted}`}>
                     {status.last_seen_at ? `Cập nhật: ${new Date(status.last_seen_at).toLocaleTimeString()}` : "Chưa kết nối"}
@@ -1052,9 +1053,9 @@ export default function FastAPIDashboard() {
                 <h4 className={`text-xs font-bold uppercase tracking-wider ${styles.textBold}`}>Phân Loại Quy Tắc Đang Kích Hoạt</h4>
                 <div className="space-y-2">
                   {[
-                    { label: "App Ban Rules", count: rules.filter(r => r.rule_type === "app").length, color: "bg-emerald-500" },
-                    { label: "Web Ban Rules", count: rules.filter(r => r.rule_type === "web").length, color: "bg-emerald-500" },
-                    { label: "Time Rules",    count: rules.filter(r => r.rule_type === "time").length, color: "bg-emerald-500" },
+                    { label: "App Ban Rules", count: rules.filter(r => r.rule_type === "app").length, color: "bg-primary" },
+                    { label: "Web Ban Rules", count: rules.filter(r => r.rule_type === "web").length, color: "bg-primary" },
+                    { label: "Time Rules",    count: rules.filter(r => r.rule_type === "time").length, color: "bg-primary" },
                   ].map(({ label, count, color }) => (
                     <div key={label} className="flex items-center gap-3 text-xs">
                       <span className={`text-[10px] font-bold w-28 shrink-0 ${styles.textMuted}`}>{label}</span>
@@ -1076,40 +1077,40 @@ export default function FastAPIDashboard() {
                 <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
                   <button
                     onClick={handleTakeScreenshot}
-                    className={`p-3 rounded-lg border text-xs font-bold flex flex-col items-center gap-1.5 transition hover:border-[#064E3B] ${styles.card}`}
+                    className={`p-3 rounded-lg border text-xs font-bold flex flex-col items-center gap-1.5 transition hover:border-[#0E3746] ${styles.card}`}
                   >
-                    <Camera className="w-5 h-5 text-emerald-400" />
+                    <Camera className="w-5 h-5 text-primary" />
                     <span>Chụp Màn Hình</span>
                   </button>
                   <button
                     onClick={() => handleToggleFocusMode(60)}
                     className={`p-3 rounded-lg border text-xs font-bold flex flex-col items-center gap-1.5 transition ${
-                      isFocusMode ? "bg-emerald-950/60 border-emerald-500 text-emerald-300" : `${styles.card} hover:border-emerald-500`
+                      isFocusMode ? "bg-primary/60 border-primary text-primary" : `${styles.card} hover:border-primary`
                     }`}
                   >
-                    <Target className={`w-5 h-5 ${isFocusMode ? "text-emerald-400 animate-pulse" : "text-emerald-400"}`} />
+                    <Target className={`w-5 h-5 ${isFocusMode ? "text-primary animate-pulse" : "text-primary"}`} />
                     <span>{isFocusMode ? "Tắt Học Bài" : "🎯 Học Bài (1h)"}</span>
                   </button>
                   <button
                     onClick={() => setActiveNav("system_logs")}
-                    className={`p-3 rounded-lg border text-xs font-bold flex flex-col items-center gap-1.5 transition hover:border-[#064E3B] ${styles.card}`}
+                    className={`p-3 rounded-lg border text-xs font-bold flex flex-col items-center gap-1.5 transition hover:border-[#0E3746] ${styles.card}`}
                   >
-                    <Terminal className="w-5 h-5 text-emerald-400" />
+                    <Terminal className="w-5 h-5 text-primary" />
                     <span>System Console</span>
                   </button>
                   <button
                     onClick={() => setActiveNav("rules")}
-                    className={`p-3 rounded-lg border text-xs font-bold flex flex-col items-center gap-1.5 transition hover:border-[#064E3B] ${styles.card}`}
+                    className={`p-3 rounded-lg border text-xs font-bold flex flex-col items-center gap-1.5 transition hover:border-[#0E3746] ${styles.card}`}
                   >
-                    <Shield className="w-5 h-5 text-emerald-400" />
+                    <Shield className="w-5 h-5 text-primary" />
                     <span>Quản Lý Rules</span>
                   </button>
                   <button
                     onClick={() => setShowShutdownModal(true)}
-                    className={`p-3 rounded-lg border text-xs font-bold flex flex-col items-center gap-1.5 transition bg-emerald-950/20 border-emerald-800/40 text-emerald-300 hover:bg-emerald-900/40 hover:border-emerald-600`}
+                    className={`p-3 rounded-lg border text-xs font-bold flex flex-col items-center gap-1.5 transition bg-primary/20 border-primary/40 text-primary hover:bg-primary/40 hover:border-primary`}
                     title="Tắt nguồn thiết bị từ xa (Hẹn giờ 10s)"
                   >
-                    <Power className="w-5 h-5 text-emerald-400" />
+                    <Power className="w-5 h-5 text-primary" />
                     <span>Tắt Máy Từ Xa</span>
                   </button>
                 </div>
@@ -1141,7 +1142,7 @@ export default function FastAPIDashboard() {
                       <button
                         key={idx}
                         onClick={() => setSelectedImage(shot.image_url || shot.url)}
-                        className="aspect-video rounded-lg overflow-hidden border border-zinc-700 hover:border-[#064E3B] transition"
+                        className="aspect-video rounded-lg overflow-hidden border border-zinc-700 hover:border-[#0E3746] transition"
                       >
                         <img
                           src={shot.image_url || shot.url}
@@ -1167,10 +1168,10 @@ export default function FastAPIDashboard() {
                   <h4 className={`text-xs font-bold uppercase tracking-wider ${styles.textBold}`}>Cảnh Báo Gần Nhất</h4>
                   <div className="space-y-1.5">
                     {alerts.slice(0, 5).map((alert, idx) => (
-                      <div key={idx} className="flex items-start gap-2 text-xs p-2 rounded-lg bg-emerald-900/20 border border-emerald-800/30">
-                        <span className="text-emerald-400 font-bold shrink-0">[{alert.alert_type || "ALERT"}]</span>
+                      <div key={idx} className="flex items-start gap-2 text-xs p-2 rounded-lg bg-primary/20 border border-primary/30">
+                        <span className="text-primary font-bold shrink-0">[{alert.alert_type || "ALERT"}]</span>
                         <span className={`${styles.textMuted} flex-1 truncate`}>{alert.message}</span>
-                        <span className={`text-[9px] shrink-0 ${styles.textMuted}`}>
+                        <span className={`text-[10px] shrink-0 ${styles.textMuted}`}>
                           {alert.timestamp ? new Date(alert.timestamp).toLocaleTimeString() : ""}
                         </span>
                       </div>
@@ -1203,7 +1204,7 @@ export default function FastAPIDashboard() {
                   {screenshots.length > 0 && (
                     <button
                       onClick={handleDeleteAllScreenshots}
-                      className="px-2.5 py-1 text-xs font-bold rounded-lg bg-emerald-600/20 border border-emerald-500/40 text-emerald-300 hover:bg-emerald-600/30 flex items-center gap-1.5 transition active:scale-95"
+                      className="px-2.5 py-1 text-xs font-bold rounded-lg bg-primary/20 border border-primary/40 text-primary hover:bg-primary/30 flex items-center gap-1.5 transition active:scale-95"
                       title="Xóa tất cả ảnh của thiết bị này"
                     >
                       <Trash2 className="w-3.5 h-3.5" />
@@ -1228,7 +1229,7 @@ export default function FastAPIDashboard() {
                       <div
                         key={shot.id}
                         onClick={() => setSelectedImage(fullUrl)}
-                        className={`group relative rounded-lg overflow-hidden border cursor-pointer transition hover:border-[#064E3B] ${styles.card}`}
+                        className={`group relative rounded-lg overflow-hidden border cursor-pointer transition hover:border-[#0E3746] ${styles.card}`}
                       >
                         <img
                           src={fullUrl}
@@ -1245,15 +1246,15 @@ export default function FastAPIDashboard() {
                         <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition z-10">
                           <button
                             onClick={(e) => handleDeleteScreenshot(e, shot.id)}
-                            className="p-1.5 rounded-lg bg-emerald-600/90 hover:bg-emerald-700 text-white shadow-lg transition active:scale-90"
+                            className="p-1.5 rounded-lg bg-primary/90 hover:bg-primary text-white shadow-lg transition active:scale-90"
                             title="Xóa ảnh này"
                           >
                             <Trash2 className="w-3.5 h-3.5" />
                           </button>
                         </div>
-                        <div className="absolute inset-x-0 bottom-0 p-1.5 bg-black/85 text-[10px] font-mono text-[#F8E7C9] truncate text-center flex items-center justify-center gap-1">
-                          <Clock className="w-3 h-3 opacity-80 text-[#F8E7C9]" />
-                          <span className="text-[#F8E7C9]">{new Date(shot.timestamp).toLocaleString()}</span>
+                        <div className="absolute inset-x-0 bottom-0 p-1.5 bg-black/85 text-[10px] font-mono text-[#F4F2EC] truncate text-center flex items-center justify-center gap-1">
+                          <Clock className="w-3 h-3 opacity-80 text-[#F4F2EC]" />
+                          <span className="text-[#F4F2EC]">{new Date(shot.timestamp).toLocaleString()}</span>
                         </div>
                       </div>
                     );
@@ -1298,8 +1299,8 @@ export default function FastAPIDashboard() {
                   type="submit"
                   className={`px-4 py-2 text-xs font-bold rounded-md transition flex items-center justify-center gap-1 ${styles.buttonPrimary}`}
                 >
-                  <Plus className="w-3.5 h-3.5 text-[#F8E7C9]" />
-                  <span className="text-[#F8E7C9]">Thêm Rule</span>
+                  <Plus className="w-3.5 h-3.5 text-[#F4F2EC]" />
+                  <span className="text-[#F4F2EC]">Thêm Rule</span>
                 </button>
               </form>
 
@@ -1329,7 +1330,7 @@ export default function FastAPIDashboard() {
                       </div>
                       <button
                         onClick={() => handleDeleteRule(rule.id)}
-                        className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 hover:text-emerald-700 px-2 py-0.5 rounded border border-emerald-800/40 hover:bg-emerald-900/30 transition flex items-center gap-1"
+                        className="text-[10px] font-bold text-primary dark:text-primary hover:text-primary px-2 py-0.5 rounded border border-primary/40 hover:bg-primary/30 transition flex items-center gap-1"
                       >
                         <Trash2 className="w-3 h-3 text-rose-600 dark:text-rose-400" />
                         <span>Xóa</span>
@@ -1356,7 +1357,7 @@ export default function FastAPIDashboard() {
                     <div key={log.id} className={`p-2.5 rounded-lg border flex justify-between items-center ${styles.card}`}>
                       <div>
                         <span className={`font-bold ${styles.textBold}`}>{log.process_name}</span>
-                        <p className={`text-[11px] font-medium truncate max-w-[160px] sm:max-w-xs ${styles.textMuted}`}>{log.window_title || "—"}</p>
+                        <p className={`text-xs font-medium truncate max-w-[160px] sm:max-w-xs ${styles.textMuted}`}>{log.window_title || "—"}</p>
                       </div>
                       <span className={`text-[10px] font-bold whitespace-nowrap ${styles.textBold}`}>
                         {log.timestamp ? new Date(log.timestamp).toLocaleTimeString() : "—"}
@@ -1386,11 +1387,11 @@ export default function FastAPIDashboard() {
               {settingSubTab === "menu" && (
                 <div className={`p-4 sm:p-5 rounded-xl border space-y-4 ${styles.card}`}>
                   <div className="flex items-center gap-3 pb-3 border-b border-opacity-20">
-                    <div className="p-2.5 rounded-lg bg-zinc-900/70 border border-zinc-900 border-l-2 border-l-[#064E3B] text-[#F8E7C9]">
+                    <div className="p-2.5 rounded-lg bg-zinc-900/70 border border-zinc-900 border-l-2 border-l-[#0E3746] text-[#F4F2EC]">
                       <Settings className="w-5 h-5 stroke-[1.75]" />
                     </div>
                     <div>
-                      <h2 className={`text-base font-extrabold ${styles.textBold}`}>
+                      <h2 className={`text-sm font-bold ${styles.textBold}`}>
                         Cài Đặt Hệ Thống & Quản Lý
                       </h2>
                       <p className={`text-xs font-medium ${styles.textMuted}`}>
@@ -1403,15 +1404,15 @@ export default function FastAPIDashboard() {
                     {/* Row 1: Sub-Accounts & RBAC */}
                     <button
                       onClick={() => setSettingSubTab("rbac")}
-                      className={`w-full p-3.5 rounded-xl border flex items-center justify-between transition hover:border-[#064E3B] ${styles.card}`}
+                      className={`w-full p-3.5 rounded-xl border flex items-center justify-between transition hover:border-[#0E3746] ${styles.card}`}
                     >
                       <div className="flex items-center gap-3">
-                        <div className="p-2 rounded-lg bg-[#064E3B]/20 text-[#F8E7C9]">
+                        <div className="p-2 rounded-lg bg-primary/30 text-primary">
                           <Users className="w-4 h-4" />
                         </div>
                         <div className="text-left">
-                          <h4 className={`text-xs font-bold ${styles.textBold}`}>Phân Quyền & Tài Khoản Phụ (RBAC)</h4>
-                          <p className={`text-[10px] ${styles.textMuted}`}>Tạo tài khoản gia đình và cấp quyền quản lý từng tính năng</p>
+                          <h4 className={`text-sm font-bold ${styles.textBold}`}>Phân Quyền & Tài Khoản Phụ (RBAC)</h4>
+                          
                         </div>
                       </div>
                       <ChevronRight className="w-4 h-4 text-zinc-500" />
@@ -1420,15 +1421,15 @@ export default function FastAPIDashboard() {
                     {/* Row 2: Silent Auto-Updater */}
                     <button
                       onClick={() => setSettingSubTab("agent_update")}
-                      className={`w-full p-3.5 rounded-xl border flex items-center justify-between transition hover:border-[#064E3B] ${styles.card}`}
+                      className={`w-full p-3.5 rounded-xl border flex items-center justify-between transition hover:border-[#0E3746] ${styles.card}`}
                     >
                       <div className="flex items-center gap-3">
-                        <div className="p-2 rounded-lg bg-emerald-900/30 text-emerald-300">
+                        <div className="p-2 rounded-lg bg-primary/30 text-primary">
                           <Rocket className="w-4 h-4" />
                         </div>
                         <div className="text-left">
-                          <h4 className={`text-xs font-bold ${styles.textBold}`}>Cập Nhật Agent Từ Xa (Silent Auto-Updater)</h4>
-                          <p className={`text-[10px] ${styles.textMuted}`}>Upload bản build `.zip` mới và phát lệnh nâng cấp ngầm toàn bộ Agent</p>
+                          <h4 className={`text-sm font-bold ${styles.textBold}`}>Cập Nhật Agent Từ Xa (Silent Auto-Updater)</h4>
+                          
                         </div>
                       </div>
                       <ChevronRight className="w-4 h-4 text-zinc-500" />
@@ -1437,15 +1438,15 @@ export default function FastAPIDashboard() {
                     {/* Row 3: Server Storage & Cleanup */}
                     <button
                       onClick={() => setSettingSubTab("storage")}
-                      className={`w-full p-3.5 rounded-xl border flex items-center justify-between transition hover:border-[#064E3B] ${styles.card}`}
+                      className={`w-full p-3.5 rounded-xl border flex items-center justify-between transition hover:border-[#0E3746] ${styles.card}`}
                     >
                       <div className="flex items-center gap-3">
-                        <div className="p-2 rounded-lg bg-emerald-900/30 text-emerald-300">
+                        <div className="p-2 rounded-lg bg-primary/30 text-primary">
                           <HardDrive className="w-4 h-4" />
                         </div>
                         <div className="text-left">
-                          <h4 className={`text-xs font-bold ${styles.textBold}`}>Quản Lý Bộ Nhớ & Dọn Dẹp Server</h4>
-                          <p className={`text-[10px] ${styles.textMuted}`}>Theo dõi dung lượng đĩa, nén SQLite DB và dọn dẹp log/ảnh chụp</p>
+                          <h4 className={`text-sm font-bold ${styles.textBold}`}>Quản Lý Bộ Nhớ & Dọn Dẹp Server</h4>
+                          
                         </div>
                       </div>
                       <ChevronRight className="w-4 h-4 text-zinc-500" />
@@ -1454,15 +1455,15 @@ export default function FastAPIDashboard() {
                     {/* Row 4: Period Settings */}
                     <button
                       onClick={() => setSettingSubTab("periods")}
-                      className={`w-full p-3.5 rounded-xl border flex items-center justify-between transition hover:border-[#064E3B] ${styles.card}`}
+                      className={`w-full p-3.5 rounded-xl border flex items-center justify-between transition hover:border-[#0E3746] ${styles.card}`}
                     >
                       <div className="flex items-center gap-3">
-                        <div className="p-2 rounded-lg bg-emerald-900/30 text-emerald-300">
+                        <div className="p-2 rounded-lg bg-primary/30 text-primary">
                           <Activity className="w-4 h-4" />
                         </div>
                         <div className="text-left">
-                          <h4 className={`text-xs font-bold ${styles.textBold}`}>Cài Đặt Chu Kỳ (Screenshot & Heartbeat)</h4>
-                          <p className={`text-[10px] ${styles.textMuted}`}>Điều chỉnh tần suất chụp màn hình và tần suất kiểm tra kết nối</p>
+                          <h4 className={`text-sm font-bold ${styles.textBold}`}>Cài Đặt Chu Kỳ (Screenshot & Heartbeat)</h4>
+                          
                         </div>
                       </div>
                       <ChevronRight className="w-4 h-4 text-zinc-500" />
@@ -1471,15 +1472,15 @@ export default function FastAPIDashboard() {
                     {/* Row 5: Time Control */}
                     <button
                       onClick={() => setSettingSubTab("time_control")}
-                      className={`w-full p-3.5 rounded-xl border flex items-center justify-between transition hover:border-[#064E3B] ${styles.card}`}
+                      className={`w-full p-3.5 rounded-xl border flex items-center justify-between transition hover:border-[#0E3746] ${styles.card}`}
                     >
                       <div className="flex items-center gap-3">
-                        <div className="p-2 rounded-lg bg-emerald-900/30 text-emerald-300">
+                        <div className="p-2 rounded-lg bg-primary/30 text-primary">
                           <Clock className="w-4 h-4" />
                         </div>
                         <div className="text-left">
-                          <h4 className={`text-xs font-bold ${styles.textBold}`}>Kiểm Soát Thời Gian Dùng Máy</h4>
-                          <p className={`text-[10px] ${styles.textMuted}`}>Khung giờ được dùng máy, chặn & giới hạn thời gian web/ứng dụng</p>
+                          <h4 className={`text-sm font-bold ${styles.textBold}`}>Kiểm Soát Thời Gian Dùng Máy</h4>
+                          
                         </div>
                       </div>
                       <ChevronRight className="w-4 h-4 text-zinc-500" />
@@ -1582,10 +1583,10 @@ export default function FastAPIDashboard() {
             </h4>
 
             {/* Status Indicator */}
-            <div className="flex items-center gap-3 p-3 rounded-lg border bg-[#064E3B]/10 border-zinc-800">
+            <div className="flex items-center gap-3 p-3 rounded-lg border bg-[#0E3746]/10 border-zinc-800">
               <span className="relative flex h-3 w-3 shrink-0">
-                <span className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 ${status.is_online ? "bg-[#064E3B] dark:bg-emerald-400" : "bg-rose-500"}`} />
-                <span className={`relative inline-flex rounded-full h-3 w-3 ${status.is_online ? "bg-[#064E3B] dark:bg-emerald-500" : "bg-rose-500"}`} />
+                <span className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 ${status.is_online ? "bg-[#0E3746] dark:bg-primary" : "bg-rose-500"}`} />
+                <span className={`relative inline-flex rounded-full h-3 w-3 ${status.is_online ? "bg-[#0E3746] dark:bg-primary" : "bg-rose-500"}`} />
               </span>
               <div>
                 <div className={`text-xs font-extrabold flex items-center gap-1.5 ${styles.textBold}`}>
@@ -1647,7 +1648,7 @@ export default function FastAPIDashboard() {
               )}
               <button
                 onClick={handleLogout}
-                className="w-full py-2 sm:py-1.5 text-xs font-bold rounded-md bg-emerald-900/40 border border-emerald-800/50 text-emerald-300 hover:bg-emerald-900/60 transition"
+                className="w-full py-2 sm:py-1.5 text-xs font-bold rounded-md bg-primary/40 border border-primary/50 text-primary hover:bg-primary/60 transition"
               >
                 Đăng Xuất
               </button>
@@ -1675,38 +1676,38 @@ export default function FastAPIDashboard() {
       {/* Remote Shutdown Confirmation Modal */}
       {showShutdownModal && (
         <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="max-w-md w-full p-5 sm:p-6 rounded-2xl border border-emerald-500/40 shadow-2xl space-y-4 bg-zinc-950 text-white animate-in fade-in zoom-in duration-200">
-            <div className="flex items-center gap-3 text-emerald-400 border-b border-emerald-900/40 pb-3">
-              <div className="p-2 rounded-xl bg-emerald-950/60 border border-emerald-700/50">
-                <AlertTriangle className="w-6 h-6 text-emerald-400 animate-pulse" />
+          <div className="max-w-md w-full p-5 sm:p-6 rounded-2xl border border-primary/40 shadow-2xl space-y-4 bg-zinc-950 text-white animate-in fade-in zoom-in duration-200">
+            <div className="flex items-center gap-3 text-primary border-b border-primary/40 pb-3">
+              <div className="p-2 rounded-xl bg-primary/60 border border-primary/50">
+                <AlertTriangle className="w-6 h-6 text-primary animate-pulse" />
               </div>
               <div>
-                <h3 className="text-sm font-black uppercase tracking-wider text-emerald-300">
+                <h3 className="text-sm font-black uppercase tracking-wider text-primary">
                   Xác Nhận Tắt Nguồn Thiết Bị
                 </h3>
-                <p className="text-[11px] text-zinc-400">
+                <p className="text-xs text-zinc-400">
                   Lệnh tắt máy tính từ xa (Hẹn giờ 10 giây)
                 </p>
               </div>
             </div>
 
-            <div className="p-3.5 rounded-xl bg-emerald-950/30 border border-emerald-900/50 text-xs text-emerald-200/90 leading-relaxed space-y-2">
+            <div className="p-3.5 rounded-xl bg-primary/30 border border-primary/50 text-xs text-primary/90 leading-relaxed space-y-2">
               <p>
                 ⚠️ <b>LƯU Ý QUAN TRỌNG:</b> Sau khi gửi lệnh, máy tính của con sẽ đếm ngược <b>10 giây</b> và <b>TẮT NGUỒN HOÀN TOÀN</b>.
               </p>
-              <p className="text-[11px] text-zinc-300 opacity-90">
+              <p className="text-xs text-zinc-300 opacity-90">
                 * Bạn chỉ có thể bật lại máy tính bằng cách nhấn trực tiếp nút nguồn vật lý trên thùng máy/laptop của con.
               </p>
             </div>
 
             <div className="space-y-1.5">
-              <label className="text-[11px] font-bold text-zinc-300">Lý do tắt máy (Hiển thị cho con):</label>
+              <label className="text-xs font-bold text-zinc-300">Lý do tắt máy (Hiển thị cho con):</label>
               <input
                 type="text"
                 value={shutdownReason}
                 onChange={(e) => setShutdownReason(e.target.value)}
                 placeholder="Nhập lý do hoặc chọn nhanh bên dưới..."
-                className="w-full px-3 py-2 rounded-lg bg-zinc-900 border border-zinc-700 text-xs focus:border-emerald-500 outline-none text-zinc-100"
+                className="w-full px-3 py-2 rounded-lg bg-zinc-900 border border-zinc-700 text-xs focus:border-primary outline-none text-zinc-100"
               />
               <div className="flex flex-wrap gap-1.5 pt-1">
                 {["Đã hết giờ dùng máy tính", "Đến giờ đi ngủ", "Tắt máy nghỉ ngơi"].map((preset) => (
@@ -1735,7 +1736,7 @@ export default function FastAPIDashboard() {
                 type="button"
                 onClick={handleShutdownDevice}
                 disabled={isShuttingDown}
-                className="px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold transition flex items-center gap-1.5 shadow-lg shadow-rose-950/50"
+                className="px-4 py-2 rounded-lg bg-primary hover:bg-primary text-white text-xs font-bold transition flex items-center gap-1.5 shadow-lg shadow-rose-950/50"
               >
                 <Power className="w-4 h-4" />
                 <span>{isShuttingDown ? "Đang gửi lệnh..." : "Xác Nhận Tắt Máy"}</span>
@@ -1773,3 +1774,4 @@ export default function FastAPIDashboard() {
     </div>
   );
 }
+

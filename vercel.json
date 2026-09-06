@@ -1,17 +1,18 @@
 {
-  "buildCommand": "cd manager-web && npm install && npm run build",
-  "outputDirectory": "manager-web/dist",
-  "framework": null,
   "builds": [
+    {
+      "src": "manager-web/package.json",
+      "use": "@vercel/static-build",
+      "config": { "distDir": "dist" }
+    },
     {
       "src": "backend_api/api/index.py",
       "use": "@vercel/python"
     }
   ],
-  "rewrites": [
-    { "source": "/api/:path*",    "destination": "/backend_api/api/index.py" },
-    { "source": "/ws/:path*",     "destination": "/backend_api/api/index.py" },
-    { "source": "/static/:path*", "destination": "/backend_api/api/index.py" },
-    { "source": "/(.*)",          "destination": "/index.html" }
+  "routes": [
+    { "src": "/api/(.*)",    "dest": "backend_api/api/index.py" },
+    { "src": "/static/(.*)", "dest": "backend_api/api/index.py" },
+    { "src": "/(.*)",        "dest": "manager-web/dist/$1" }
   ]
 }

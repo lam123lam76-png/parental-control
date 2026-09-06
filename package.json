@@ -1,0 +1,6 @@
+{
+  "name": "parental-control",
+  "scripts": {
+    "build": "cd manager-web && npm install && npm run build"
+  }
+}

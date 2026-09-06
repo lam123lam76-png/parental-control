@@ -7,6 +7,7 @@ from sqlalchemy.orm import Session
 
 import models
 from database import SessionLocal
+from core import telegram_bot  # điều khiển thiết bị qua text commands
 
 logger = logging.getLogger(__name__)
 
@@ -114,8 +115,25 @@ def process_callback_query(update: dict, db: Session, bot_token: str, chat_id: s
     cb_id = cb["id"]
     data = cb.get("data", "")
     msg = cb.get("message")
-    
-    if not data or ":" not in data:
+
+    if not data:
+        answer_callback(cb_id, "Dữ liệu không hợp lệ", bot_token)
+        return
+
+    # ── Điều khiển thiết bị: dev:lock/unlock/shot/select:<id> ────────────────
+    if data.startswith("dev:"):
+        telegram_bot.answer_cb(bot_token, cb_id, "Đang xử lý...")
+        telegram_bot.handle_dev_callback(data, db, bot_token, chat_id)
+        return
+
+    # ── Phản hồi cảnh báo ban đêm: night:allow/deny:<device_id> ─────────────
+    if data.startswith("night:"):
+        telegram_bot.answer_cb(bot_token, cb_id, "Đang xử lý...")
+        telegram_bot.handle_night_callback(data, db, bot_token, chat_id)
+        return
+
+    # ── Phê duyệt / từ chối đăng ký thiết bị mới ────────────────────────────
+    if ":" not in data:
         answer_callback(cb_id, "Dữ liệu không hợp lệ", bot_token)
         return
         
@@ -164,41 +182,63 @@ def process_callback_query(update: dict, db: Session, bot_token: str, chat_id: s
 
 
 def get_updates_poller():
+    """Long-poll Telegram getUpdates và xử lý:
+    - message (text commands: /lock /unlock /shot /devices /usage /select /menu /help)
+    - callback_query (nút bấm inline: dev:lock, dev:unlock, dev:shot, approve/reject đăng ký)
+    """
     offset = 0
     while True:
         try:
             db = SessionLocal()
             try:
-                # get telegram settings
                 tg_setting = db.query(models.TelegramSetting).first()
                 if not tg_setting or not tg_setting.bot_token or not tg_setting.chat_id:
                     time.sleep(10)
                     continue
-                    
+
                 bot_token = tg_setting.bot_token
                 chat_id = tg_setting.chat_id
-                
+
                 url = f"{TG_API_URL.format(bot_token)}/getUpdates"
                 payload = {
                     "offset": offset,
                     "timeout": 30,
-                    "allowed_updates": ["callback_query"]
+                    # BUG FIX: phải subscribe cả "message" mới nhận được text commands
+                    # Trước chỉ có ["callback_query"] → /lock /unlock /shot bị bỏ qua hoàn toàn
+                    "allowed_updates": ["message", "callback_query"],
                 }
-                
+
                 try:
                     resp = requests.post(url, json=payload, timeout=40)
                     resp.raise_for_status()
                     data = resp.json()
-                    
+
                     if data.get("ok") and data.get("result"):
                         for update in data["result"]:
                             update_id = update["update_id"]
                             offset = update_id + 1
-                            process_callback_query(update, db, bot_token, chat_id)
+
+                            # Lấy chat_id từ update (tin nhắn hoặc callback)
+                            update_chat_id = chat_id  # fallback
+                            if "message" in update and update["message"].get("chat"):
+                                update_chat_id = str(update["message"]["chat"]["id"])
+                            elif "callback_query" in update:
+                                cb_msg = update["callback_query"].get("message")
+                                if cb_msg and cb_msg.get("chat"):
+                                    update_chat_id = str(cb_msg["chat"]["id"])
+
+                            if "message" in update:
+                                # Text commands: /lock /unlock /shot /devices /usage /select /menu /help
+                                telegram_bot.handle_message(update, bot_token, update_chat_id, db)
+                            elif "callback_query" in update:
+                                # Inline buttons: dev:lock/unlock/shot/select, approve/reject/resend, night:allow/deny
+                                process_callback_query(update, db, bot_token, update_chat_id)
+
                 except requests.exceptions.RequestException as req_err:
+                    logger.warning(f"[tg-poller] getUpdates network error: {req_err}")
                     time.sleep(5)
             finally:
                 db.close()
         except Exception as e:
-            logger.error(f"Telegram poller exception: {e}")
+            logger.error(f"[tg-poller] exception: {e}")
             time.sleep(5)

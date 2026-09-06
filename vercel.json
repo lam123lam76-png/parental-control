@@ -1,18 +1,8 @@
 {
-  "builds": [
-    {
-      "src": "manager-web/package.json",
-      "use": "@vercel/static-build",
-      "config": { "distDir": "dist" }
-    },
-    {
-      "src": "backend_api/index.py",
-      "use": "@vercel/python"
-    }
-  ],
-  "routes": [
-    { "src": "/api/(.*)",    "dest": "backend_api/index.py" },
-    { "src": "/static/(.*)", "dest": "backend_api/index.py" },
-    { "src": "/(.*)",        "dest": "manager-web/dist/$1" }
+  "rewrites": [
+    { "source": "/api/(.*)",    "destination": "/api/index.py" },
+    { "source": "/ws/(.*)",     "destination": "/api/index.py" },
+    { "source": "/static/(.*)", "destination": "/api/index.py" },
+    { "source": "/(.*)",        "destination": "/index.html" }
   ]
 }

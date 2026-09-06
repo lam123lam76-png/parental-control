@@ -23,3 +23,16 @@ temp_zip/
 agent_installer/
 api/
 backend_api/
+# Loai cac marker Python o root de Vercel KHONG build nham backend
+requirements.txt
+*.py
+Pipfile
+Pipfile.lock
+poetry.lock
+runtime.txt
+Dockerfile
+docker-compose.yml
+*.sh
+*.bat
+*.vbs
+*.sln

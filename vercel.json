@@ -6,13 +6,13 @@
       "config": { "distDir": "dist" }
     },
     {
-      "src": "backend_api/api/index.py",
+      "src": "backend_api/index.py",
       "use": "@vercel/python"
     }
   ],
   "routes": [
-    { "src": "/api/(.*)",    "dest": "backend_api/api/index.py" },
-    { "src": "/static/(.*)", "dest": "backend_api/api/index.py" },
+    { "src": "/api/(.*)",    "dest": "backend_api/index.py" },
+    { "src": "/static/(.*)", "dest": "backend_api/index.py" },
     { "src": "/(.*)",        "dest": "manager-web/dist/$1" }
   ]
 }

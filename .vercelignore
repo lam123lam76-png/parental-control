@@ -21,3 +21,5 @@ backups/
 *.pkg
 temp_zip/
 agent_installer/
+api/
+backend_api/

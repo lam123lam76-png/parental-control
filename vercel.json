@@ -1,11 +1,17 @@
 {
   "buildCommand": "cd manager-web && npm install && npm run build",
   "outputDirectory": "manager-web/dist",
-  "framework": "vite",
+  "framework": null,
+  "builds": [
+    {
+      "src": "backend_api/api/index.py",
+      "use": "@vercel/python"
+    }
+  ],
   "rewrites": [
-    { "source": "/api/:path*",    "destination": "https://quanlypc-api-backup.vercel.app/api/:path*" },
-    { "source": "/ws/:path*",     "destination": "https://quanlypc-api-backup.vercel.app/ws/:path*" },
-    { "source": "/static/:path*", "destination": "https://quanlypc-api-backup.vercel.app/static/:path*" },
+    { "source": "/api/:path*",    "destination": "/backend_api/api/index.py" },
+    { "source": "/ws/:path*",     "destination": "/backend_api/api/index.py" },
+    { "source": "/static/:path*", "destination": "/backend_api/api/index.py" },
     { "source": "/(.*)",          "destination": "/index.html" }
   ]
 }

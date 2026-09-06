@@ -3,7 +3,6 @@
 node_modules/
 manager-web/node_modules/
 agent/
-backend_api/
 dist/
 build/
 __pycache__/
@@ -15,3 +14,10 @@ __pycache__/
 .env
 .env.*
 backups/
+
+.gitnexus/
+*.dll
+*.exe
+*.pkg
+temp_zip/
+agent_installer/

@@ -147,30 +147,63 @@ def resend_registration(request: Request, reg_id: str, db: Session = Depends(get
 # ─────────────────────────────────────────────────────────────────────────────
 import asyncio
 from core.telegram_approval import process_callback_query
-from core.telegram_bot import handle_message, handle_dev_callback, answer_cb
+from core.telegram_bot import handle_message, handle_dev_callback, handle_night_callback, answer_cb
 
 
-@router.post("/telegram/webhook")
+@router.post("/api/telegram/webhook")
 async def telegram_webhook(request: Request, db: Session = Depends(get_db)):
     try:
         update = await request.json()
     except Exception:
         return {"ok": False}
-    tg = db.query(models.TelegramSetting).first()
+    # Sync SQLAlchemy query inside async handler — run in a thread to avoid
+    # blocking the event loop (Task 11).
+    try:
+        tg = await asyncio.to_thread(
+            lambda: db.query(models.TelegramSetting).first()
+        )
+    except Exception:
+        tg = None
     if not tg or not tg.bot_token or not tg.chat_id:
         return {"ok": False, "detail": "Telegram not configured"}
 
+    # Determine the chat that sent this update (multiple parents are allowed).
+    # Reply goes to the SENDER's chat, not a hardcoded chat_id.
+    authorized = [c.strip() for c in (tg.chat_id or "").split(",") if c.strip()]
+
+    sender_chat = None
+    if update.get("message") and update["message"].get("chat"):
+        sender_chat = str(update["message"]["chat"].get("id", ""))
+    elif update.get("callback_query") and update["callback_query"].get("message", {}).get("chat"):
+        sender_chat = str(update["callback_query"]["message"]["chat"].get("id", ""))
+
+    # Only allow chats that are explicitly authorized as parents.
+    if sender_chat and sender_chat not in authorized:
+        return {"ok": True, "detail": "unauthorized chat"}
+
+    reply_chat = sender_chat or (authorized[0] if authorized else "")
+
     if update.get("message"):
         # Text command (e.g. /devices, /lock, /shot)
-        await asyncio.to_thread(handle_message, update, tg.bot_token, tg.chat_id, db)
+        logger.info(f"[webhook] message text={update['message'].get('text')!r} sender_chat={sender_chat} reply_chat={reply_chat}")
+        try:
+            await asyncio.to_thread(handle_message, update, tg.bot_token, reply_chat, db)
+            logger.info("[webhook] handle_message done")
+        except Exception as e:
+            logger.error(f"[webhook] handle_message error: {e}", exc_info=True)
+            return {"ok": False, "error": str(e)}
     elif update.get("callback_query"):
         cb = update["callback_query"]
         data = cb.get("data", "")
         if data.startswith("dev:"):
             # Device-control buttons (lock/unlock/shot)
-            await asyncio.to_thread(handle_dev_callback, data, db, tg.bot_token, tg.chat_id)
+            await asyncio.to_thread(handle_dev_callback, data, db, tg.bot_token, reply_chat)
+            await asyncio.to_thread(answer_cb, tg.bot_token, cb["id"], "Đã xử lý")
+        elif data.startswith("night:"):
+            # Night-time warning buttons (allow/deny late gaming)
+            await asyncio.to_thread(handle_night_callback, data, db, tg.bot_token, reply_chat)
             await asyncio.to_thread(answer_cb, tg.bot_token, cb["id"], "Đã xử lý")
         else:
             # Registration approval (approve/reject/resend)
-            await asyncio.to_thread(process_callback_query, update, db, tg.bot_token, tg.chat_id)
+            await asyncio.to_thread(process_callback_query, update, db, tg.bot_token, reply_chat)
     return {"ok": True}

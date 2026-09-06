@@ -259,7 +259,7 @@ export default function StorageManagementCard({ theme = "dark", deviceId = "" })
     }
   };
 
-  const shots = metrics?.screenshots || { count: 0, total_mb: 0 };
+  const disk = metrics?.disk || { total_gb: 0, used_gb: 0, free_gb: 0, used_percent: 0 };
 
   return (
     <div className={`p-4 sm:p-5 rounded-xl border space-y-5 font-sans ${styles.card}`}>
@@ -267,14 +267,16 @@ export default function StorageManagementCard({ theme = "dark", deviceId = "" })
       {/* HEADER */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <div className="p-2.5 rounded-lg bg-zinc-900/70 border border-zinc-900 border-l-2 border-l-[#0E3746] text-[#F4F2EC]">
+          <div className="p-2.5 rounded-lg bg-zinc-900/70 border border-zinc-900 border-l-2 border-l-[#064E3B] text-[#F8E7C9]">
             <HardDrive className="w-5 h-5 stroke-[1.75]" />
           </div>
           <div>
-            <h3 className={`text-sm font-bold ${styles.textBold}`}>
+            <h3 className={`text-sm font-extrabold ${styles.textBold}`}>
               Module Quản Lý Bộ Nhớ & Dữ Liệu Tập Trung (Storage & Data Hub)
             </h3>
-            
+            <p className={`text-xs font-medium ${styles.textMuted}`}>
+              Hiển thị ảnh & dữ liệu thực tế gom nhóm theo Ngày/Tuần/Tháng. Xóa mục lẻ hoặc gom nhóm theo Checkbox.
+            </p>
           </div>
         </div>
 
@@ -290,30 +292,35 @@ export default function StorageManagementCard({ theme = "dark", deviceId = "" })
       </div>
 
       {message && (
-        <div className="p-3 rounded-lg bg-zinc-900/70 border border-zinc-900 border-l-2 border-l-[#0E3746] text-xs text-[#F4F2EC] font-bold flex items-center gap-2">
-          <CheckCircle2 className="w-4 h-4 text-primary shrink-0" />
+        <div className="p-3 rounded-lg bg-zinc-900/70 border border-zinc-900 border-l-2 border-l-[#064E3B] text-xs text-[#F8E7C9] font-bold flex items-center gap-2">
+          <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
           <span>{message}</span>
         </div>
       )}
 
-      {/* CLOUD STORAGE SUMMARY */}
+      {/* DISK USAGE PROGRESS BAR */}
       <div className="space-y-2">
         <div className="flex justify-between items-center text-xs">
           <span className={`font-bold ${styles.textBold}`}>
-            Dung Lượng Lưu Trữ Đám Mây (Cloud Storage)
+            Dung Lượng Ổ Đĩa Server (Disk Usage)
           </span>
-          <span className="font-mono font-bold text-[#F4F2EC]">
-            {shots.total_mb} MB — Ảnh chụp màn hình
+          <span className="font-mono font-bold text-[#F8E7C9]">
+            {disk.used_gb} GB / {disk.total_gb} GB ({disk.used_percent}%) — Trống: {disk.free_gb} GB
           </span>
         </div>
-        <div className="text-xs text-zinc-400">
-          Hệ thống lưu trữ trên đám mây (Supabase Storage). Không còn ổ đĩa vật lý cục bộ.
+        <div className="w-full h-3 rounded-full bg-zinc-950 border border-zinc-800 overflow-hidden p-0.5">
+          <div
+            className={`h-full rounded-full transition-all duration-500 ${
+              disk.used_percent > 85 ? "bg-emerald-500" : disk.used_percent > 65 ? "bg-emerald-500" : "bg-[#064E3B]"
+            }`}
+            style={{ width: `${Math.min(100, Math.max(2, disk.used_percent))}%` }}
+          />
         </div>
       </div>
 
       {/* 5 STORAGE CATEGORY CARDS GRID */}
       <div>
-        <label className={`text-xs font-bold uppercase tracking-wider block mb-2 ${styles.textMuted}`}>
+        <label className={`text-[11px] font-bold uppercase tracking-wider block mb-2 ${styles.textMuted}`}>
           PHÂN LOẠI NHÓM DỮ LIỆU (CHỌN DANH MỤC ĐỂ XEM & DỌN DẸP)
         </label>
         <div className="grid grid-cols-1 sm:grid-cols-5 gap-2.5 text-xs">
@@ -324,17 +331,17 @@ export default function StorageManagementCard({ theme = "dark", deviceId = "" })
             onClick={() => { setActiveCategory("all"); setSelectedPeriods([]); setSelectedItemIds([]); }}
             className={`p-3 rounded-xl border text-left flex items-start gap-2.5 transition ${
               activeCategory === "all"
-                ? "bg-[#0E3746]/40 border-[#0E3746] ring-2 ring-[#0E3746]/50 text-[#F4F2EC]"
+                ? "bg-[#064E3B]/40 border-[#064E3B] ring-2 ring-[#064E3B]/50 text-[#F8E7C9]"
                 : styles.card
             }`}
           >
-            <Sparkles className="w-4 h-4 text-primary shrink-0 mt-0.5" />
+            <Sparkles className="w-4 h-4 text-emerald-300 shrink-0 mt-0.5" />
             <div>
               <div className={`text-[10px] font-extrabold uppercase ${styles.textMuted}`}>TOÀN BỘ DỮ LIỆU</div>
-              <div className="text-xs font-extrabold text-[#F4F2EC]">
+              <div className="text-xs font-extrabold text-[#F8E7C9]">
                 {realItems.length} Mục Thực
               </div>
-              <div className="text-[10px] font-mono text-primary font-bold">
+              <div className="text-[10px] font-mono text-emerald-300 font-bold">
                 Tất cả 4 nhóm
               </div>
             </div>
@@ -346,17 +353,17 @@ export default function StorageManagementCard({ theme = "dark", deviceId = "" })
             onClick={() => { setActiveCategory("screenshots"); setSelectedPeriods([]); setSelectedItemIds([]); }}
             className={`p-3 rounded-xl border text-left flex items-start gap-2.5 transition ${
               activeCategory === "screenshots"
-                ? "bg-[#0E3746]/30 border-[#0E3746] ring-2 ring-[#0E3746]/50"
+                ? "bg-[#064E3B]/30 border-[#064E3B] ring-2 ring-[#064E3B]/50"
                 : styles.card
             }`}
           >
-            <Camera className="w-4 h-4 text-primary shrink-0 mt-0.5" />
+            <Camera className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
             <div>
               <div className={`text-[10px] font-extrabold uppercase ${styles.textMuted}`}>Ảnh Chụp Màn Hình</div>
-              <div className="text-xs font-extrabold text-[#F4F2EC]">
+              <div className="text-xs font-extrabold text-[#F8E7C9]">
                 {metrics?.screenshots?.count ?? 0} Ảnh
               </div>
-              <div className="text-[10px] font-mono text-primary font-bold">
+              <div className="text-[10px] font-mono text-emerald-400 font-bold">
                 {metrics?.screenshots?.total_mb ?? 0} MB
               </div>
             </div>
@@ -368,17 +375,17 @@ export default function StorageManagementCard({ theme = "dark", deviceId = "" })
             onClick={() => { setActiveCategory("web"); setSelectedPeriods([]); setSelectedItemIds([]); }}
             className={`p-3 rounded-xl border text-left flex items-start gap-2.5 transition ${
               activeCategory === "web"
-                ? "bg-[#0E3746]/30 border-[#0E3746] ring-2 ring-[#0E3746]/50"
+                ? "bg-[#064E3B]/30 border-[#064E3B] ring-2 ring-[#064E3B]/50"
                 : styles.card
             }`}
           >
-            <Globe className="w-4 h-4 text-primary shrink-0 mt-0.5" />
+            <Globe className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
             <div>
               <div className={`text-[10px] font-extrabold uppercase ${styles.textMuted}`}>Dữ Liệu Duyệt Web</div>
-              <div className="text-xs font-extrabold text-[#F4F2EC]">
+              <div className="text-xs font-extrabold text-[#F8E7C9]">
                 {metrics?.web?.count ?? 0} URL
               </div>
-              <div className="text-[10px] font-mono text-primary font-bold">
+              <div className="text-[10px] font-mono text-emerald-400 font-bold">
                 {metrics?.web?.total_mb ?? 0} MB
               </div>
             </div>
@@ -390,17 +397,17 @@ export default function StorageManagementCard({ theme = "dark", deviceId = "" })
             onClick={() => { setActiveCategory("logs"); setSelectedPeriods([]); setSelectedItemIds([]); }}
             className={`p-3 rounded-xl border text-left flex items-start gap-2.5 transition ${
               activeCategory === "logs"
-                ? "bg-[#0E3746]/30 border-[#0E3746] ring-2 ring-[#0E3746]/50"
+                ? "bg-[#064E3B]/30 border-[#064E3B] ring-2 ring-[#064E3B]/50"
                 : styles.card
             }`}
           >
-            <AlertTriangle className="w-4 h-4 text-primary shrink-0 mt-0.5" />
+            <AlertTriangle className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
             <div>
               <div className={`text-[10px] font-extrabold uppercase ${styles.textMuted}`}>Log Hệ Thống / Alert</div>
-              <div className="text-xs font-extrabold text-[#F4F2EC]">
+              <div className="text-xs font-extrabold text-[#F8E7C9]">
                 {metrics?.logs?.count ?? 0} Báo động
               </div>
-              <div className="text-[10px] font-mono text-primary font-bold">
+              <div className="text-[10px] font-mono text-emerald-400 font-bold">
                 {metrics?.logs?.total_mb ?? 0} MB
               </div>
             </div>
@@ -412,17 +419,17 @@ export default function StorageManagementCard({ theme = "dark", deviceId = "" })
             onClick={() => { setActiveCategory("processes"); setSelectedPeriods([]); setSelectedItemIds([]); }}
             className={`p-3 rounded-xl border text-left flex items-start gap-2.5 transition ${
               activeCategory === "processes"
-                ? "bg-[#0E3746]/30 border-[#0E3746] ring-2 ring-[#0E3746]/50"
+                ? "bg-[#064E3B]/30 border-[#064E3B] ring-2 ring-[#064E3B]/50"
                 : styles.card
             }`}
           >
-            <FileText className="w-4 h-4 text-primary shrink-0 mt-0.5" />
+            <FileText className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
             <div>
               <div className={`text-[10px] font-extrabold uppercase ${styles.textMuted}`}>Nhật Ký Tiến Trình</div>
-              <div className="text-xs font-extrabold text-[#F4F2EC]">
+              <div className="text-xs font-extrabold text-[#F8E7C9]">
                 {metrics?.processes?.count ?? 0} Bản ghi
               </div>
-              <div className="text-[10px] font-mono text-primary font-bold">
+              <div className="text-[10px] font-mono text-emerald-400 font-bold">
                 {metrics?.processes?.total_mb ?? 0} MB
               </div>
             </div>
@@ -432,10 +439,10 @@ export default function StorageManagementCard({ theme = "dark", deviceId = "" })
       </div>
 
       {/* RECYCLE BIN BANNER */}
-      <div className="p-3 rounded-lg border bg-[#0E3746]/10 border-zinc-800 flex items-center gap-2.5 text-xs">
+      <div className="p-3 rounded-lg border bg-[#064E3B]/10 border-zinc-800 flex items-center gap-2.5 text-xs">
         <Trash2 className="w-4 h-4 text-rose-400 shrink-0" />
         <span className={styles.textMuted}>
-          <strong className="text-[#F4F2EC]">Thùng Rác:</strong> File ảnh (Supabase Storage) và bản ghi đã xóa được sao lưu tạm. Hệ thống tự động dọn dẹp vĩnh viễn dữ liệu quá <strong className="text-primary">7 ngày</strong>.
+          <strong className="text-[#F8E7C9]">Thùng Rác Server (storage/trash/):</strong> File ảnh và bản ghi đã xóa được sao lưu tạm vào thùng rác. Hệ thống tự động dọn dẹp vĩnh viễn các dữ liệu đi vào thùng rác quá <strong className="text-emerald-400">7 ngày</strong>.
         </span>
       </div>
 
@@ -457,7 +464,7 @@ export default function StorageManagementCard({ theme = "dark", deviceId = "" })
                 onClick={() => { setPeriodType(t.id); setSelectedPeriods([]); setSelectedItemIds([]); }}
                 className={`px-3 py-1 text-xs font-bold rounded-md transition ${
                   periodType === t.id
-                    ? "bg-[#0E3746] text-[#F4F2EC]"
+                    ? "bg-[#064E3B] text-[#F8E7C9]"
                     : "bg-zinc-800 text-zinc-400 hover:text-zinc-200"
                 }`}
               >
@@ -470,10 +477,10 @@ export default function StorageManagementCard({ theme = "dark", deviceId = "" })
           <button
             type="button"
             onClick={handleSelectAllAll}
-            className={`text-xs font-bold flex items-center gap-1.5 text-[#F4F2EC] hover:underline`}
+            className={`text-xs font-bold flex items-center gap-1.5 text-[#F8E7C9] hover:underline`}
           >
             {selectedPeriods.length === groupedData.length && groupedData.length > 0 ? (
-              <CheckSquare className="w-4 h-4 text-primary" />
+              <CheckSquare className="w-4 h-4 text-emerald-400" />
             ) : (
               <Square className="w-4 h-4" />
             )}
@@ -489,7 +496,7 @@ export default function StorageManagementCard({ theme = "dark", deviceId = "" })
             aria-label="Xóa các mục đã chọn"
             className={`py-2 px-2.5 text-xs font-bold rounded-lg transition flex items-center gap-2 ${
               selectedItemIds.length > 0 || selectedPeriods.length > 0
-                ? "bg-primary/50 border border-primary/70 text-primary hover:bg-primary/80"
+                ? "bg-emerald-900/50 border border-emerald-700/70 text-emerald-200 hover:bg-emerald-900/80"
                 : styles.buttonSecondary
             } disabled:opacity-40`}
           >
@@ -518,20 +525,20 @@ export default function StorageManagementCard({ theme = "dark", deviceId = "" })
                   <div
                     onClick={() => handleTogglePeriodGroup(group.key, group.items)}
                     className={`p-3 rounded-lg border flex items-center justify-between cursor-pointer transition ${
-                      isGroupSelected ? "bg-[#0E3746]/30 border-[#0E3746]" : "bg-zinc-900 border-zinc-900"
+                      isGroupSelected ? "bg-[#064E3B]/30 border-[#064E3B]" : "bg-zinc-900 border-zinc-900"
                     }`}
                   >
                     <div className="flex items-center gap-2.5">
                       {isGroupSelected ? (
-                        <CheckSquare className="w-4 h-4 text-primary shrink-0" />
+                        <CheckSquare className="w-4 h-4 text-emerald-400 shrink-0" />
                       ) : (
                         <Square className="w-4 h-4 text-zinc-500 shrink-0" />
                       )}
-                      <Calendar className="w-4 h-4 text-[#F4F2EC]" />
-                      <span className={`text-xs font-extrabold text-[#F4F2EC]`}>{group.label}</span>
+                      <Calendar className="w-4 h-4 text-[#F8E7C9]" />
+                      <span className={`text-xs font-extrabold text-[#F8E7C9]`}>{group.label}</span>
                     </div>
 
-                    <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-[#0E3746] text-[#F4F2EC]">
+                    <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-[#064E3B] text-[#F8E7C9]">
                       {group.items.length} Bản Ghi Thực
                     </span>
                   </div>
@@ -557,9 +564,9 @@ export default function StorageManagementCard({ theme = "dark", deviceId = "" })
                               onError={(e) => { e.target.src = "https://via.placeholder.com/300x180?text=Screenshot"; }}
                             />
                             <div className="absolute top-1 left-1 bg-black/70 rounded p-0.5">
-                              {isItemSelected ? <CheckSquare className="w-4 h-4 text-primary" /> : <Square className="w-4 h-4 text-white" />}
+                              {isItemSelected ? <CheckSquare className="w-4 h-4 text-emerald-400" /> : <Square className="w-4 h-4 text-white" />}
                             </div>
-                            <div className="absolute bottom-0 inset-x-0 p-1 bg-black/80 text-[10px] font-mono text-zinc-300 truncate">
+                            <div className="absolute bottom-0 inset-x-0 p-1 bg-black/80 text-[9px] font-mono text-zinc-300 truncate">
                               {item.timestamp ? new Date(item.timestamp).toLocaleTimeString() : "—"}
                             </div>
                           </div>
@@ -581,22 +588,22 @@ export default function StorageManagementCard({ theme = "dark", deviceId = "" })
                           >
                             <div className="flex items-center gap-3 min-w-0 pr-2">
                               {isItemSelected ? (
-                                <CheckSquare className="w-4 h-4 text-primary shrink-0" />
+                                <CheckSquare className="w-4 h-4 text-emerald-400 shrink-0" />
                               ) : (
                                 <Square className="w-4 h-4 text-zinc-600 shrink-0" />
                               )}
 
                               {/* Icon Badge */}
-                              {item.category === "web" && <Globe className="w-4 h-4 text-primary shrink-0" />}
-                              {item.category === "logs" && <AlertTriangle className="w-4 h-4 text-primary shrink-0" />}
-                              {item.category === "processes" && <FileText className="w-4 h-4 text-primary shrink-0" />}
-                              {item.category === "screenshots" && <Camera className="w-4 h-4 text-primary shrink-0" />}
+                              {item.category === "web" && <Globe className="w-4 h-4 text-emerald-400 shrink-0" />}
+                              {item.category === "logs" && <AlertTriangle className="w-4 h-4 text-emerald-400 shrink-0" />}
+                              {item.category === "processes" && <FileText className="w-4 h-4 text-emerald-400 shrink-0" />}
+                              {item.category === "screenshots" && <Camera className="w-4 h-4 text-emerald-400 shrink-0" />}
 
                               <div className="min-w-0">
                                 <div className="font-bold text-zinc-200 truncate flex items-center gap-2">
                                   <span>{item.title}</span>
                                   {item.category === "all" && (
-                                    <span className="text-[10px] uppercase px-1.5 py-0.2 rounded bg-zinc-800 text-zinc-400 font-mono">
+                                    <span className="text-[9px] uppercase px-1.5 py-0.2 rounded bg-zinc-800 text-zinc-400 font-mono">
                                       {item.category}
                                     </span>
                                   )}
@@ -607,7 +614,7 @@ export default function StorageManagementCard({ theme = "dark", deviceId = "" })
                                     target="_blank"
                                     rel="noreferrer"
                                     onClick={(e) => e.stopPropagation()}
-                                    className="text-xs text-primary hover:underline truncate block"
+                                    className="text-[11px] text-emerald-400 hover:underline truncate block"
                                   >
                                     {item.url}
                                   </a>
@@ -641,7 +648,7 @@ export default function StorageManagementCard({ theme = "dark", deviceId = "" })
             disabled={cleanLoading || (selectedPeriods.length === 0 && selectedItemIds.length === 0)}
             className={`py-2.5 px-5 text-xs font-bold rounded-lg transition flex items-center gap-2 ${
               selectedItemIds.length > 0 || selectedPeriods.length > 0
-                ? "bg-primary/50 border border-primary/70 text-primary hover:bg-primary/80"
+                ? "bg-emerald-900/50 border border-emerald-700/70 text-emerald-200 hover:bg-emerald-900/80"
                 : styles.buttonSecondary
             } disabled:opacity-40`}
           >
@@ -655,4 +662,3 @@ export default function StorageManagementCard({ theme = "dark", deviceId = "" })
     </div>
   );
 }
-

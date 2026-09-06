@@ -4,22 +4,22 @@ import { api } from "../lib/api";
 
 const themeStyles = {
   dark: {
-    card: "bg-zinc-900 border-zinc-900 text-[#F4F2EC]",
-    input: "bg-zinc-950 border-zinc-800 text-[#F4F2EC] focus:border-[#0E3746]",
-    textBold: "text-[#F4F2EC]",
+    card: "bg-zinc-900 border-zinc-900 text-[#F8E7C9]",
+    input: "bg-zinc-950 border-zinc-800 text-[#F8E7C9] focus:border-[#064E3B]",
+    textBold: "text-[#F8E7C9]",
     textMuted: "text-zinc-400",
-    buttonPrimary: "bg-[#0E3746] text-[#F4F2EC] hover:bg-[#065f47]",
-    buttonSecondary: "bg-transparent border-zinc-800 text-zinc-400 hover:border-[#0E3746] hover:text-[#F4F2EC]",
-    badge: "bg-[#0E3746]/30 text-primary border border-zinc-800",
+    buttonPrimary: "bg-[#064E3B] text-[#F8E7C9] hover:bg-[#065f47]",
+    buttonSecondary: "bg-transparent border-zinc-800 text-zinc-400 hover:border-[#064E3B] hover:text-[#F8E7C9]",
+    badge: "bg-[#064E3B]/30 text-emerald-300 border border-zinc-800",
   },
   light: {
     card: "bg-white border-gray-200 text-gray-900",
-    input: "bg-gray-50 border-gray-300 text-gray-900 focus:border-primary",
+    input: "bg-gray-50 border-gray-300 text-gray-900 focus:border-emerald-600",
     textBold: "text-gray-900",
     textMuted: "text-gray-500",
-    buttonPrimary: "bg-primary text-white hover:bg-primary",
-    buttonSecondary: "bg-transparent border-gray-300 text-gray-600 hover:border-primary hover:text-gray-900",
-    badge: "bg-primary text-primary border border-primary",
+    buttonPrimary: "bg-emerald-700 text-white hover:bg-emerald-800",
+    buttonSecondary: "bg-transparent border-gray-300 text-gray-600 hover:border-emerald-600 hover:text-gray-900",
+    badge: "bg-emerald-100 text-emerald-700 border border-emerald-200",
   },
 };
 
@@ -104,23 +104,28 @@ export default function PeriodSettingsCard({ theme = "dark", deviceId }) {
     <div className={`p-4 sm:p-5 rounded-xl border space-y-5 ${styles.card}`}>
       {/* Header */}
       <div className="flex items-center gap-3">
-        <div className="p-2.5 rounded-lg bg-primary/30 border border-primary/40 text-primary">
+        <div className="p-2.5 rounded-lg bg-emerald-900/30 border border-emerald-700/40 text-emerald-300">
           <Activity className="w-5 h-5 stroke-[1.75]" />
         </div>
         <div>
-          <h2 className={`text-sm font-bold ${styles.textBold}`}>Cài Đặt Chu Kỳ</h2>
+          <h2 className={`text-base font-extrabold ${styles.textBold}`}>Cài Đặt Chu Kỳ</h2>
+          <p className={`text-xs font-medium ${styles.textMuted}`}>
+            Điều chỉnh tần suất chụp màn hình và kiểm tra kết nối.
+          </p>
         </div>
       </div>
 
       {/* Screenshot Interval */}
       <div className={`p-4 rounded-xl border ${styles.card} space-y-3`}>
         <div className="flex items-center gap-2.5">
-          <div className="p-1.5 rounded-md bg-primary/30 text-primary">
+          <div className="p-1.5 rounded-md bg-emerald-900/30 text-emerald-300">
             <Camera className="w-4 h-4" />
           </div>
           <div>
             <h4 className={`text-sm font-bold ${styles.textBold}`}>Chu Kỳ Chụp Ảnh Màn Hình</h4>
-            
+            <p className={`text-[11px] ${styles.textMuted}`}>
+              Agent sẽ chụp màn hình theo chu kỳ này và gửi lên server.
+            </p>
           </div>
         </div>
 
@@ -131,7 +136,7 @@ export default function PeriodSettingsCard({ theme = "dark", deviceId }) {
               onClick={() => setScreenshotInterval(opt.value)}
               className={`py-2 px-3 rounded-lg border text-xs font-bold transition ${
                 screenshotInterval === opt.value
-                  ? "bg-primary/50 border-primary text-primary"
+                  ? "bg-emerald-800/50 border-emerald-600 text-emerald-200"
                   : `${styles.buttonSecondary} border`
               }`}
             >
@@ -141,7 +146,7 @@ export default function PeriodSettingsCard({ theme = "dark", deviceId }) {
         </div>
 
         <div className="flex items-center gap-2 mt-1">
-          <span className={`text-xs ${styles.textMuted}`}>Hoặc nhập thủ công (giây):</span>
+          <span className={`text-[11px] ${styles.textMuted}`}>Hoặc nhập thủ công (giây):</span>
           <input
             type="number"
             min={5}
@@ -150,10 +155,10 @@ export default function PeriodSettingsCard({ theme = "dark", deviceId }) {
             onChange={(e) => setScreenshotInterval(Number(e.target.value))}
             className={`w-20 px-2 py-1 rounded-md border text-xs font-mono font-bold focus:outline-none ${styles.input}`}
           />
-          <span className={`text-xs ${styles.textMuted}`}>giây</span>
+          <span className={`text-[11px] ${styles.textMuted}`}>giây</span>
         </div>
 
-        <div className={`text-xs px-3 py-2 rounded-lg ${styles.badge}`}>
+        <div className={`text-[11px] px-3 py-2 rounded-lg ${styles.badge}`}>
           ✔ Hiện tại: chụp mỗi{" "}
           <strong>
             {screenshotInterval < 60
@@ -166,12 +171,14 @@ export default function PeriodSettingsCard({ theme = "dark", deviceId }) {
       {/* Heartbeat Interval */}
       <div className={`p-4 rounded-xl border ${styles.card} space-y-3`}>
         <div className="flex items-center gap-2.5">
-          <div className="p-1.5 rounded-md bg-primary/30 text-primary">
+          <div className="p-1.5 rounded-md bg-emerald-900/30 text-emerald-300">
             <Activity className="w-4 h-4" />
           </div>
           <div>
             <h4 className={`text-sm font-bold ${styles.textBold}`}>Chu Kỳ Heartbeat</h4>
-            
+            <p className={`text-[11px] ${styles.textMuted}`}>
+              Agent gửi tín hiệu "còn sống" tới server theo chu kỳ này. Đặt ngắn để phát hiện mất kết nối nhanh hơn.
+            </p>
           </div>
         </div>
 
@@ -182,7 +189,7 @@ export default function PeriodSettingsCard({ theme = "dark", deviceId }) {
               onClick={() => setHeartbeatInterval(opt.value)}
               className={`py-2 px-1 rounded-lg border text-xs font-bold transition ${
                 heartbeatInterval === opt.value
-                  ? "bg-primary/50 border-primary text-primary"
+                  ? "bg-emerald-800/50 border-emerald-500 text-emerald-200"
                   : `${styles.buttonSecondary} border`
               }`}
             >
@@ -192,7 +199,7 @@ export default function PeriodSettingsCard({ theme = "dark", deviceId }) {
         </div>
 
         <div className="flex items-center gap-2">
-          <span className={`text-xs ${styles.textMuted}`}>Hoặc nhập thủ công (giây):</span>
+          <span className={`text-[11px] ${styles.textMuted}`}>Hoặc nhập thủ công (giây):</span>
           <input
             type="number"
             min={5}
@@ -201,10 +208,10 @@ export default function PeriodSettingsCard({ theme = "dark", deviceId }) {
             onChange={(e) => setHeartbeatInterval(Number(e.target.value))}
             className={`w-20 px-2 py-1 rounded-md border text-xs font-mono font-bold focus:outline-none ${styles.input}`}
           />
-          <span className={`text-xs ${styles.textMuted}`}>giây</span>
+          <span className={`text-[11px] ${styles.textMuted}`}>giây</span>
         </div>
 
-        <div className={`text-xs px-3 py-2 rounded-lg ${styles.badge}`}>
+        <div className={`text-[11px] px-3 py-2 rounded-lg ${styles.badge}`}>
           ✔ Hiện tại: heartbeat mỗi <strong>{heartbeatInterval} giây</strong>
         </div>
       </div>
@@ -214,8 +221,8 @@ export default function PeriodSettingsCard({ theme = "dark", deviceId }) {
         <div
           className={`flex items-center gap-2 px-3 py-2.5 rounded-lg border text-xs font-bold ${
             message.type === "success"
-              ? "bg-zinc-800/30 border-zinc-800/50 text-zinc-200 text-primary"
-              : "bg-primary/30 border-primary/50 text-primary"
+              ? "bg-zinc-800/30 border-zinc-800/50 text-zinc-200 text-emerald-300"
+              : "bg-emerald-900/30 border-emerald-700/50 text-emerald-300"
           }`}
         >
           {message.type === "success" ? (
@@ -243,4 +250,3 @@ export default function PeriodSettingsCard({ theme = "dark", deviceId }) {
     </div>
   );
 }
-

@@ -15,8 +15,8 @@ export default function MobileBottomNav({ activeNav, setActiveNav, theme = "dark
   return (
     <nav className={`md:hidden fixed bottom-0 inset-x-0 z-40 border-t backdrop-blur-lg transition-colors px-2 py-1.5 shadow-2xl ${
       theme === "dark"
-        ? "bg-zinc-950/95 border-zinc-800 text-[#F4F2EC]"
-        : "bg-[#F4F2EC]/95 border-[#DECC9F] text-[#0E3746]"
+        ? "bg-zinc-950/95 border-zinc-800 text-[#F8E7C9]"
+        : "bg-[#F8E7C9]/95 border-[#DECC9F] text-[#064E3B]"
     }`}>
       <div className="flex items-center justify-around">
         {navItems.map((item) => {
@@ -28,10 +28,10 @@ export default function MobileBottomNav({ activeNav, setActiveNav, theme = "dark
               onClick={() => setActiveNav(item.id)}
               className={`flex flex-col items-center gap-0.5 px-2 py-1 rounded-lg text-[10px] font-bold transition active:scale-95 ${
                 isActive
-                  ? "bg-[#0E3746] text-[#F4F2EC] shadow-sm"
+                  ? "bg-[#064E3B] text-[#F8E7C9] shadow-sm"
                   : theme === "dark"
-                    ? "text-[#F4F2EC]/70 hover:text-[#F4F2EC]"
-                    : "text-[#0E3746]/70 hover:text-[#0E3746]"
+                    ? "text-[#F8E7C9]/70 hover:text-[#F8E7C9]"
+                    : "text-[#064E3B]/70 hover:text-[#064E3B]"
               }`}
             >
               <IconComponent className="w-4 h-4 stroke-[1.75]" />

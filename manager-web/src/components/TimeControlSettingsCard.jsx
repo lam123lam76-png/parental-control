@@ -18,29 +18,29 @@ import { api } from "../lib/api";
 
 const themeStyles = {
   dark: {
-    card: "bg-zinc-900 border-zinc-900 text-[#F4F2EC]",
-    input: "bg-zinc-950 border-zinc-800 text-[#F4F2EC] focus:border-[#0E3746]",
-    textBold: "text-[#F4F2EC]",
+    card: "bg-zinc-900 border-zinc-900 text-[#F8E7C9]",
+    input: "bg-zinc-950 border-zinc-800 text-[#F8E7C9] focus:border-[#064E3B]",
+    textBold: "text-[#F8E7C9]",
     textMuted: "text-zinc-400",
-    buttonPrimary: "bg-[#0E3746] text-[#F4F2EC] hover:bg-[#065f47]",
-    buttonSecondary: "bg-transparent border-zinc-800 text-zinc-400 hover:border-[#0E3746] hover:text-[#F4F2EC]",
-    badgeGreen: "bg-[#0E3746]/30 text-primary border border-zinc-800",
-    badgeRed: "bg-primary/20 text-primary border border-primary/40",
-    badgeYellow: "bg-primary/20 text-primary border border-primary/40",
-    tabActive: "bg-[#0E3746]/40 border-[#0E3746] text-[#F4F2EC]",
-    tabInactive: "border-transparent text-zinc-400 hover:text-[#F4F2EC]",
+    buttonPrimary: "bg-[#064E3B] text-[#F8E7C9] hover:bg-[#065f47]",
+    buttonSecondary: "bg-transparent border-zinc-800 text-zinc-400 hover:border-[#064E3B] hover:text-[#F8E7C9]",
+    badgeGreen: "bg-[#064E3B]/30 text-emerald-300 border border-zinc-800",
+    badgeRed: "bg-emerald-900/20 text-emerald-300 border border-emerald-800/40",
+    badgeYellow: "bg-emerald-900/20 text-emerald-300 border border-emerald-800/40",
+    tabActive: "bg-[#064E3B]/40 border-[#064E3B] text-[#F8E7C9]",
+    tabInactive: "border-transparent text-zinc-400 hover:text-[#F8E7C9]",
   },
   light: {
     card: "bg-white border-gray-200 text-gray-900",
-    input: "bg-gray-50 border-gray-300 text-gray-900 focus:border-primary",
+    input: "bg-gray-50 border-gray-300 text-gray-900 focus:border-emerald-600",
     textBold: "text-gray-900",
     textMuted: "text-gray-500",
-    buttonPrimary: "bg-primary text-white hover:bg-primary",
-    buttonSecondary: "bg-transparent border-gray-300 text-gray-600 hover:border-primary hover:text-gray-900",
-    badgeGreen: "bg-primary text-primary border border-primary",
-    badgeRed: "bg-primary text-primary border border-primary",
-    badgeYellow: "bg-primary text-primary border border-primary",
-    tabActive: "bg-primary border-primary text-primary",
+    buttonPrimary: "bg-emerald-700 text-white hover:bg-emerald-800",
+    buttonSecondary: "bg-transparent border-gray-300 text-gray-600 hover:border-emerald-600 hover:text-gray-900",
+    badgeGreen: "bg-emerald-100 text-emerald-700 border border-emerald-200",
+    badgeRed: "bg-emerald-100 text-emerald-700 border border-emerald-200",
+    badgeYellow: "bg-emerald-100 text-emerald-700 border border-emerald-200",
+    tabActive: "bg-emerald-100 border-emerald-500 text-emerald-800",
     tabInactive: "border-transparent text-gray-500 hover:text-gray-800",
   },
 };
@@ -53,8 +53,8 @@ function SectionMessage({ message }) {
     <div
       className={`flex items-center gap-2 px-3 py-2 rounded-lg border text-xs font-bold ${
         message.type === "success"
-          ? "bg-zinc-800/30 border-zinc-800/50 text-zinc-200 text-primary"
-          : "bg-primary/30 border-primary/50 text-primary"
+          ? "bg-zinc-800/30 border-zinc-800/50 text-zinc-200 text-emerald-300"
+          : "bg-emerald-900/30 border-emerald-700/50 text-emerald-300"
       }`}
     >
       {message.type === "success" ? (
@@ -229,12 +229,14 @@ function AllowedHoursSection({ styles, deviceId }) {
     <div className={`p-4 rounded-xl border space-y-3 ${styles.card}`}>
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2.5">
-          <div className="p-1.5 rounded-md bg-primary/30 text-primary">
+          <div className="p-1.5 rounded-md bg-emerald-900/30 text-emerald-300">
             <Clock className="w-4 h-4" />
           </div>
           <div>
             <h4 className={`text-sm font-bold ${styles.textBold}`}>Khung Giờ Được Dùng Máy</h4>
-            
+            <p className={`text-[11px] ${styles.textMuted}`}>
+              Ngoài khung giờ này, máy tính sẽ bị khóa tự động.
+            </p>
           </div>
         </div>
         <button
@@ -257,7 +259,7 @@ function AllowedHoursSection({ styles, deviceId }) {
                   onClick={() => toggleDay(idx, di)}
                   className={`w-9 h-8 rounded-lg text-xs font-bold border transition ${
                     s.days.includes(di)
-                      ? "bg-primary/60 border-primary text-primary"
+                      ? "bg-emerald-800/60 border-emerald-500 text-emerald-200"
                       : `${styles.buttonSecondary} border`
                   }`}
                 >
@@ -266,7 +268,7 @@ function AllowedHoursSection({ styles, deviceId }) {
               ))}
               <button
                 onClick={() => removeSchedule(idx)}
-                className="ml-auto p-1.5 rounded-lg border border-primary/40 text-primary hover:bg-primary/20 transition"
+                className="ml-auto p-1.5 rounded-lg border border-emerald-800/40 text-emerald-400 hover:bg-emerald-900/20 transition"
               >
                 <Trash2 className="w-3.5 h-3.5" />
               </button>
@@ -274,14 +276,14 @@ function AllowedHoursSection({ styles, deviceId }) {
 
             {/* Time Range */}
             <div className="flex items-center gap-2">
-              <label className={`text-xs font-medium ${styles.textMuted} w-10`}>Từ:</label>
+              <label className={`text-[11px] font-medium ${styles.textMuted} w-10`}>Từ:</label>
               <input
                 type="time"
                 value={s.start}
                 onChange={(e) => updateField(idx, "start", e.target.value)}
                 className={`px-2 py-1 rounded-md border text-xs font-mono font-bold focus:outline-none ${styles.input}`}
               />
-              <label className={`text-xs font-medium ${styles.textMuted} w-10`}>Đến:</label>
+              <label className={`text-[11px] font-medium ${styles.textMuted} w-10`}>Đến:</label>
               <input
                 type="time"
                 value={s.end}
@@ -392,18 +394,20 @@ function AppWebRestrictionsSection({ styles, deviceId }) {
   return (
     <div className={`p-4 rounded-xl border space-y-4 ${styles.card}`}>
       <div className="flex items-center gap-2.5">
-        <div className="p-1.5 rounded-md bg-primary/30 text-primary">
+        <div className="p-1.5 rounded-md bg-emerald-900/30 text-emerald-300">
           <Lock className="w-4 h-4" />
         </div>
         <div>
           <h4 className={`text-sm font-bold ${styles.textBold}`}>Web & Ứng Dụng Bị Giới Hạn</h4>
-          
+          <p className={`text-[11px] ${styles.textMuted}`}>
+            Chặn, cho phép, hoặc đặt giới hạn thời gian dùng mỗi ngày.
+          </p>
         </div>
       </div>
 
       {/* Add Rule Form */}
       <div className={`p-3 rounded-xl border space-y-3 ${styles.card}`}>
-        <p className={`text-xs font-bold uppercase tracking-wider ${styles.textMuted}`}>Thêm quy tắc mới</p>
+        <p className={`text-[11px] font-bold uppercase tracking-wider ${styles.textMuted}`}>Thêm quy tắc mới</p>
 
         {/* Type Toggle */}
         <div className="flex gap-2">
@@ -417,8 +421,8 @@ function AppWebRestrictionsSection({ styles, deviceId }) {
               className={`flex-1 py-1.5 rounded-lg border text-xs font-bold flex items-center justify-center gap-1.5 transition ${
                 newType === val
                   ? val === "web"
-                    ? "bg-primary/40 border-primary text-primary"
-                    : "bg-primary/40 border-primary text-primary"
+                    ? "bg-emerald-900/40 border-emerald-500 text-emerald-200"
+                    : "bg-emerald-900/40 border-emerald-500 text-emerald-200"
                   : `${styles.buttonSecondary} border`
               }`}
             >
@@ -440,9 +444,9 @@ function AppWebRestrictionsSection({ styles, deviceId }) {
         {/* Mode Selector */}
         <div className="flex gap-2">
           {[
-            { val: "ban", label: "Chặn hoàn toàn", cls: "bg-primary/40 border-primary text-primary" },
-            { val: "allow", label: "Chỉ cho phép", cls: "bg-primary/40 border-primary text-primary" },
-            { val: "limit", label: "Giới hạn thời gian", cls: "bg-primary/40 border-primary text-primary" },
+            { val: "ban", label: "Chặn hoàn toàn", cls: "bg-emerald-900/40 border-emerald-500 text-emerald-200" },
+            { val: "allow", label: "Chỉ cho phép", cls: "bg-emerald-900/40 border-emerald-500 text-emerald-200" },
+            { val: "limit", label: "Giới hạn thời gian", cls: "bg-emerald-900/40 border-emerald-500 text-emerald-200" },
           ].map(({ val, label, cls }) => (
             <button
               key={val}
@@ -459,7 +463,7 @@ function AppWebRestrictionsSection({ styles, deviceId }) {
         {/* Daily limit (only when 'limit' mode) */}
         {newMode === "limit" && (
           <div className="flex items-center gap-2">
-            <span className={`text-xs ${styles.textMuted}`}>Giới hạn:</span>
+            <span className={`text-[11px] ${styles.textMuted}`}>Giới hạn:</span>
             <input
               type="number"
               min={1}
@@ -468,7 +472,7 @@ function AppWebRestrictionsSection({ styles, deviceId }) {
               onChange={(e) => setNewLimit(Number(e.target.value))}
               className={`w-20 px-2 py-1 rounded-md border text-xs font-mono font-bold focus:outline-none ${styles.input}`}
             />
-            <span className={`text-xs ${styles.textMuted}`}>phút/ngày</span>
+            <span className={`text-[11px] ${styles.textMuted}`}>phút/ngày</span>
           </div>
         )}
 
@@ -497,7 +501,7 @@ function AppWebRestrictionsSection({ styles, deviceId }) {
                 className={`flex items-center justify-between p-2.5 rounded-lg border ${styles.card}`}
               >
                 <div className="flex items-center gap-2">
-                  <div className={`p-1 rounded-md ${r.type === "web" ? "bg-primary/30 text-primary" : "bg-primary/30 text-primary"}`}>
+                  <div className={`p-1 rounded-md ${r.type === "web" ? "bg-emerald-900/30 text-emerald-300" : "bg-emerald-900/30 text-emerald-300"}`}>
                     {r.type === "web" ? <Globe className="w-3.5 h-3.5" /> : <AppWindow className="w-3.5 h-3.5" />}
                   </div>
                   <div>
@@ -513,7 +517,7 @@ function AppWebRestrictionsSection({ styles, deviceId }) {
                 </div>
                 <button
                   onClick={() => removeRule(r.id)}
-                  className="p-1.5 rounded-lg border border-primary/40 text-primary hover:bg-primary/20 transition"
+                  className="p-1.5 rounded-lg border border-emerald-800/40 text-emerald-400 hover:bg-emerald-900/20 transition"
                 >
                   <Trash2 className="w-3.5 h-3.5" />
                 </button>
@@ -551,12 +555,14 @@ export default function TimeControlSettingsCard({ theme = "dark", deviceId }) {
     <div className={`p-4 sm:p-5 rounded-xl border space-y-4 ${styles.card}`}>
       {/* Header */}
       <div className="flex items-center gap-3">
-        <div className="p-2.5 rounded-lg bg-primary/30 border border-primary/40 text-primary">
+        <div className="p-2.5 rounded-lg bg-emerald-900/30 border border-emerald-700/40 text-emerald-300">
           <Clock className="w-5 h-5 stroke-[1.75]" />
         </div>
         <div>
-          <h2 className={`text-sm font-bold ${styles.textBold}`}>Kiểm Soát Thời Gian</h2>
-          
+          <h2 className={`text-base font-extrabold ${styles.textBold}`}>Kiểm Soát Thời Gian</h2>
+          <p className={`text-xs font-medium ${styles.textMuted}`}>
+            Giới hạn giờ dùng máy và kiểm soát truy cập web / ứng dụng.
+          </p>
         </div>
       </div>
 
@@ -582,4 +588,3 @@ export default function TimeControlSettingsCard({ theme = "dark", deviceId }) {
     </div>
   );
 }
-

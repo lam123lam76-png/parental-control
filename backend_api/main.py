@@ -119,34 +119,80 @@ def seed_system_admin():
 from datetime import timezone, timedelta
 VIETNAM_TZ = timezone(timedelta(hours=7))
 
+OFFLINE_THRESHOLD_SECONDS = 30  # báo offline nếu quá 30s không nghe thấy agent
+
+
+def check_devices_offline(db) -> None:
+    """Detect device online/offline transitions and notify Telegram.
+
+    Persists per-device online state in system_settings so the check works on
+    Vercel serverless (each request is a fresh process — an in-memory dict would
+    be lost between invocations). Called from a middleware on every request and
+    from the background thread (non-serverless).
+    """
+    try:
+        now_utc = datetime.now(timezone.utc)
+        # Refresh the session so we always read the latest persisted state (avoids
+        # stale snapshot when this runs repeatedly in one session).
+        try:
+            db.expire_all()
+        except Exception:
+            pass
+        # Load persisted online states (device_id -> "1"/"0")
+        rows = db.query(models.SystemSetting).filter(
+            models.SystemSetting.key.like("online_state:%")
+        ).all()
+        persisted = {r.key: r.value for r in rows}
+
+        for d in db.query(models.Device).all():
+            key = f"online_state:{d.id}"
+            if not d.last_seen_at:
+                continue
+            last_seen = d.last_seen_at
+            if last_seen.tzinfo is None:
+                last_seen = last_seen.replace(tzinfo=timezone.utc)
+
+            is_offline = (now_utc - last_seen).total_seconds() > OFFLINE_THRESHOLD_SECONDS
+            prev_online = persisted.get(key) == "1"
+
+            if is_offline and prev_online:
+                # online -> offline
+                _set_state(db, key, "0")
+                if device_graceful_shutdown.get(str(d.id), False):
+                    device_graceful_shutdown[str(d.id)] = False
+                else:
+                    send_telegram_notification(db, f"🔴 Hệ thống giám sát thiết bị <b>{d.device_name}</b> đã tắt.")
+            elif not is_offline and not prev_online:
+                # offline -> online
+                _set_state(db, key, "1")
+                device_graceful_shutdown[str(d.id)] = False
+        db.commit()
+    except Exception as e:
+        logger.error(f"[Monitor] check_devices_offline failed: {e}")
+        try:
+            db.rollback()
+        except Exception:
+            pass
+
+
+def _set_state(db, key: str, value: str) -> None:
+    try:
+        setting = db.query(models.SystemSetting).filter(models.SystemSetting.key == key).first()
+        if setting:
+            setting.value = value
+        else:
+            db.add(models.SystemSetting(key=key, value=value))
+    except Exception as e:
+        logger.debug(f"set_state error {key}: {e}")
+
+
 async def background_monitor_heartbeats():
-    """Async background task replacing the threading block."""
+    """Async background task (for non-serverless runtimes that keep threads alive)."""
     while True:
         try:
             db = SessionLocal()
             try:
-                devices = db.query(models.Device).all()
-                now_utc = datetime.now(timezone.utc)
-                for d in devices:
-                    if not d.last_seen_at:
-                        continue
-                    last_seen = d.last_seen_at
-                    if last_seen.tzinfo is None:
-                        # Stored as UTC (naive after SQLite round-trip).
-                        last_seen = last_seen.replace(tzinfo=timezone.utc)
-
-                    is_offline = (now_utc - last_seen).total_seconds() > 45
-                    prev_state = device_online_state.get(str(d.id), False)
-
-                    if is_offline and prev_state:
-                        device_online_state[str(d.id)] = False
-                        if device_graceful_shutdown.get(str(d.id), False):
-                            device_graceful_shutdown[str(d.id)] = False
-                        else:
-                            send_telegram_notification(db, f"⚠️ <b>[MẤT KẾT NỐI]</b> Thiết bị {d.device_name} đã mất kết nối đột ngột với Server!")
-                    elif not is_offline and not prev_state:
-                        device_online_state[str(d.id)] = True
-                        device_graceful_shutdown[str(d.id)] = False
+                check_devices_offline(db)
             finally:
                 db.close()
         except Exception as e:
@@ -203,6 +249,7 @@ def health_check():
         status_code=200
     )
 
+
 app.mount("/static/screenshots", StaticFiles(directory=str(SCREENSHOTS_DIR)), name="screenshots")
 app.mount("/static/updates", StaticFiles(directory=str(UPDATES_DIR)), name="updates")
 
@@ -225,7 +272,43 @@ async def add_server_source_header(request, call_next):
     Home backend (not on Vercel) reports 'home'; the Vercel backup reports 'vercel'.
     The domain (nguyentruclam.io.vn) is identical for both, so the frontend can't
     infer the source from the hostname alone — it needs this header.
+
+    Also runs a lazy offline-detection sweep on every request. On Vercel serverless
+    the lifespan background thread does not persist between invocations, so this
+    per-request check is what actually catches a device going offline (the web
+    manager polls /api/devices regularly, giving us frequent triggers).
+
+    FIX (HTTP 508): check_devices_offline chạy đồng bộ trên event loop làm block
+    uvicorn khi Supabase chậm → request auth timeout → nginx retry → 508 loop.
+    Giải pháp:
+      1. Bỏ qua offline-check hoàn toàn cho mọi route auth/register/pair.
+      2. Chạy trong asyncio.to_thread() để không block event loop cho các route khác.
     """
+    path = request.url.path
+
+    # Bỏ qua offline-check cho auth routes — login không được bị chặn bởi DB chậm
+    _SKIP_CHECK_PREFIXES = ("/static", "/api/auth/", "/api/register", "/api/pair")
+    should_check = not any(path.startswith(p) for p in _SKIP_CHECK_PREFIXES)
+
+    if should_check:
+        def _run_check():
+            db = SessionLocal()
+            try:
+                check_devices_offline(db)
+            finally:
+                db.close()
+
+        try:
+            # Chạy trong thread pool — không block event loop của uvicorn
+            await asyncio.wait_for(
+                asyncio.to_thread(_run_check),
+                timeout=5.0  # Nếu DB chậm > 5s → bỏ qua, không làm nghẽn request
+            )
+        except asyncio.TimeoutError:
+            logger.warning("[offline-middleware] check timed out (>5s), skipping")
+        except Exception as _e:
+            logger.error(f"[offline-middleware] check failed: {_e}")
+
     response = await call_next(request)
     source = "vercel" if (os.getenv("VERCEL") or os.getenv("VERCEL_ENV")) else "home"
     response.headers["X-PC-Source"] = source

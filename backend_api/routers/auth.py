@@ -3,7 +3,23 @@ from sqlalchemy.orm import Session
 from slowapi import Limiter
 from slowapi.util import get_remote_address
 
-limiter = Limiter(key_func=get_remote_address)
+def _get_real_client_ip(request: Request) -> str:
+    """Lấy IP thật của client từ header X-Forwarded-For hoặc X-Real-IP.
+
+    Khi chạy sau nginx proxy, `request.client.host` trả về IP của nginx container
+    (172.x.x.x) khiến tất cả user dùng chung 1 rate-limit bucket → bị từ chối
+    hàng loạt. Header này được nginx set với giá trị $remote_addr (IP client thật).
+    """
+    forwarded_for = request.headers.get("X-Forwarded-For", "").strip()
+    if forwarded_for:
+        # Lấy IP đầu tiên (client gốc), bỏ qua các proxy trung gian
+        return forwarded_for.split(",")[0].strip()
+    real_ip = request.headers.get("X-Real-IP", "").strip()
+    if real_ip:
+        return real_ip
+    return get_remote_address(request)
+
+limiter = Limiter(key_func=_get_real_client_ip)
 import uuid
 import logging
 

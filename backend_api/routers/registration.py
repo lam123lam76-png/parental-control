@@ -160,17 +160,28 @@ async def telegram_webhook(request: Request, db: Session = Depends(get_db)):
     if not tg or not tg.bot_token or not tg.chat_id:
         return {"ok": False, "detail": "Telegram not configured"}
 
+    authorized = [c.strip() for c in (tg.chat_id or "").split(",") if c.strip()]
+
+    sender_chat = None
+    if update.get("message") and update["message"].get("chat"):
+        sender_chat = str(update["message"]["chat"].get("id", ""))
+    elif update.get("callback_query") and update["callback_query"].get("message", {}).get("chat"):
+        sender_chat = str(update["callback_query"]["message"]["chat"].get("id", ""))
+
+    if sender_chat and sender_chat not in authorized:
+        return {"ok": True, "detail": "unauthorized chat"}
+
+    reply_chat = sender_chat or (authorized[0] if authorized else "")
+
     if update.get("message"):
-        # Text command (e.g. /devices, /lock, /shot)
-        await asyncio.to_thread(handle_message, update, tg.bot_token, tg.chat_id, db)
+        await asyncio.to_thread(handle_message, update, tg.bot_token, reply_chat, db)
     elif update.get("callback_query"):
         cb = update["callback_query"]
         data = cb.get("data", "")
         if data.startswith("dev:"):
-            # Device-control buttons (lock/unlock/shot)
-            await asyncio.to_thread(handle_dev_callback, data, db, tg.bot_token, tg.chat_id)
+            await asyncio.to_thread(handle_dev_callback, data, db, tg.bot_token, reply_chat)
             await asyncio.to_thread(answer_cb, tg.bot_token, cb["id"], "Đã xử lý")
         else:
-            # Registration approval (approve/reject/resend)
-            await asyncio.to_thread(process_callback_query, update, db, tg.bot_token, tg.chat_id)
+            await asyncio.to_thread(process_callback_query, update, db, tg.bot_token, reply_chat)
     return {"ok": True}
+

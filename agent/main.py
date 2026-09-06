@@ -14,7 +14,10 @@ import os
 import sys
 import threading
 import time
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
+
+VIETNAM_TZ = timezone(timedelta(hours=7))
 
 import requests
 
@@ -88,6 +91,9 @@ class AgentApp:
         self.blocker_ui = None
         self.is_running = False
         self.rules_cache = []
+        self._last_active_state = None  # (process_name, window_title) dedup for logging
+        self._anti_unplug_locked = False  # True while the screen lock is due to anti-unplug only
+        self._timed_lock_until_hour = None  # auto-unlock hour (VN) for timed locks
 
     def initialize(self) -> bool:
         """Initialize configurations, credentials, and local database."""
@@ -139,6 +145,18 @@ class AgentApp:
         self.chat_window = ChatWindow(send_callback=self.send_chat_reply)
         self.auto_updater = AutoUpdater(backend_url=config.BACKEND_URL)
 
+        # Night-time monitoring (anti-late-gaming alerts)
+        try:
+            from night_monitor import NightMonitor
+            self.night_monitor = NightMonitor(
+                alert_sender=self.alert_sender,
+                device_id=self.device_id,
+                device_name=config.DEVICE_NAME or str(self.device_id)[:8],
+            )
+        except Exception as e:
+            logger.warning(f"NightMonitor init failed: {e}")
+            self.night_monitor = None
+
         # 6. Register Shutdown Handlers
         register_shutdown_handlers(self.on_shutdown)
 
@@ -151,6 +169,57 @@ class AgentApp:
         import time
         while True:
             time.sleep(1)
+
+    def on_network_unplug_locked(self):
+        """Fail-closed: lock the screen when the device has been offline too long.
+
+        Called by FallbackClient when no successful poll happened for
+        OFFLINE_LOCK_SECONDS — a child must not bypass parental control by
+        unplugging the network. Reuses self.blocker_ui so the lock is released
+        only by an unlock_screen command once connectivity returns.
+        """
+        logger.warning("Network unplug detected (offline too long). Locking screen fail-closed.")
+        try:
+            self._anti_unplug_locked = True
+            if hasattr(self, "blocker_ui") and self.blocker_ui:
+                self.blocker_ui.show(
+                    "Mất kết nối mạng quá lâu — thiết bị đã được khóa an toàn theo chống rút dây mạng."
+                )
+            else:
+                BlockerUI().show("Mất kết nối mạng — thiết bị đã được khóa an toàn.")
+        except Exception as e:
+            logger.error(f"on_network_unplug_locked error: {e}")
+
+    def on_network_restored(self):
+        """Called by FallbackClient when connectivity returns after an anti-unplug
+        lock fired. Hides the blocker ONLY if the lock is still the anti-unplug
+        lock (i.e. the parent did not issue a separate lock_screen in the meantime).
+        If a parent lock is active, do nothing — that lock requires unlock_screen."""
+        logger.info("Network restored — checking anti-unplug lock release.")
+        try:
+            if getattr(self, "_anti_unplug_locked", False):
+                self._anti_unplug_locked = False
+                # Only hide if no other (parent/timed) lock is being displayed.
+                if getattr(self, "blocker_ui", None):
+                    self.blocker_ui.hide()
+        except Exception as e:
+            logger.error(f"on_network_restored error: {e}")
+
+    def _timed_unlock_worker(self):
+        """Auto-unlock when the timed night lock hour (e.g. 06:00 VN) is reached."""
+        while self.is_running:
+            try:
+                target_hour = self._timed_lock_until_hour
+                if target_hour is not None:
+                    now = datetime.now(timezone.utc).astimezone(VIETNAM_TZ)
+                    if now.hour >= int(target_hour):
+                        logger.info(f"[TimedLock] Reached {target_hour}:00 — auto-unlocking.")
+                        self._timed_lock_until_hour = None
+                        if self.blocker_ui:
+                            self.blocker_ui.hide()
+            except Exception as e:
+                logger.debug(f"_timed_unlock_worker error: {e}")
+            time.sleep(20)
 
     def handle_server_command(self, command: str, payload: dict):
         """Callback for WebSocket commands pushed from parent backend."""
@@ -173,10 +242,20 @@ class AgentApp:
         elif command == "lock_screen":
             reason = payload.get("reason", "Thiết bị bị khóa bởi Phụ huynh")
             logger.info("Executing remote command lock_screen")
+            # A parent/timed lock takes precedence over the anti-unplug lock — the
+            # auto-unlock on network restore must NOT release this one.
+            self._anti_unplug_locked = False
             self.blocker_ui.show(reason)
+            # If a timed lock (until_hour) is requested, remember to auto-unlock.
+            until_hour = payload.get("until_hour")
+            if until_hour is not None:
+                self._timed_lock_until_hour = int(until_hour)
+                logger.info(f"Timed lock set: auto-unlock at {until_hour}:00 (VN time).")
 
         elif command == "unlock_screen":
             logger.info("Executing remote command unlock_screen")
+            self._anti_unplug_locked = False
+            self._timed_lock_until_hour = None
             self.blocker_ui.hide()
 
         elif command == "chat_message":
@@ -187,12 +266,14 @@ class AgentApp:
 
         elif command == "force_update":
             download_url = payload.get("download_url")
-            version = payload.get("version", "2.1.0")
+            version = payload.get("version") or ""
+            expected_sha256 = payload.get("sha256") or payload.get("sha256_hash") or None
             logger.info(f"Received force_update command: version {version} ({download_url})")
             if hasattr(self, "auto_updater") and self.auto_updater and download_url:
                 threading.Thread(
                     target=self.auto_updater.trigger_silent_update,
                     args=(download_url, version),
+                    kwargs={"expected_sha256": expected_sha256},
                     daemon=True
                 ).start()
 
@@ -205,7 +286,44 @@ class AgentApp:
         elif command == "take_screenshot":
             logger.info("Executing remote command take_screenshot")
             if hasattr(self, "screenshot_engine") and self.screenshot_engine:
-                threading.Thread(target=self.screenshot_engine.capture_and_upload, daemon=True).start()
+                reply_token = payload.get("reply_token")
+                reply_chat_id = payload.get("reply_chat_id")
+                def _shoot_and_notify(se=self.screenshot_engine, rt=reply_token, rc=reply_chat_id):
+                    uploaded = se.capture_and_upload()
+                    if uploaded and rt and rc:
+                        try:
+                            import requests as _req
+                            # Give backend 3s to store the screenshot URL, then fetch and forward to Telegram
+                            import time as _t; _t.sleep(3)
+                            # Get latest screenshot URL from backend
+                            from utils.config import BACKEND_URL, BACKUP_SERVER_URL
+                            import utils.state as _state
+                            base = BACKUP_SERVER_URL.rstrip("/") if _state.FALLBACK_MODE and BACKUP_SERVER_URL else BACKEND_URL.rstrip("/")
+                            from utils.config import API_KEY
+                            resp = _req.get(f"{base}/api/device/{se.device_id}/screenshots", headers={"Authorization": f"Bearer {API_KEY}"}, timeout=10)
+                            if resp.status_code == 200:
+                                data = resp.json().get("data") or []
+                                if data:
+                                    shot = data[0]
+                                    img_url = shot.get("image_url") or shot.get("url")
+                                    ts_str = shot.get("timestamp", "")[:16].replace("T", " ")
+                                    if img_url:
+                                        _req.post(
+                                            f"https://api.telegram.org/bot{rt}/sendPhoto",
+                                            json={"chat_id": rc, "photo": img_url, "caption": f"📸 Screenshot — {ts_str}"},
+                                            timeout=15
+                                        )
+                                        return
+                            # fallback: just notify that shot was taken
+                            _req.post(
+                                f"https://api.telegram.org/bot{rt}/sendMessage",
+                                json={"chat_id": rc, "text": "📸 Đã chụp màn hình và lưu vào hệ thống."},
+                                timeout=10
+                            )
+                        except Exception as e:
+                            logger.warning(f"Failed to send screenshot to Telegram: {e}")
+                threading.Thread(target=_shoot_and_notify, daemon=True).start()
+
 
         elif command == "shutdown_pc":
             delay = int(payload.get("delay", 10))
@@ -319,54 +437,34 @@ class AgentApp:
             self.fallback_client.stop()
 
     def _watchdog_guardian_worker(self):
-        """Background thread ensuring ParentalControlWatchdog.exe is always active (Dual Cross-Monitoring)."""
-        logger.info("Dual Cross-Monitoring Watchdog Guardian thread active.")
-        is_frozen = getattr(sys, 'frozen', False)
-        base_dir = Path(sys.executable).parent if is_frozen else Path(__file__).resolve().parent
+        """Monitor watchdog presence but DO NOT spawn it.
 
-        watchdog_exe = base_dir / "ParentalControlWatchdog.exe"
-        prog_data_exe = Path(r"C:\ProgramData\ParentalControl\ParentalControlWatchdog.exe")
-
+        Deliberately removed the auto-spawn: the agent re-spawning the watchdog
+        while the Scheduled Task ALSO spawns it created a duplicate loop
+        (watchdog -> watchdog -> agent -> agent). The Scheduled Task is the single
+        source of truth for the watchdog; this thread only logs if it goes missing
+        so it can be diagnosed. If both spawn sources fire, the watchdog's own
+        DACL mutex enforces exactly one supervisor.
+        """
+        logger.info("Watchdog Guardian thread active (monitor-only, no spawn).")
         while self.is_running:
-            time.sleep(1.5)
+            time.sleep(5)
             if not self.is_running:
                 break
-
-            watchdog_active = False
             try:
                 import psutil
-                for proc_obj in psutil.process_iter(['name', 'cmdline']):
-                    try:
-                        pname = (proc_obj.info.get('name') or "").lower()
-                        cmd_args = proc_obj.info.get('cmdline') or []
-                        cmd_str = " ".join(cmd_args).lower()
-                        if "parentalcontrolwatchdog" in pname or "watchdog.py" in cmd_str:
-                            watchdog_active = True
-                            break
-                    except (psutil.NoSuchProcess, psutil.AccessDenied):
-                        continue
+                watchdog_active = any(
+                    ("parentalcontrolwatchdog" in (p.info.get('name') or "").lower())
+                    or ("watchdog.py" in " ".join(p.info.get('cmdline') or []).lower())
+                    for p in psutil.process_iter(['name', 'cmdline'])
+                )
             except Exception as _e:
-                logger.debug(f"Process check error: {_e}")
-
+                watchdog_active = True  # don't alarm on transient scan errors
             if not watchdog_active:
-                logger.warning("Watchdog process missing! Relaunching ParentalControlWatchdog...")
-                target = None
-                if watchdog_exe.exists():
-                    target = [str(watchdog_exe)]
-                elif prog_data_exe.exists():
-                    target = [str(prog_data_exe)]
-                else:
-                    watchdog_py = base_dir / "protection" / "watchdog.py"
-                    if watchdog_py.exists():
-                        target = [sys.executable, str(watchdog_py)]
-
-                if target:
-                    try:
-                        creationflags = subprocess.CREATE_NO_WINDOW if os.name == 'nt' else 0
-                        subprocess.Popen(target, creationflags=creationflags)
-                        logger.info("Successfully re-spawned Watchdog process.")
-                    except Exception as e:
-                        logger.error(f"Failed to re-spawn Watchdog: {e}")
+                logger.warning(
+                    "Watchdog process missing — Scheduled Task should relaunch it. "
+                    "Not auto-spawning to avoid duplicates."
+                )
 
     def run(self):
         """Main enforcement loop."""
@@ -378,6 +476,13 @@ class AgentApp:
         # Start communication workers
         self.alert_sender.start()
         self.log_uploader.start()
+
+        # Start night-time monitor
+        if getattr(self, "night_monitor", None):
+            try:
+                self.night_monitor.start()
+            except Exception as e:
+                logger.warning(f"NightMonitor start failed: {e}")
         # NOTE: home WebSocket removed — commands + heartbeat now go through the
         # 5s HTTP polling (FallbackClient below) to the cloud backend (Vercel).
 
@@ -389,15 +494,26 @@ class AgentApp:
                 dispatch_callback=self.handle_server_command,
                 device_id=self.device_id,
                 secret_token=self.secret_token,
+                on_offline_exceeded=self.on_network_unplug_locked,
+                offline_lock_seconds=getattr(config, "OFFLINE_LOCK_SECONDS", 180),
+                on_network_restored=self.on_network_restored,
             )
             self.fallback_client.start()
             logger.info("FallbackClient started (5s polling primary).")
         except Exception as e:
             logger.warning(f"Could not start FallbackClient: {e}")
 
-        # Send Online Notification to Backend
+        # Timed-lock auto-unlock worker (unlocks at configured hour, e.g. 06:00)
+        threading.Thread(target=self._timed_unlock_worker, daemon=True).start()
+
+        # Send Online Notification to Backend (short message, no "update report")
         if self.alert_sender:
-            self.alert_sender.send_alert(self.device_id, "agent_online", "🟢 [ONLINE] Agent vừa khởi động và đã kết nối!")
+            dev_name = config.DEVICE_NAME or self.device_id[:8]
+            self.alert_sender.send_alert(
+                self.device_id,
+                "agent_online",
+                f"🟢 Hệ thống giám sát thiết bị <b>{dev_name}</b> đã bật.",
+            )
 
         # Start Dual Cross-Monitoring Watchdog Guardian thread
         watchdog_guardian = threading.Thread(
@@ -449,11 +565,30 @@ class AgentApp:
 
                     # 2. Log active window & track browser history
                     if active_win.get("process_name"):
-                        self.local_db.add_pending_log(
-                            process_name=active_win.get("process_name"),
-                            window_title=active_win.get("window_title")
-                        )
+                        # Track browser history every scan (needs the window title).
                         self.browser_tracker.process_active_window(active_win)
+                        # State-change logging with duration aggregation:
+                        #  - if the active process/window CHANGED -> insert a new row.
+                        #  - if it stayed the same      -> bump duration of that row.
+                        # This slashes duplicate rows while preserving accurate usage time.
+                        _key = (
+                            active_win.get("process_name"),
+                            active_win.get("window_title"),
+                        )
+                        _interval = int(getattr(config, "PROCESS_SCAN_INTERVAL", 15) or 15)
+                        if _key != getattr(self, "_last_active_state", None):
+                            self._last_active_state = _key
+                            self.local_db.add_pending_log(
+                                process_name=active_win.get("process_name"),
+                                window_title=active_win.get("window_title"),
+                                duration=_interval,
+                            )
+                        else:
+                            self.local_db.add_pending_log_duration(
+                                process_name=active_win.get("process_name"),
+                                window_title=active_win.get("window_title"),
+                                duration=_interval,
+                            )
 
                     # 3. Time rules check
                     allowed, time_reason = check_time_rules(self.rules_cache)
@@ -517,27 +652,63 @@ except ImportError:
         return False
 
 _single_instance_mutex = None
+_AGENT_LOCK_FILE = Path(r"C:\ProgramData\ParentalControl\agent.lock")
+_AGENT_LOCK_FD = None
+
 
 def ensure_single_instance(mutex_name: str):
-    """Ensure only one instance of the process runs on Windows using a Named Mutex.
+    """Ensure only one instance of the agent runs.
 
-    Uses ctypes (always available, works in the frozen exe) instead of win32event,
-    which can be missing from the PyInstaller bundle and silently disable the check.
+    Uses an exclusive byte-range file lock (reliable across elevation/session)
+    kept open for the process lifetime, then the DACL mutex as a second guard.
+    Byte-lock does NOT depend on PID liveness, so a reused PID can't falsely block
+    a legitimate new instance (which caused the infinite restart loop).
     """
-    if os.name == 'nt':
+    if os.name != 'nt':
+        return
+    global _AGENT_LOCK_FD
+    try:
+        import msvcrt
+        _AGENT_LOCK_FILE.parent.mkdir(parents=True, exist_ok=True)
+        flags = os.O_RDWR | os.O_CREAT | getattr(os, "O_BINARY", 0)
+        fd = os.open(str(_AGENT_LOCK_FILE), flags)
         try:
-            import ctypes
-            global _single_instance_mutex
-            _single_instance_mutex = ctypes.WinDLL('kernel32', use_last_error=True).CreateMutexW(None, False, mutex_name)
-            if ctypes.get_last_error() == 183:  # ERROR_ALREADY_EXISTS
-                logger.warning(f"Another instance with mutex '{mutex_name}' is already running. Exiting silently.")
-                sys.exit(0)
-        except Exception as e:
-            logger.debug(f"Single instance check fallback: {e}")
+            os.lseek(fd, 0, 0)
+            msvcrt.locking(fd, msvcrt.LK_NBLCK, 1)
+        except OSError:
+            try:
+                os.close(fd)
+            except Exception:
+                pass
+            logger.warning("Another Agent instance is running. Exiting silently.")
+            sys.exit(0)
+        # We own the lock. Keep fd open for the process lifetime.
+        _AGENT_LOCK_FD = fd
+        try:
+            os.lseek(fd, 0, 0)
+            os.ftruncate(fd, 0)
+            os.write(fd, str(os.getpid()).encode())
+        except Exception:
+            pass
+        logger.info(f"Agent single-instance file lock acquired ({_AGENT_LOCK_FILE}).")
+        return  # we hold the lock — proceed
+    except Exception:
+        pass
+    # fallback: plain DACL mutex
+    try:
+        import ctypes
+        from protection.watchdog import _create_mutex_with_dacl
+        global _single_instance_mutex
+        _single_instance_mutex, last_err = _create_mutex_with_dacl(mutex_name)
+        if last_err == 183:
+            logger.warning(f"Another instance with mutex '{mutex_name}' is running. Exiting silently.")
+            sys.exit(0)
+    except Exception as e:
+        logger.debug(f"Single instance fallback: {e}")
 
 def main():
     try:
-        ensure_single_instance("Global\\ParentalControlAgent_SingleInstance_Mutex")
+        ensure_single_instance("ParentalControlAgent_SingleInstance_Mutex")
 
         app = AgentApp()
         app.run()

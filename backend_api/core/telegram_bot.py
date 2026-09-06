@@ -242,25 +242,14 @@ def cmd_shot(token, chat_id, db, arg):
     if not dev:
         send_message(token, chat_id, _no_device_message(db, chat_id))
         return
-    # latest screenshot timestamp before this request
-    before = db.query(models.Screenshot).filter(
-        models.Screenshot.device_id == dev.id
-    ).order_by(models.Screenshot.timestamp.desc()).first()
-    before_ts = before.timestamp if before else datetime(1970, 1, 1, tzinfo=timezone.utc)
 
-    _queue_command(db, dev, "take_screenshot", {})
-    send_message(token, chat_id, f"📸 Đã yêu cầu chụp màn hình <b>{dev.device_name}</b>. Đang chờ ảnh...")
-
-    # Poll for a NEW screenshot (timeout ~30s — allows boto3 cold start on Vercel).
-    for _ in range(30):
-        time.sleep(1)
-        shot = db.query(models.Screenshot).filter(
-            models.Screenshot.device_id == dev.id
-        ).order_by(models.Screenshot.timestamp.desc()).first()
-        if shot and shot.timestamp and shot.timestamp > before_ts:
-            send_photo(token, chat_id, shot.image_url, caption=f"📸 {dev.device_name} — {shot.timestamp.strftime('%d/%m %H:%M:%S')}")
-            return
-    send_message(token, chat_id, f"⏳ Chưa nhận được ảnh từ {dev.device_name} (thiết bị có thể offline).")
+    # Queue the screenshot command; include bot_token + chat_id so the agent
+    # can push the photo to Telegram directly (avoids Vercel 10s serverless timeout).
+    _queue_command(db, dev, "take_screenshot", {
+        "reply_token": token,
+        "reply_chat_id": str(chat_id),
+    })
+    send_message(token, chat_id, f"📸 Đã yêu cầu chụp màn hình <b>{dev.device_name}</b>. Ảnh sẽ được gửi trong giây lát...")
 
 
 def _fmt_duration(sec: int) -> str:

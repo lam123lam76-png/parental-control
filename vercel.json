@@ -1,7 +1,4 @@
 {
-  "buildCommand": "cd manager-web && npm install && npm run build",
-  "outputDirectory": "manager-web/dist",
-  "framework": "vite",
   "rewrites": [
     { "source": "/api/(.*)", "destination": "https://quanlypc-api-backup.vercel.app/api/$1" },
     { "source": "/ws/(.*)", "destination": "https://quanlypc-api-backup.vercel.app/ws/$1" },

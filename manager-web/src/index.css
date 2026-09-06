@@ -2,59 +2,63 @@
 
 @layer base {
   :root {
-    /* LIGHT MODE — Champagne Background + Emerald Ink Primary */
-    --background: #F8E7C9;
-    --foreground: #064E3B;
+    /* LIGHT MODE — Cream Background + Navy Primary */
+    --background: #F4F2EC;
+    --foreground: #0E3746;
     
-    --card: #FFFFFF;
-    --card-foreground: #064E3B;
+    --card: #EAE8DC;
+    --card-foreground: #0E3746;
     
-    --primary: #064E3B;
-    --primary-foreground: #F8E7C9;
+    --primary: #0E3746;
+    --primary-foreground: #F4F2EC;
     
-    --secondary: #EEDCBA;
-    --secondary-foreground: #064E3B;
+    --secondary: #EAE8DC;
+    --secondary-foreground: #0E3746;
     
-    --muted: #EAD6B2;
-    --muted-foreground: #0A6950;
+    --muted: #EAE8DC;
+    --muted-foreground: #0E3746;
     
-    --accent: #E5CF9F;
-    --accent-foreground: #064E3B;
+    --accent: #EAE8DC;
+    --accent-foreground: #0E3746;
     
-    --border: #DECC9F;
-    --input: #DECC9F;
-    --ring: #064E3B;
+    --border: #0E3746;
+    --input: #EAE8DC;
+    --ring: #0E3746;
 
-    --emerald-ink: #064E3B;
-    --champagne: #F8E7C9;
+    --navy: #0E3746;
+    --cream: #F4F2EC;
+    --beige: #EAE8DC;
+    --crimson: #BE2623;
   }
 
   .dark {
-    /* DARK MODE — Zinc Minimalist Background + Emerald Ink Accent & Champagne Text */
-    --background: #09090b;
-    --foreground: #F8E7C9;
+    /* DARK MODE — Simple Black, White, Gray */
+    --background: #09090b; /* zinc-950 */
+    --foreground: #f4f4f5; /* zinc-100 */
     
-    --card: #18181b;
-    --card-foreground: #F8E7C9;
+    --card: #18181b; /* zinc-900 */
+    --card-foreground: #f4f4f5;
     
-    --primary: #064E3B;
-    --primary-foreground: #F8E7C9;
+    --primary: #f4f4f5; /* white/gray buttons */
+    --primary-foreground: #09090b;
     
-    --secondary: #27272a;
-    --secondary-foreground: #F8E7C9;
+    --secondary: #27272a; /* zinc-800 */
+    --secondary-foreground: #f4f4f5;
     
     --muted: #27272a;
     --muted-foreground: #a1a1aa;
     
     --accent: #27272a;
-    --accent-foreground: #F8E7C9;
+    --accent-foreground: #f4f4f5;
     
     --border: #27272a;
     --input: #27272a;
-    --ring: #064E3B;
+    --ring: #f4f4f5;
 
-    --emerald-ink: #064E3B;
-    --champagne: #F8E7C9;
+    --navy: #0E3746;
+    --cream: #F4F2EC;
+    --beige: #EAE8DC;
+    --crimson: #BE2623;
   }
 }
 
@@ -75,11 +79,11 @@ body {
   background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background: rgba(6, 78, 59, 0.3);
+  background: rgba(14, 55, 70, 0.3);
   border-radius: 9999px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(6, 78, 59, 0.6);
+  background: rgba(14, 55, 70, 0.6);
 }
 
 @keyframes pulse-ring {

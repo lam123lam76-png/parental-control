@@ -34,11 +34,9 @@ export default function SecurityHealthCards({ theme = "dark" }) {
             </span>
           </div>
 
-          <p className={`text-xs ${styles.textMuted}`}>
-            Lưu trữ mã hóa Secret Token và Device ID an toàn trong <code className="font-mono bg-[#064E3B]/15 px-1 py-0.5 rounded text-[#064E3B] dark:text-[#F8E7C9] font-extrabold">%APPDATA%\ParentalControl\device.cred</code>. Chống lại việc đọc lén hoặc chỉnh sửa file từ người dùng thường.
-          </p>
+          
 
-          <div className={`pt-2 border-t border-opacity-20 flex justify-between text-[11px] font-mono ${styles.text}`}>
+          <div className={`pt-2 border-t border-opacity-20 flex justify-between text-xs font-mono ${styles.text}`}>
             <span className="font-semibold">Dev Fallback Mode:</span>
             <span className={styles.textBold}>Disabled (Real DPAPI Enforced)</span>
           </div>
@@ -56,11 +54,9 @@ export default function SecurityHealthCards({ theme = "dark" }) {
             </span>
           </div>
 
-          <p className={`text-xs ${styles.textMuted}`}>
-            Khi Agent mất mạng offline, toàn bộ quy tắc cached_rules trong SQLite local DB được xác thực HMAC-SHA256 với secret token. Nếu phát hiện bị sửa lén DB offline, Agent sẽ tự động chuyển sang trạng thái <strong>Fail-Closed Khóa Máy Đảm Bảo An Toàn</strong>.
-          </p>
+          
 
-          <div className={`pt-2 border-t border-opacity-20 flex justify-between text-[11px] font-mono ${styles.text}`}>
+          <div className={`pt-2 border-t border-opacity-20 flex justify-between text-xs font-mono ${styles.text}`}>
             <span className="font-semibold">HMAC Integrity Signature:</span>
             <span className={styles.textBold}>Verified Match (Clean)</span>
           </div>
@@ -78,11 +74,9 @@ export default function SecurityHealthCards({ theme = "dark" }) {
             </span>
           </div>
 
-          <p className={`text-xs ${styles.textMuted}`}>
-            Tự động duyệt tất cả các màn hình hiển thị bằng <code className="font-mono bg-[#064E3B]/15 px-1 py-0.5 rounded text-[#064E3B] dark:text-[#F8E7C9] font-extrabold">EnumDisplayMonitors</code> để phủ giao diện khóa đen tràn viền trên 100% màn hình phụ, vô hiệu hóa Alt+F4.
-          </p>
+          
 
-          <div className={`pt-2 border-t border-opacity-20 flex justify-between text-[11px] font-mono ${styles.text}`}>
+          <div className={`pt-2 border-t border-opacity-20 flex justify-between text-xs font-mono ${styles.text}`}>
             <span className="font-semibold">Phạm Vi Màn Hình:</span>
             <span className={styles.textBold}>Toàn Bộ Màn Hình (Auto-Enumerate)</span>
           </div>
@@ -100,11 +94,9 @@ export default function SecurityHealthCards({ theme = "dark" }) {
             </span>
           </div>
 
-          <p className={`text-xs ${styles.textMuted}`}>
-            Đăng ký lắng nghe tín hiệu hệ thống Windows <code className="font-mono bg-[#064E3B]/15 px-1 py-0.5 rounded text-[#064E3B] dark:text-[#F8E7C9] font-extrabold">WM_POWERBROADCAST</code>, <code className="font-mono bg-[#064E3B]/15 px-1 py-0.5 rounded text-[#064E3B] dark:text-[#F8E7C9] font-extrabold">SIGTERM</code> để lưu sạch bộ đệm nhật ký SQLite trước khi Windows tắt máy.
-          </p>
+          
 
-          <div className={`pt-2 border-t border-opacity-20 flex justify-between text-[11px] font-mono ${styles.text}`}>
+          <div className={`pt-2 border-t border-opacity-20 flex justify-between text-xs font-mono ${styles.text}`}>
             <span className="font-semibold">Last Shutdown Event:</span>
             <span className={styles.textBold}>Clean Disconnect Handler</span>
           </div>
@@ -115,3 +107,4 @@ export default function SecurityHealthCards({ theme = "dark" }) {
     </div>
   );
 }
+

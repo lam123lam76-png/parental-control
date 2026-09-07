@@ -250,13 +250,6 @@ def get_device_logs(device_id: str, limit: int = 50, db: Session = Depends(get_d
     return schemas.StandardResponse(data={"logs": data}, status_code=200)
 
 
-# Need to expose this globally for other modules or move to core/manager?
-# device_graceful_shutdown is used here and in websockets
-from core.manager import manager # manager instance is there, what about states?
-# Since state is used in multiple places, we'll import it from core.state or assume it's moved there.
-# Let's create core.state for these dicts.
-import core.state
-
 @router.post("/api/alerts", response_model=schemas.StandardResponse)
 def create_alert(
     alert: schemas.AlertCreate,
@@ -291,14 +284,20 @@ def create_alert(
     )
     db.add(db_alert)
     db.commit()
-    
-    # Check if this is a graceful shutdown alert
-    if alert.alert_type == "agent_shutdown":
-        core.state.device_graceful_shutdown[str(resolved_device_id)] = True
 
     # Send instant Telegram Alert
     dev_name = device.device_name if device else "Agent PC"
     alert_type = alert.alert_type or ""
+
+    # ── Presence on/off alerts ──
+    # agent_online / agent_offline / agent_shutdown are recorded to the DB (above)
+    # but do NOT send their own Telegram message here. Online/offline presence is
+    # decided by ONE atomic reconciler (core.presence) driven by the device's real
+    # last_seen_at, so a single on/off event yields exactly one concise message.
+    # (Previously each of these ALSO sent Telegram here AND the offline detector
+    # sent another one -> duplicate/spam on every shutdown.)
+    if alert_type in ("agent_online", "agent_offline", "agent_shutdown"):
+        return schemas.StandardResponse(data={"msg": "Presence alert recorded"}, status_code=200)
 
     # ── Night-time alerts (anti-late-gaming) ──
     # These carry Allow/Deny inline buttons (midnight) and should appear as clean
@@ -325,15 +324,10 @@ def create_alert(
             logger.warning(f"Night alert send failed: {e}")
         return schemas.StandardResponse(data={"msg": "Night alert received"}, status_code=200)
 
-    # ── Generic / on-off alerts ──
-    # Short on/off messages (agent_online / agent_offline) are already the final
-    # text; send them cleanly. Other alerts keep the descriptive wrapper.
-    if alert_type in ("agent_online", "agent_offline"):
-        send_telegram_notification(db, alert.message)
-    else:
-        msg_text = f"🚨 <b>[PARENTAL CONTROL ALERTS]</b>\n<b>Thiết bị:</b> {dev_name}\n<b>Loại Cảnh Báo:</b> {alert_type}\n<b>Nội dung:</b> {alert.message}"
-        send_telegram_notification(db, msg_text)
-    
+    # ── Generic alerts (banned app/web, limits, etc.) ──
+    msg_text = f"🚨 <b>[PARENTAL CONTROL ALERTS]</b>\n<b>Thiết bị:</b> {dev_name}\n<b>Loại Cảnh Báo:</b> {alert_type}\n<b>Nội dung:</b> {alert.message}"
+    send_telegram_notification(db, msg_text)
+
     return schemas.StandardResponse(data={"msg": "Alert received"}, status_code=200)
 
 

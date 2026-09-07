@@ -28,8 +28,7 @@ from routers.registration import router as registration_router
 
 # Core
 from core.config import SCREENSHOTS_DIR, UPDATES_DIR, SYSTEM_ADMIN_EMAIL, SYSTEM_ADMIN_PASSWORD, PROJECT_ROOT
-from core.state import device_online_state, device_graceful_shutdown
-from core.notifications import send_telegram_notification
+from core.presence import reconcile_presence
 from core.telegram_approval import get_updates_poller
 
 logging.basicConfig(level=logging.INFO)
@@ -119,71 +118,16 @@ def seed_system_admin():
 from datetime import timezone, timedelta
 VIETNAM_TZ = timezone(timedelta(hours=7))
 
-OFFLINE_THRESHOLD_SECONDS = 30  # báo offline nếu quá 30s không nghe thấy agent
-
 
 def check_devices_offline(db) -> None:
     """Detect device online/offline transitions and notify Telegram.
 
-    Persists per-device online state in system_settings so the check works on
-    Vercel serverless (each request is a fresh process — an in-memory dict would
-    be lost between invocations). Called from a middleware on every request and
-    from the background thread (non-serverless).
+    Single unified reconciler: presence state + the Telegram message for a real
+    on/off transition are decided atomically in core.presence (persisted, so it
+    works on Vercel serverless where each request is a fresh process). Called
+    from a middleware on every request and from the background thread.
     """
-    try:
-        now_utc = datetime.now(timezone.utc)
-        # Refresh the session so we always read the latest persisted state (avoids
-        # stale snapshot when this runs repeatedly in one session).
-        try:
-            db.expire_all()
-        except Exception:
-            pass
-        # Load persisted online states (device_id -> "1"/"0")
-        rows = db.query(models.SystemSetting).filter(
-            models.SystemSetting.key.like("online_state:%")
-        ).all()
-        persisted = {r.key: r.value for r in rows}
-
-        for d in db.query(models.Device).all():
-            key = f"online_state:{d.id}"
-            if not d.last_seen_at:
-                continue
-            last_seen = d.last_seen_at
-            if last_seen.tzinfo is None:
-                last_seen = last_seen.replace(tzinfo=timezone.utc)
-
-            is_offline = (now_utc - last_seen).total_seconds() > OFFLINE_THRESHOLD_SECONDS
-            prev_online = persisted.get(key) == "1"
-
-            if is_offline and prev_online:
-                # online -> offline
-                _set_state(db, key, "0")
-                if device_graceful_shutdown.get(str(d.id), False):
-                    device_graceful_shutdown[str(d.id)] = False
-                else:
-                    send_telegram_notification(db, f"🔴 Hệ thống giám sát thiết bị <b>{d.device_name}</b> đã tắt.")
-            elif not is_offline and not prev_online:
-                # offline -> online
-                _set_state(db, key, "1")
-                device_graceful_shutdown[str(d.id)] = False
-        db.commit()
-    except Exception as e:
-        logger.error(f"[Monitor] check_devices_offline failed: {e}")
-        try:
-            db.rollback()
-        except Exception:
-            pass
-
-
-def _set_state(db, key: str, value: str) -> None:
-    try:
-        setting = db.query(models.SystemSetting).filter(models.SystemSetting.key == key).first()
-        if setting:
-            setting.value = value
-        else:
-            db.add(models.SystemSetting(key=key, value=value))
-    except Exception as e:
-        logger.debug(f"set_state error {key}: {e}")
+    reconcile_presence(db)
 
 
 async def background_monitor_heartbeats():

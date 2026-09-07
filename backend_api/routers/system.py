@@ -41,27 +41,22 @@ def purge_old_trash(retention_days: int = 7):
 
 @router.get("/api/v1/system/storage", response_model=schemas.StandardResponse)
 def get_storage_metrics(db: Session = Depends(get_db)):
-    """Returns disk usage, DB size, screenshot storage metrics, and log counts."""
-    try:
-        total, used, free = shutil.disk_usage("E:\\")
-    except Exception as e:
-        logger.error(f"Failed to get disk usage for E: : {e}")
-        total, used, free = shutil.disk_usage(Path(__file__).parent)
-    used_percent = round((used / total) * 100, 1)
+    """Returns cloud storage metrics.
 
-    db_file_path = Path(__file__).parent.parent.parent / "parental_control.db"
-    if not db_file_path.exists():
-        db_file_path = Path(__file__).parent.parent / "parental_control.db"
-    db_size_bytes = db_file_path.stat().st_size if db_file_path.exists() else 0
-    db_size_mb = round(db_size_bytes / (1024 * 1024), 2)
-
+    The system is CLOUD-FIRST (no self-host): screenshots live in Supabase Storage,
+    records live in Supabase Postgres. There is no local disk to report, so the
+    "disk" block is removed and screenshot usage is read from Supabase Storage.
+    """
+    # Screenshots: read from Supabase Storage (cloud), not a local folder.
     shots_count = 0
     shots_bytes = 0
-    if SCREENSHOTS_DIR.exists():
-        for file in SCREENSHOTS_DIR.glob("**/*"):
-            if file.is_file():
-                shots_count += 1
-                shots_bytes += file.stat().st_size
+    try:
+        from core.supabase_storage import list_files
+        files = list_files()
+        shots_count = len(files)
+        shots_bytes = sum(sz for _, sz in files)
+    except Exception as e:
+        logger.warning(f"Could not read Supabase screenshot storage: {e}")
     shots_mb = round(shots_bytes / (1024 * 1024), 2)
 
     web_count = db.query(models.BrowserHistory).count()
@@ -69,13 +64,8 @@ def get_storage_metrics(db: Session = Depends(get_db)):
     processes_count = db.query(models.ProcessLog).count()
 
     metrics = {
-        "disk": {
-            "total_gb": round(total / (1024**3), 1),
-            "used_gb": round(used / (1024**3), 1),
-            "free_gb": round(free / (1024**3), 1),
-            "used_percent": used_percent
-        },
-        "db_size_mb": db_size_mb,
+        # Cloud storage — no local disk. Report screenshots usage as the driver.
+        "storage": "cloud",
         "screenshots": {
             "count": shots_count,
             "total_mb": shots_mb
@@ -118,7 +108,7 @@ def _matches_period(ts_dt, periods: list, period_type: str) -> bool:
     return key in periods
 
 
-@router.post("/api/v1/storage/cleanup-by-period", response_model=schemas.StandardResponse)
+@router.post("/api/v1/storage/cleanup-by-period", response_model=schemas.StandardResponse, dependencies=[Depends(require_system_admin)])
 def cleanup_storage_by_period_endpoint(req: schemas.StoragePeriodCleanRequest, background_tasks: BackgroundTasks):
     background_tasks.add_task(_bg_cleanup_storage_by_period, req)
     return schemas.StandardResponse(data={"msg": "Tiến trình dọn dẹp đang được chạy ngầm. Vui lòng kiểm tra lại sau ít phút.", "freed_mb": 0}, status_code=202)
@@ -205,7 +195,7 @@ def _bg_cleanup_storage_by_period(req: schemas.StoragePeriodCleanRequest):
         db.close()
 
 
-@router.post("/api/v1/system/storage/clean", response_model=schemas.StandardResponse)
+@router.post("/api/v1/system/storage/clean", response_model=schemas.StandardResponse, dependencies=[Depends(require_system_admin)])
 def clean_system_storage_endpoint(req: schemas.StorageCleanRequest, background_tasks: BackgroundTasks):
     background_tasks.add_task(_bg_clean_system_storage, req)
     return schemas.StandardResponse(data={"msg": "Tiến trình dọn dẹp đang được chạy ngầm. Vui lòng kiểm tra lại sau ít phút.", "freed_mb": 0}, status_code=202)
@@ -222,23 +212,22 @@ def _bg_clean_system_storage(req: schemas.StorageCleanRequest):
         if req.days_older_than > 0:
             cutoff = datetime.now() - timedelta(days=req.days_older_than)
 
-        # 1. Screenshots
+        # 1. Screenshots (cloud-first: file lives in Supabase Storage)
         if target in ("screenshots", "all"):
             query = db.query(models.Screenshot)
             if cutoff:
                 query = query.filter(models.Screenshot.timestamp < cutoff)
             shots = query.all()
+            from core.supabase_storage import delete_file
             for shot in shots:
                 filename = shot.image_url.split("/")[-1]
-                file_path = SCREENSHOTS_DIR / filename
-                if file_path.exists():
-                    try:
-                        freed_bytes += file_path.stat().st_size
-                        file_path.unlink()
-                    except Exception:
-                        pass
+                try:
+                    delete_file(filename)  # remove from Supabase Storage
+                except Exception as e:
+                    logger.warning(f"Could not delete Supabase screenshot {filename}: {e}")
                 db.delete(shot)
                 deleted_counts["screenshots"] += 1
+                freed_bytes += 100000  # approximate per-shot storage freed
 
         # 2. Browser History
         if target in ("web", "all"):
@@ -285,9 +274,14 @@ def _bg_clean_system_storage(req: schemas.StorageCleanRequest):
         db.close()
 
 
-@router.post("/api/v1/agent/deploy-update", response_model=schemas.StandardResponse)
+@router.post("/api/v1/agent/deploy-update", response_model=schemas.StandardResponse, dependencies=[Depends(require_system_admin)])
 async def deploy_agent_update(version: str = Form(...), file: UploadFile = File(...)):
-    """Upload new Agent release."""
+    """Upload new Agent release.
+
+    SECURITY: previously unauthenticated — anyone on the Internet could upload an
+    arbitrary agent-update.zip that every child's agent would auto-download and
+    run as Admin (RCE / supply-chain attack). Now restricted to system admins.
+    """
     save_path = UPDATES_DIR / "agent-update.zip"
     with open(save_path, "wb") as f:
         content = await file.read()
@@ -327,8 +321,7 @@ def _sync_pack_agent_zip(version: str):
                 agent_exe = dist_dir / "ParentalControlAgent.exe"
                 updater_exe = dist_dir / "Updater.exe"
                 watchdog_exe = dist_dir / "ParentalControlWatchdog.exe"
-                checker_exe = dist_dir / "Agent_check_good.exe"
-                
+
                 if agent_exe.exists():
                     zipf.write(agent_exe, arcname="ParentalControlAgent.exe")
                 else:
@@ -347,9 +340,6 @@ def _sync_pack_agent_zip(version: str):
 
                 if watchdog_exe.exists():
                     zipf.write(watchdog_exe, arcname="ParentalControlWatchdog.exe")
-
-                if checker_exe.exists():
-                    zipf.write(checker_exe, arcname="Agent_check_good.exe")
 
             # Update version.json
             version_data = {
@@ -418,7 +408,7 @@ def get_telegram_config(db: Session = Depends(get_db)):
     chat_id = t_setting.chat_id if (t_setting and t_setting.chat_id) else "1326412172"
     return schemas.StandardResponse(data={"bot_token": bot_token, "chat_id": chat_id}, status_code=200)
 
-@router.post("/api/telegram/config", response_model=schemas.StandardResponse)
+@router.post("/api/telegram/config", response_model=schemas.StandardResponse, dependencies=[Depends(require_system_admin)])
 def save_telegram_config(req: schemas.TelegramConfigRequest, db: Session = Depends(get_db)):
     t_setting = db.query(models.TelegramSetting).first()
     if not t_setting:
@@ -432,7 +422,7 @@ def save_telegram_config(req: schemas.TelegramConfigRequest, db: Session = Depen
     return schemas.StandardResponse(data={"msg": "Đã lưu cấu hình Telegram thành công!"}, status_code=200)
 
 import requests as http_requests
-@router.post("/api/telegram/test", response_model=schemas.StandardResponse)
+@router.post("/api/telegram/test", response_model=schemas.StandardResponse, dependencies=[Depends(require_system_admin)])
 def test_telegram_notification(req: schemas.TelegramConfigRequest, db: Session = Depends(get_db)):
     url = f"https://api.telegram.org/bot{req.bot_token}/sendMessage"
     

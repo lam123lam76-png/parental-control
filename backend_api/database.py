@@ -108,19 +108,29 @@ def ensure_schema(engine):
 
     Works on both SQLite and PostgreSQL (Supabase). Safe to call at every startup.
     """
-    try:
-        insp = inspect(engine)
-        if not insp.has_table("pending_commands"):
-            return
-        cols = {c["name"] for c in insp.get_columns("pending_commands")}
-        if "delivered_at" in cols:
-            return
-        ddl = (
-            "ALTER TABLE pending_commands ADD COLUMN delivered_at TIMESTAMPTZ"
-            if engine.dialect.name == "postgresql"
-            else "ALTER TABLE pending_commands ADD COLUMN delivered_at DATETIME"
-        )
-        with engine.begin() as conn:
-            conn.execute(text(ddl))
-    except Exception:
-        pass
+    pg = engine.dialect.name == "postgresql"
+
+    def _add_column(table: str, col: str, ddl: str):
+        try:
+            insp = inspect(engine)
+            if not insp.has_table(table):
+                return
+            cols = {c["name"] for c in insp.get_columns(table)}
+            if col in cols:
+                return
+            with engine.begin() as conn:
+                conn.execute(text(ddl))
+        except Exception:
+            pass
+
+    # pending_commands.delivered_at (older schema)
+    _add_column("pending_commands", "delivered_at",
+                "ALTER TABLE pending_commands ADD COLUMN delivered_at TIMESTAMPTZ"
+                if pg else "ALTER TABLE pending_commands ADD COLUMN delivered_at DATETIME")
+
+    # process_logs.duration (state-change logging, Task 8). If the agent is on the
+    # new version before the DB has this column, every log batch insert would fail —
+    # so migrate it automatically here.
+    _add_column("process_logs", "duration",
+                "ALTER TABLE process_logs ADD COLUMN duration INTEGER DEFAULT 0"
+                if pg else "ALTER TABLE process_logs ADD COLUMN duration INTEGER DEFAULT 0")

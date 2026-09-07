@@ -240,6 +240,10 @@ class ProcessLog(Base):
     process_name = Column(String, nullable=False)
     window_title = Column(String, nullable=True)
     timestamp = Column(UTCDateTime, default=lambda: datetime.now(timezone.utc), index=True)
+    # Duration (seconds) this process/window was active. Used for usage analytics
+    # instead of counting rows (state-change logging). Falls back to 15s per row
+    # for older rows where this column is NULL/0.
+    duration = Column(Integer, default=0)
 
     # Relationships
     device = relationship("Device", back_populates="process_logs")

@@ -235,7 +235,15 @@ def get_updates_poller():
                                 process_callback_query(update, db, bot_token, update_chat_id)
 
                 except requests.exceptions.RequestException as req_err:
-                    logger.warning(f"[tg-poller] getUpdates network error: {req_err}")
+                    # If 409 Conflict: webhook is active on Telegram. Delete it so polling works.
+                    if hasattr(req_err, 'response') and req_err.response is not None and req_err.response.status_code == 409:
+                        logger.info("[tg-poller] Webhook active on Telegram (409). Deleting webhook so poller can receive updates...")
+                        try:
+                            requests.post(f"{TG_API_URL.format(bot_token)}/deleteWebhook", timeout=10)
+                        except Exception as del_err:
+                            logger.warning(f"[tg-poller] Failed to delete webhook: {del_err}")
+                    else:
+                        logger.warning(f"[tg-poller] getUpdates network error: {req_err}")
                     time.sleep(5)
             finally:
                 db.close()

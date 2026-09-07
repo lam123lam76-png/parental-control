@@ -291,14 +291,30 @@ async def shutdown_device(
 async def force_update_all_devices(db: AsyncSession = Depends(get_db_async)):
     """Broadcasts WebSocket force_update command to all online devices;
     queues it for offline devices so they update when they come back (fallback)."""
-    from core.config import UPDATES_DIR
     import json
-    
-    version_json_path = UPDATES_DIR / "version.json"
-    vdata = {"version": "2.0.0", "download_url": "/static/updates/agent-update.zip"}
-    if version_json_path.exists():
-        with open(version_json_path, "r", encoding="utf-8") as vf:
-            vdata = json.load(vf)
+    import requests as _http
+
+    # Source of truth is the CLOUD (R2) version.json. On Vercel serverless the
+    # local UPDATES_DIR (temp dir) is ephemeral and usually empty, so reading it
+    # here yields a stale/wrong version and drops the sha256. Fetch from R2 so the
+    # agent receives the real version + the package hash to verify (Task 10).
+    CLOUD_VERSION_URL = "https://pub-68ac9fad65e94c8f886542276f2e490c.r2.dev/version.json"
+    vdata = {"version": "0.0.0", "download_url": "/static/updates/agent-update.zip"}
+    try:
+        r = _http.get(CLOUD_VERSION_URL, timeout=15)
+        if r.status_code == 200:
+            cloud = r.json()
+            if cloud.get("version"):
+                vdata["version"] = cloud["version"]
+            if cloud.get("download_url"):
+                vdata["download_url"] = cloud["download_url"]
+            if cloud.get("sha256"):
+                vdata["sha256"] = cloud["sha256"]
+            else:
+                vdata["sha256"] = ""
+    except Exception as e:
+        logger.warning(f"force_update_all: could not fetch R2 version.json: {e}")
+        vdata["sha256"] = ""
 
     cmd_payload = {
         "type": "command",

@@ -202,6 +202,7 @@ class ProcessLogItem(BaseModel):
     process_name: str
     window_title: Optional[str] = None
     timestamp: datetime
+    duration: Optional[int] = 0
 
 class LogBatchUpload(BaseModel):
     device_id: uuid.UUID

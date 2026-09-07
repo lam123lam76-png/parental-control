@@ -130,8 +130,13 @@ async def upload_screenshot(
     content = await file.read()
 
     # Upload to Supabase Storage (cloud-first); returns public URL.
+    # Run the sync `requests`-based upload in a thread so it doesn't block the
+    # async event loop (Task 11: Event-loop starvation from blocking I/O in async).
     from core.supabase_storage import upload_file, enforce_screenshot_quota, _filename_from_url
-    image_url = upload_file(content, unique_filename, content_type=f"image/{ext}")
+    import asyncio as _asyncio
+    image_url = await _asyncio.to_thread(
+        upload_file, content, unique_filename, f"image/{ext}"
+    )
 
     db_shot = models.Screenshot(
         device_id=target_device_id,
@@ -142,9 +147,9 @@ async def upload_screenshot(
     await db.refresh(db_shot)
 
     # Auto-cleanup: delete oldest storage objects when bucket nears 47MB, and
-    # remove the matching DB rows.
+    # remove the matching DB rows. Run in a thread (sync requests, Task 11).
     try:
-        deleted = enforce_screenshot_quota()
+        deleted = await _asyncio.to_thread(enforce_screenshot_quota)
         if deleted:
             keys = set(deleted)
             from sqlalchemy import select as _select
@@ -163,17 +168,23 @@ async def upload_screenshot(
 
 
 @router.get("/api/device/{device_id}/screenshots", response_model=schemas.StandardResponse, dependencies=[Depends(require_permission("can_view_screenshots"))])
-def get_device_screenshots(device_id: str, db: Session = Depends(get_db)):
+def get_device_screenshots(device_id: str, limit: int = 50, db: Session = Depends(get_db)):
     """
-    Returns list of screenshots for the device ordered by timestamp desc.
+    Returns a bounded list of the NEWEST screenshots for the device.
+
+    Pagination guard (Task 9): previously returned ALL screenshots (no limit),
+    which made the frontend's 3s polling pull tens of thousands of rows + MB of
+    JSON every cycle (self-DDoS + UI freeze). Default to the 50 newest.
     """
     device_uuid = _resolve_device_uuid(device_id, db)
     if not device_uuid:
         return schemas.StandardResponse(data={"screenshots": []}, status_code=200)
 
+    limit = max(1, min(int(limit or 50), 200))
+
     screenshots = db.query(models.Screenshot).filter(
         models.Screenshot.device_id == device_uuid
-    ).order_by(models.Screenshot.timestamp.desc()).all()
+    ).order_by(models.Screenshot.timestamp.desc()).limit(limit).all()
 
     data = [
         schemas.ScreenshotResponse.model_validate(s).model_dump(mode="json")
@@ -210,10 +221,10 @@ def delete_screenshot(screenshot_id: str, db: Session = Depends(get_db)):
     db.delete(shot)
     db.commit()
 
-    # Return updated screenshots list for device
+    # Return updated screenshots list for device (bounded, newest first)
     remaining = db.query(models.Screenshot).filter(
         models.Screenshot.device_id == device_id
-    ).order_by(models.Screenshot.timestamp.desc()).all()
+    ).order_by(models.Screenshot.timestamp.desc()).limit(50).all()
 
     data = [
         schemas.ScreenshotResponse.model_validate(s).model_dump(mode="json")

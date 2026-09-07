@@ -147,9 +147,10 @@ def resend_registration(request: Request, reg_id: str, db: Session = Depends(get
 # ─────────────────────────────────────────────────────────────────────────────
 import asyncio
 from core.telegram_approval import process_callback_query
-from core.telegram_bot import handle_message, handle_dev_callback, answer_cb
+from core.telegram_bot import handle_message, handle_dev_callback, handle_night_callback, answer_cb
 
 
+@router.post("/telegram/webhook")
 @router.post("/api/telegram/webhook")
 async def telegram_webhook(request: Request, db: Session = Depends(get_db)):
     try:
@@ -180,6 +181,9 @@ async def telegram_webhook(request: Request, db: Session = Depends(get_db)):
         data = cb.get("data", "")
         if data.startswith("dev:"):
             await asyncio.to_thread(handle_dev_callback, data, db, tg.bot_token, reply_chat)
+            await asyncio.to_thread(answer_cb, tg.bot_token, cb["id"], "Đã xử lý")
+        elif data.startswith("night:"):
+            await asyncio.to_thread(handle_night_callback, data, db, tg.bot_token, reply_chat)
             await asyncio.to_thread(answer_cb, tg.bot_token, cb["id"], "Đã xử lý")
         else:
             await asyncio.to_thread(process_callback_query, update, db, tg.bot_token, reply_chat)

@@ -1,9 +1,14 @@
 from fastapi import APIRouter, Depends, Header, HTTPException, status
+from sqlalchemy import func
 from sqlalchemy.orm import Session
 from sqlalchemy.ext.asyncio import AsyncSession
 import uuid
+import os
+import logging
 from datetime import datetime, timezone
 from typing import Optional
+
+logger = logging.getLogger(__name__)
 
 from database import get_db, get_db_async
 import models
@@ -208,7 +213,8 @@ def batch_insert_logs(
             device_id=resolved_device_id,
             process_name=log.process_name,
             window_title=log.window_title,
-            timestamp=log.timestamp
+            timestamp=log.timestamp,
+            duration=log.duration or 0
         )
         for log in batch.logs
     ]
@@ -292,8 +298,41 @@ def create_alert(
 
     # Send instant Telegram Alert
     dev_name = device.device_name if device else "Agent PC"
-    msg_text = f"🚨 <b>[PARENTAL CONTROL ALERTS]</b>\n<b>Thiết bị:</b> {dev_name}\n<b>Loại Cảnh Báo:</b> {alert.alert_type}\n<b>Nội dung:</b> {alert.message}"
-    send_telegram_notification(db, msg_text)
+    alert_type = alert.alert_type or ""
+
+    # ── Night-time alerts (anti-late-gaming) ──
+    # These carry Allow/Deny inline buttons (midnight) and should appear as clean
+    # standalone messages, not wrapped in the generic "PARENTAL CONTROL ALERTS".
+    if alert_type.startswith("night_"):
+        try:
+            from core.telegram_bot import send_message, _queue_command
+            tg = db.query(models.TelegramSetting).first()
+            token = (tg.bot_token if tg else None) or os.getenv("TELEGRAM_BOT_TOKEN")
+            chat_id = (tg.chat_id if tg else None) or os.getenv("TELEGRAM_CHAT_ID")
+            if token and chat_id:
+                body = f"⚠️ <b>{alert.message}</b>"
+                reply_markup = None
+                if alert_type == "night_midnight":
+                    # Allow = don't lock; Deny = lock until 06:00 next morning.
+                    reply_markup = {
+                        "inline_keyboard": [[
+                            {"text": "✅ Cho phép", "callback_data": f"night:allow:{resolved_device_id}"},
+                            {"text": "🚫 Không cho phép", "callback_data": f"night:deny:{resolved_device_id}"},
+                        ]]
+                    }
+                send_message(token, chat_id, body, reply_markup=reply_markup)
+        except Exception as e:
+            logger.warning(f"Night alert send failed: {e}")
+        return schemas.StandardResponse(data={"msg": "Night alert received"}, status_code=200)
+
+    # ── Generic / on-off alerts ──
+    # Short on/off messages (agent_online / agent_offline) are already the final
+    # text; send them cleanly. Other alerts keep the descriptive wrapper.
+    if alert_type in ("agent_online", "agent_offline"):
+        send_telegram_notification(db, alert.message)
+    else:
+        msg_text = f"🚨 <b>[PARENTAL CONTROL ALERTS]</b>\n<b>Thiết bị:</b> {dev_name}\n<b>Loại Cảnh Báo:</b> {alert_type}\n<b>Nội dung:</b> {alert.message}"
+        send_telegram_notification(db, msg_text)
     
     return schemas.StandardResponse(data={"msg": "Alert received"}, status_code=200)
 
@@ -333,6 +372,10 @@ def get_device_analytics(device_id: str, db: Session = Depends(get_db)):
     - Top 5 applications by activity
     - Top 5 websites visited
     - Trend comparison (% vs previous 7-day period)
+
+    Performance: ProcessLog / BrowserHistory are large tables. All aggregation is
+    pushed to the database with GROUP BY / COUNT / LIMIT so only a handful of rows
+    are materialized in Python (avoids loading 100k+ rows into RAM per request).
     """
     dev_uuid = _resolve_device_uuid(device_id, db)
     if not dev_uuid:
@@ -343,10 +386,10 @@ def get_device_analytics(device_id: str, db: Session = Depends(get_db)):
     two_weeks_ago = now - timedelta(days=14)
 
     # 1. Process Logs in the last 7 days vs previous 7 days
-    recent_logs = db.query(models.ProcessLog).filter(
+    curr_count = db.query(models.ProcessLog).filter(
         models.ProcessLog.device_id == dev_uuid,
         models.ProcessLog.timestamp >= week_ago
-    ).all()
+    ).count()
 
     prev_logs_count = db.query(models.ProcessLog).filter(
         models.ProcessLog.device_id == dev_uuid,
@@ -354,42 +397,78 @@ def get_device_analytics(device_id: str, db: Session = Depends(get_db)):
         models.ProcessLog.timestamp < week_ago
     ).count()
 
-    # App usage ranking
-    app_counts = Counter(l.process_name for l in recent_logs if l.process_name)
-    top_apps = [{"name": app, "count": count} for app, count in app_counts.most_common(5)]
+    # Total active seconds this week (SUM duration; fall back to count*15 for legacy rows).
+    _sum_dur_week = db.query(
+        func.coalesce(func.sum(models.ProcessLog.duration), 0)
+    ).filter(
+        models.ProcessLog.device_id == dev_uuid,
+        models.ProcessLog.timestamp >= week_ago
+    ).scalar() or 0
+    total_seconds_week = int(_sum_dur_week) or (curr_count * 15)
 
-    # Daily breakdown (Mon - Sun)
+    # App usage ranking — GROUP BY in DB, LIMIT 5, ranked by active SECONDS.
+    _sum_dur = func.coalesce(func.sum(models.ProcessLog.duration), 0)
+    app_rows = db.query(
+        models.ProcessLog.process_name,
+        _sum_dur
+    ).filter(
+        models.ProcessLog.device_id == dev_uuid,
+        models.ProcessLog.timestamp >= week_ago,
+        models.ProcessLog.process_name.isnot(None),
+        models.ProcessLog.process_name != ""
+    ).group_by(models.ProcessLog.process_name).order_by(_sum_dur.desc()).limit(5).all()
+    top_apps = [{"name": name, "count": count} for name, count in app_rows]
+
+    # Daily breakdown (last 7 days) — GROUP BY weekday in DB, by active SECONDS.
+    day_rows = db.query(
+        func.extract("dow", models.ProcessLog.timestamp),
+        _sum_dur
+    ).filter(
+        models.ProcessLog.device_id == dev_uuid,
+        models.ProcessLog.timestamp >= week_ago
+    ).group_by(func.extract("dow", models.ProcessLog.timestamp)).all()
+
+    # PostgreSQL: extract('dow', ts) returns 0=Sunday..6=Saturday. Our day_names are
+    # indexed Mon=0..Sun=6, so map DB dow -> index.
+    # dow 0(Sun)->6, 1(Mon)->0, 2->1, 3->2, 4->3, 5->4, 6(Sat)->5
+    dow_to_idx = {0: 6, 1: 0, 2: 1, 3: 2, 4: 3, 5: 4, 6: 5}
     daily_counts = {i: 0 for i in range(7)}
-    for l in recent_logs:
-        if l.timestamp:
-            day_idx = l.timestamp.weekday()
-            daily_counts[day_idx] += 1
+    for dow, cnt in day_rows:
+        try:
+            idx = dow_to_idx[int(dow)]
+            daily_counts[idx] += int(cnt)
+        except Exception:
+            pass
 
     day_names = ["Thứ 2", "Thứ 3", "Thứ 4", "Thứ 5", "Thứ 6", "Thứ 7", "Chủ Nhật"]
     daily_trend = [{"day": day_names[i], "count": daily_counts[i]} for i in range(7)]
 
-    # 2. Browser History Ranking
-    recent_history = db.query(models.BrowserHistory).filter(
+    # 2. Browser History Ranking — GROUP BY host in DB. For exact host extraction
+    # we still need the URL string; instead aggregate by count per URL then pick
+    # top hosts in a bounded loop (URLs fetched are limited, avoids full table).
+    hist_rows = db.query(
+        models.BrowserHistory.url,
+        func.count(models.BrowserHistory.id)
+    ).filter(
         models.BrowserHistory.device_id == dev_uuid,
-        models.BrowserHistory.timestamp >= week_ago
-    ).all()
+        models.BrowserHistory.timestamp >= week_ago,
+        models.BrowserHistory.url.isnot(None),
+        models.BrowserHistory.url != ""
+    ).group_by(models.BrowserHistory.url).order_by(func.count(models.BrowserHistory.id).desc()).limit(200).all()
 
-    domains = []
-    for h in recent_history:
-        if h.url:
-            try:
-                parsed = urlparse(h.url)
-                netloc = parsed.netloc.replace("www.", "")
-                if netloc:
-                    domains.append(netloc)
-            except Exception:
-                pass
+    domain_counts = {}
+    for url, cnt in hist_rows:
+        try:
+            parsed = urlparse(url)
+            netloc = parsed.netloc.replace("www.", "")
+            if netloc:
+                domain_counts[netloc] = domain_counts.get(netloc, 0) + int(cnt)
+        except Exception:
+            pass
 
-    domain_counts = Counter(domains)
-    top_sites = [{"domain": dom, "count": count} for dom, count in domain_counts.most_common(5)]
+    top_sites = [{"domain": dom, "count": count} for dom, count in sorted(domain_counts.items(), key=lambda x: x[1], reverse=True)[:5]]
 
     # Trend calculation
-    curr_count = len(recent_logs)
     if prev_logs_count > 0:
         trend_pct = round(((curr_count - prev_logs_count) / prev_logs_count) * 100, 1)
     else:
@@ -398,6 +477,7 @@ def get_device_analytics(device_id: str, db: Session = Depends(get_db)):
     return schemas.StandardResponse(
         data={
             "total_logs_week": curr_count,
+            "total_seconds_week": total_seconds_week,
             "prev_logs_week": prev_logs_count,
             "trend_percentage": trend_pct,
             "top_apps": top_apps,
@@ -452,12 +532,15 @@ def get_today_screen_time(device_id: str, db: Session = Depends(get_db)):
 
     for log in today_logs:
         p_name = log.process_name or "Unknown"
-        # Each active log scan = 15 seconds (Matches agent config.PROCESS_SCAN_INTERVAL)
-        app_seconds[p_name] += 15
+        # Duration from state-change logging (fall back to 15s for legacy rows).
+        secs = int(getattr(log, "duration", 0) or 0)
+        if secs <= 0:
+            secs = 15
+        app_seconds[p_name] += secs
         if log.timestamp:
             try:
                 log_vn = log.timestamp.replace(tzinfo=timezone.utc).astimezone(VIETNAM_TZ)
-                hourly_distribution[log_vn.hour] += 15
+                hourly_distribution[log_vn.hour] += secs
             except Exception:
                 pass
         
@@ -465,7 +548,7 @@ def get_today_screen_time(device_id: str, db: Session = Depends(get_db)):
         if p_name.lower() in BROWSER_EXES:
             domain = _infer_domain_from_title(log.window_title)
             if domain:
-                web_seconds[domain] += 15
+                web_seconds[domain] += secs
 
     total_screen_seconds = sum(app_seconds.values())
     top_apps_today = [

@@ -149,40 +149,6 @@ async def upload_screenshot(
     await db.commit()
     await db.refresh(db_shot)
 
-    # Event-driven Telegram forward for /shot requests. Older agents (e.g. v0031)
-    # only UPLOAD a screenshot after a take_screenshot command — they never send
-    # the photo to Telegram themselves. When cmd_shot queued the request it stored
-    # `pending_shot:<device_id>` = {reply_token, reply_chat_id, ts}. If that marker
-    # is present (and fresh), forward THIS newly-uploaded screenshot to Telegram,
-    # then clear the marker so we don't forward unrelated periodic shots.
-    try:
-        import json as _pj
-        import time as _pt
-        import asyncio as _asyncio
-        from sqlalchemy import select as _sel
-        pending_key = f"pending_shot:{target_device_id}"
-        prow = (await db.execute(_sel(models.SystemSetting).where(models.SystemSetting.key == pending_key))).scalar_one_or_none()
-        if prow is not None and prow.value:
-            pending = _pj.loads(prow.value)
-            ts_req = float(pending.get("ts") or 0)
-            rtoken = pending.get("reply_token")
-            rchat = pending.get("reply_chat_id")
-            if rtoken and rchat and _pt.time() - ts_req <= 120:
-                ts_str = (db_shot.timestamp.isoformat() if getattr(db_shot, "timestamp", None) else "")[:16].replace("T", " ")
-                def _send_photo(_tok=rtoken, _chat=rchat, _url=image_url, _cap=f"📸 Screenshot — {ts_str}"):
-                    import requests as _req
-                    try:
-                        _req.post(f"https://api.telegram.org/bot{_tok}/sendPhoto",
-                                  json={"chat_id": _chat, "photo": _url, "caption": _cap}, timeout=20)
-                    except Exception as _err:
-                        logger.warning(f"[pending_shot] sendPhoto failed: {_err}")
-                await _asyncio.to_thread(_send_photo)
-            # Always clear the pending marker once an upload arrives.
-            await db.delete(prow)
-            await db.commit()
-    except Exception as _pe:
-        logger.warning(f"pending_shot forward failed: {_pe}")
-
     # Auto-cleanup: delete oldest storage objects when bucket nears 47MB, and
     # remove the matching DB rows. Run in a thread (sync requests, Task 11).
     try:

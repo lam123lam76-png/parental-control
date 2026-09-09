@@ -243,32 +243,34 @@ def cmd_shot(token, chat_id, db, arg):
         send_message(token, chat_id, _no_device_message(db, chat_id))
         return
 
-    # Queue the screenshot command; include bot_token + chat_id so a newer agent
-    # can push the photo to Telegram directly.
-    _queue_command(db, dev, "take_screenshot", {
-        "reply_token": token,
-        "reply_chat_id": str(chat_id),
-    })
+    # Restored: match the known-good architecture (see backups/ - Copy). The target
+    # device runs agent v0031 whose take_screenshot handler ONLY uploads the image
+    # to /api/screenshots/upload — it never self-sends to Telegram. So the backend
+    # must do the send: queue the command, then poll ~30s for a NEW screenshot and
+    # send it via sendPhoto. Runs inside the caller's asyncio.to_thread(handle_message),
+    # so the blocking loop does not stall the event loop. A fresh screenshot usually
+    # arrives in a few seconds (agent polls commands every 5s then uploads), so the
+    # poll returns well before any serverless function timeout.
+    # latest screenshot timestamp before this request
+    before = db.query(models.Screenshot).filter(
+        models.Screenshot.device_id == dev.id
+    ).order_by(models.Screenshot.timestamp.desc()).first()
+    before_ts = before.timestamp if before else datetime(1970, 1, 1, tzinfo=timezone.utc)
 
-    # Event-driven forward (works with OLDER agents that only upload and never
-    # self-send): record a "pending shot" so the /api/screenshots/upload handler
-    # forwards the freshly-uploaded screenshot to this Telegram chat. Persisted
-    # (system_settings) so it survives serverless; TTL'd so a stale request
-    # (e.g. device was offline) doesn't forward an unrelated periodic shot later.
-    try:
-        import json as _json
-        import time as _time
-        s = db.query(models.SystemSetting).filter(models.SystemSetting.key == f"pending_shot:{dev.id}").first()
-        val = _json.dumps({"reply_token": token, "reply_chat_id": str(chat_id), "ts": _time.time()})
-        if s:
-            s.value = val
-        else:
-            db.add(models.SystemSetting(key=f"pending_shot:{dev.id}", value=val))
-        db.commit()
-    except Exception as _e:
-        logger.warning(f"cmd_shot: could not record pending_shot: {_e}")
+    _queue_command(db, dev, "take_screenshot", {})
+    send_message(token, chat_id, f"📸 Đã yêu cầu chụp màn hình <b>{dev.device_name}</b>. Đang chờ ảnh...")
 
-    send_message(token, chat_id, f"📸 Đã yêu cầu chụp màn hình <b>{dev.device_name}</b>. Ảnh sẽ được gửi trong giây lát...")
+    # Poll for a NEW screenshot (timeout ~30s — allows boto3 cold start on Vercel).
+    for _ in range(30):
+        time.sleep(1)
+        shot = db.query(models.Screenshot).filter(
+            models.Screenshot.device_id == dev.id
+        ).order_by(models.Screenshot.timestamp.desc()).first()
+        if shot and shot.timestamp and shot.timestamp > before_ts:
+            send_photo(token, chat_id, shot.image_url,
+                       caption=f"📸 {dev.device_name} — {shot.timestamp.strftime('%d/%m %H:%M:%S')}")
+            return
+    send_message(token, chat_id, f"⏳ Chưa nhận được ảnh từ {dev.device_name} (thiết bị có thể offline).")
 
 
 def _fmt_duration(sec: int) -> str:

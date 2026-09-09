@@ -290,13 +290,23 @@ def create_alert(
     alert_type = alert.alert_type or ""
 
     # ── Presence on/off alerts ──
-    # agent_online / agent_offline / agent_shutdown are recorded to the DB (above)
-    # but do NOT send their own Telegram message here. Online/offline presence is
-    # decided by ONE atomic reconciler (core.presence) driven by the device's real
-    # last_seen_at, so a single on/off event yields exactly one concise message.
-    # (Previously each of these ALSO sent Telegram here AND the offline detector
-    # sent another one -> duplicate/spam on every shutdown.)
-    if alert_type in ("agent_online", "agent_offline", "agent_shutdown"):
+    # Route the agent's own online/shutdown reports into the atomic presence
+    # reconciler so a graceful boot/shutdown is reported IMMEDIATELY (not only
+    # when a later staleness check happens to run on serverless). The atomic
+    # CAS in core.presence guarantees exactly one concise message per real
+    # transition and dedupes against the staleness backstop.
+    if device:
+        try:
+            from core.presence import mark_online, mark_offline
+            if alert_type == "agent_online":
+                mark_online(db, device)
+            elif alert_type in ("agent_shutdown", "agent_offline"):
+                mark_offline(db, device)
+        except Exception as _pe:
+            logger.warning(f"[presence] create_alert routing failed: {_pe}")
+        return schemas.StandardResponse(data={"msg": "Presence alert recorded"}, status_code=200)
+    elif alert_type in ("agent_online", "agent_offline", "agent_shutdown"):
+        # No device resolved — cannot mark presence; swallow silently.
         return schemas.StandardResponse(data={"msg": "Presence alert recorded"}, status_code=200)
 
     # ── Night-time alerts (anti-late-gaming) ──

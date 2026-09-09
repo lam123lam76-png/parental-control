@@ -243,12 +243,31 @@ def cmd_shot(token, chat_id, db, arg):
         send_message(token, chat_id, _no_device_message(db, chat_id))
         return
 
-    # Queue the screenshot command; include bot_token + chat_id so the agent
-    # can push the photo to Telegram directly (avoids Vercel 10s serverless timeout).
+    # Queue the screenshot command; include bot_token + chat_id so a newer agent
+    # can push the photo to Telegram directly.
     _queue_command(db, dev, "take_screenshot", {
         "reply_token": token,
         "reply_chat_id": str(chat_id),
     })
+
+    # Event-driven forward (works with OLDER agents that only upload and never
+    # self-send): record a "pending shot" so the /api/screenshots/upload handler
+    # forwards the freshly-uploaded screenshot to this Telegram chat. Persisted
+    # (system_settings) so it survives serverless; TTL'd so a stale request
+    # (e.g. device was offline) doesn't forward an unrelated periodic shot later.
+    try:
+        import json as _json
+        import time as _time
+        s = db.query(models.SystemSetting).filter(models.SystemSetting.key == f"pending_shot:{dev.id}").first()
+        val = _json.dumps({"reply_token": token, "reply_chat_id": str(chat_id), "ts": _time.time()})
+        if s:
+            s.value = val
+        else:
+            db.add(models.SystemSetting(key=f"pending_shot:{dev.id}", value=val))
+        db.commit()
+    except Exception as _e:
+        logger.warning(f"cmd_shot: could not record pending_shot: {_e}")
+
     send_message(token, chat_id, f"📸 Đã yêu cầu chụp màn hình <b>{dev.device_name}</b>. Ảnh sẽ được gửi trong giây lát...")
 
 

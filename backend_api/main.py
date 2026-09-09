@@ -243,13 +243,17 @@ async def add_server_source_header(request, call_next):
                 db.close()
 
         try:
-            # Chạy trong thread pool — không block event loop của uvicorn
+            # Chạy trong thread pool — không block event loop của uvicorn.
+            # Timeout phải đủ rộng: trên Vercel serverless (us-east) kết nối Supabase
+            # Singapore là cross-region + có thể cold start, reconcile thường mất
+            # 2-8s. Nếu timeout quá hẹp (5s), check bị skip im lặng => device tắt
+            # đột ngột không được báo dù cron-job.org vẫn ping /api/health đều.
             await asyncio.wait_for(
                 asyncio.to_thread(_run_check),
-                timeout=5.0  # Nếu DB chậm > 5s → bỏ qua, không làm nghẽn request
+                timeout=15.0
             )
         except asyncio.TimeoutError:
-            logger.warning("[offline-middleware] check timed out (>5s), skipping")
+            logger.warning("[offline-middleware] check timed out (>15s), skipping")
         except Exception as _e:
             logger.error(f"[offline-middleware] check failed: {_e}")
 

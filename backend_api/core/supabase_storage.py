@@ -53,6 +53,35 @@ def delete_file(filename: str) -> None:
         logger.warning(f"Storage delete failed {filename}: {e}")
 
 
+def delete_files(filenames) -> int:
+    """Delete MANY objects from the bucket in chunks (one HTTP call per chunk).
+
+    Supabase Storage batch delete: DELETE /storage/v1/object/{bucket}
+    body {"prefixes": [...]}. Much faster than one request per object — critical
+    on Vercel serverless where the function deadline is short and a per-file loop
+    over hundreds of screenshots would time out.
+
+    Returns the number of names submitted for deletion.
+    """
+    names = [n for n in (filenames or []) if n]
+    if not names:
+        return 0
+    url = f"{PROJECT_URL}/storage/v1/object/{BUCKET}"
+    total = 0
+    CHUNK = 100
+    for i in range(0, len(names), CHUNK):
+        chunk = names[i:i + CHUNK]
+        try:
+            resp = requests.delete(url, json={"prefixes": chunk}, headers=_json_headers(), timeout=60)
+            if resp.status_code not in (200, 204):
+                logger.warning(f"Storage batch delete HTTP {resp.status_code}: {resp.text[:200]}")
+            else:
+                total += len(chunk)
+        except Exception as e:
+            logger.warning(f"Storage batch delete failed ({len(chunk)} names): {e}")
+    return total
+
+
 def list_files():
     """Return list of (key, size) for all objects, oldest first."""
     url = f"{PROJECT_URL}/storage/v1/object/list/{BUCKET}"

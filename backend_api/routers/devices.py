@@ -211,15 +211,12 @@ def delete_screenshot(screenshot_id: str, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail="Screenshot not found")
 
     device_id = shot.device_id
-    filename = shot.image_url.split("/")[-1]
-    file_path = SCREENSHOTS_DIR / filename
-
-    # Safely remove physical image file
-    if file_path.exists():
-        try:
-            file_path.unlink()
-        except Exception as e:
-            logger.warning(f"Could not delete physical screenshot file {file_path}: {e}")
+    # Cloud-first: the image lives in Supabase Storage, not on local disk.
+    from core.supabase_storage import delete_files, _filename_from_url
+    try:
+        delete_files([_filename_from_url(shot.image_url or "")])
+    except Exception as e:
+        logger.warning(f"Could not delete Supabase screenshot {shot.image_url}: {e}")
 
     db.delete(shot)
     db.commit()
@@ -250,14 +247,15 @@ def delete_all_device_screenshots(device_id: str, db: Session = Depends(get_db))
 
     shots = db.query(models.Screenshot).filter(models.Screenshot.device_id == device_uuid).all()
     deleted_count = 0
+    # Cloud-first: batch-delete the Supabase objects (not local files).
+    from core.supabase_storage import delete_files, _filename_from_url
+    names = [_filename_from_url(s.image_url or "") for s in shots]
+    if names:
+        try:
+            delete_files(names)
+        except Exception as e:
+            logger.warning(f"Supabase batch delete failed for device {device_uuid}: {e}")
     for shot in shots:
-        filename = shot.image_url.split("/")[-1]
-        file_path = SCREENSHOTS_DIR / filename
-        if file_path.exists():
-            try:
-                file_path.unlink()
-            except Exception:
-                pass
         db.delete(shot)
         deleted_count += 1
 

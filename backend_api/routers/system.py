@@ -109,9 +109,36 @@ def _matches_period(ts_dt, periods: list, period_type: str) -> bool:
 
 
 @router.post("/api/v1/storage/cleanup-by-period", response_model=schemas.StandardResponse, dependencies=[Depends(require_system_admin)])
-def cleanup_storage_by_period_endpoint(req: schemas.StoragePeriodCleanRequest, background_tasks: BackgroundTasks):
-    background_tasks.add_task(_bg_cleanup_storage_by_period, req)
-    return schemas.StandardResponse(data={"msg": "Tiến trình dọn dẹp đang được chạy ngầm. Vui lòng kiểm tra lại sau ít phút.", "freed_mb": 0}, status_code=202)
+def cleanup_storage_by_period_endpoint(req: schemas.StoragePeriodCleanRequest):
+    """Delete records + cloud files for the selected category/periods synchronously.
+
+    Runs INLINE (not BackgroundTasks): on Vercel serverless the function is frozen
+    as soon as the response is returned, so a background task was frequently killed
+    before doing the work — the UI saw "đang chạy ngầm" forever and nothing was
+    deleted. Cloud objects are removed with a batched Supabase call, so the whole
+    operation is a handful of round-trips and fits the request budget.
+    """
+    try:
+        result = _bg_cleanup_storage_by_period(req)
+    except Exception as e:
+        logger.error(f"cleanup-by-period failed: {e}", exc_info=True)
+        return schemas.StandardResponse(error=f"Dọn dẹp thất bại: {e}", status_code=500)
+    deleted = (result or {}).get("deleted_counts", {})
+    freed_mb = round((result or {}).get("freed_bytes", 0) / (1024 * 1024), 2)
+    total = sum(deleted.values()) if deleted else 0
+    orphans = (result or {}).get("orphans_purged", 0)
+    msg = f"Đã dọn dẹp {total} mục. Giải phóng ~{freed_mb} MB."
+    if orphans:
+        msg += f" (gồm {orphans} ảnh mồ côi trên cloud)"
+    return schemas.StandardResponse(
+        data={
+            "msg": msg,
+            "deleted_counts": deleted,
+            "freed_mb": freed_mb,
+            "orphans_purged": orphans,
+        },
+        status_code=200,
+    )
 
 def _bg_cleanup_storage_by_period(req: schemas.StoragePeriodCleanRequest):
     db = SessionLocal()
@@ -121,6 +148,8 @@ def _bg_cleanup_storage_by_period(req: schemas.StoragePeriodCleanRequest):
         
         freed_bytes = 0
         deleted_counts = {"screenshots": 0, "web": 0, "logs": 0, "processes": 0}
+        deleted_cloud = 0
+        orphan_count = 0
         cat = req.category.lower()
 
         # 1. Clean Screenshots
@@ -129,23 +158,45 @@ def _bg_cleanup_storage_by_period(req: schemas.StoragePeriodCleanRequest):
             if req.item_ids:
                 query = query.filter(cast(models.Screenshot.id, String).in_(req.item_ids))
             all_shots = query.all()
+            # Cloud-first: the image lives in Supabase Storage, NOT on a local disk
+            # (the old code moved SCREENSHOTS_DIR/<file> which never exists on Vercel,
+            # so DB rows vanished but the cloud objects stayed -> storage never freed).
+            from core.supabase_storage import delete_files, list_files, _filename_from_url
+            to_delete_cloud = []
             for shot in all_shots:
                 if req.item_ids or _matches_period(shot.timestamp, req.periods, req.period_type):
-                    filename = shot.image_url.split("/")[-1]
-                    file_path = SCREENSHOTS_DIR / filename
-                    if file_path.exists():
-                        try:
-                            sz = file_path.stat().st_size
-                            freed_bytes += sz
-                            trash_path = TRASH_SHOTS_DIR / filename
-                            shutil.move(str(file_path), str(trash_path))
-                        except Exception:
-                            try:
-                                file_path.unlink()
-                            except Exception:
-                                pass
+                    to_delete_cloud.append(_filename_from_url(shot.image_url or ""))
                     db.delete(shot)
                     deleted_counts["screenshots"] += 1
+
+            # When the parent clears SCREENSHOTS by period (no explicit item selection),
+            # also purge ORPHANED bucket objects that have no DB row left — otherwise
+            # leftover bytes keep occupying the bucket (observed: 179 objects / 75 MB
+            # with an empty screenshots table) and the UI can never select them because
+            # its list is built from the DB.
+            if cat == "screenshots" and not req.item_ids:
+                try:
+                    db.flush()
+                    referenced = {
+                        _filename_from_url(u)
+                        for (u,) in db.query(models.Screenshot.image_url).all()
+                        if u
+                    }
+                    pending = set(to_delete_cloud)
+                    for name, _size in list_files():
+                        if name and name not in referenced and name not in pending:
+                            to_delete_cloud.append(name)
+                            orphan_count += 1
+                except Exception as e:
+                    logger.warning(f"Orphan storage scan failed: {e}")
+
+            # Batch-delete the cloud objects (one HTTP call per 100 objects).
+            if to_delete_cloud:
+                try:
+                    deleted_cloud = delete_files(to_delete_cloud)
+                except Exception as e:
+                    logger.warning(f"Supabase batch delete failed: {e}")
+                freed_bytes += 100000 * len(to_delete_cloud)
 
         # 2. Clean Browser History
         if cat in ("web", "all"):
@@ -190,6 +241,13 @@ def _bg_cleanup_storage_by_period(req: schemas.StoragePeriodCleanRequest):
             db.commit()
         except Exception:
             pass
+
+        return {
+            "deleted_counts": deleted_counts,
+            "freed_bytes": freed_bytes,
+            "cloud_deleted": deleted_cloud,
+            "orphans_purged": orphan_count,
+        }
 
     finally:
         db.close()

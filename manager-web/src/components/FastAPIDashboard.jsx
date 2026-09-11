@@ -850,10 +850,10 @@ export default function FastAPIDashboard() {
       </div>
 
       {/* MAIN CONTAINER — RESPONSIVE GRID LAYOUT */}
-      <div className="max-w-7xl mx-auto px-3 sm:px-4 py-4 sm:py-6 grid grid-cols-1 md:grid-cols-12 gap-6 sm:gap-8 flex-1 overflow-hidden w-full">
+      <div className="max-w-7xl mx-auto px-3 sm:px-4 py-4 sm:py-6 grid grid-cols-1 md:grid-cols-12 gap-6 sm:gap-8 flex-1 overflow-y-auto w-full">
 
         {/* LEFT COLUMN: SIDEBAR NAVIGATION */}
-        <aside className="hidden md:block md:col-span-3 space-y-6 overflow-y-auto h-full pr-1">
+        <aside className="hidden md:block md:col-span-3 space-y-6 pr-1 self-start md:sticky md:top-2 md:max-h-[calc(100vh-7rem)] md:overflow-y-auto">
           
           {/* Section 1: Navigation Menu */}
           <div>
@@ -940,7 +940,7 @@ export default function FastAPIDashboard() {
         </aside>
 
         {/* MIDDLE COLUMN: MAIN CONTENT */}
-        <main className="md:col-span-6 space-y-6 overflow-y-auto h-full pr-1 pb-16 md:pb-6">
+        <main className="md:col-span-6 space-y-6 pr-1 pb-16 md:pb-6">
 
           {/* Action Notification Banner */}
           {message && (
@@ -1581,7 +1581,7 @@ export default function FastAPIDashboard() {
         </main>
 
         {/* RIGHT COLUMN: INFO PANEL & QUICK STATUS */}
-        <aside className="hidden md:block md:col-span-3 space-y-6 overflow-y-auto h-full pl-1">
+        <aside className="hidden md:block md:col-span-3 space-y-6 pl-1 self-start md:sticky md:top-2">
 
           {/* CARD: DEVICE REAL-TIME STATUS */}
           <div className={`p-4 sm:p-5 rounded-xl space-y-4 ${styles.card}`}>

@@ -195,6 +195,22 @@ export function formatClockTime(isoStr) {
   }
 }
 
+/**
+ * Format a duration in SECONDS as "Xh YYm" / "Ym SSs" / "Ss".
+ * Shared by the usage widgets so every screen shows the same format
+ * (previously the "today" card used the backend string — "0m" — while the
+ * analytics card used its own formatter — "0s" — for the same value).
+ */
+export function fmtDur(sec) {
+  const s = Math.max(0, Math.round(Number(sec) || 0));
+  const h = Math.floor(s / 3600);
+  const m = Math.floor((s % 3600) / 60);
+  const rem = s % 60;
+  if (h > 0) return `${h}h ${String(m).padStart(2, "0")}m`;
+  if (m > 0) return `${m}m ${String(rem).padStart(2, "0")}s`;
+  return `${s}s`;
+}
+
 // ================================================================
 // 🔥 HÀM CN CHO SHADCN/UI (THÊM MỚI)
 // ================================================================

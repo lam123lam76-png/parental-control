@@ -61,7 +61,7 @@ export default function BrowserHistoryView({ theme = "dark", deviceId = "" }) {
     <div className="space-y-6 font-sans">
       
       {/* HEADER CARD */}
-      <div className={`p-4 sm:p-5 rounded-xl border flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 ${styles.card}`}>
+      <div className={`p-4 sm:p-5 rounded-xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 ${styles.card}`}>
         <div className="flex items-center gap-3">
           <div className="p-2.5 rounded-lg bg-zinc-900/70 border border-zinc-900 border-l-2 border-l-[#0E3746] text-[#F4F2EC]">
             <Globe className="w-5 h-5 stroke-[1.75]" />
@@ -84,7 +84,7 @@ export default function BrowserHistoryView({ theme = "dark", deviceId = "" }) {
       </div>
 
       {/* SEARCH BAR & BROWSER FILTERS */}
-      <div className={`p-4 sm:p-5 rounded-xl border space-y-4 ${styles.card}`}>
+      <div className={`p-4 sm:p-5 rounded-xl space-y-4 ${styles.card}`}>
         <form onSubmit={handleSearchSubmit} className="flex flex-col sm:flex-row gap-3">
           <div className="relative flex-1">
             <Search className="w-4 h-4 absolute left-3 top-3 text-zinc-500" />
@@ -126,7 +126,7 @@ export default function BrowserHistoryView({ theme = "dark", deviceId = "" }) {
       </div>
 
       {/* HISTORY TIMELINE TABLE */}
-      <div className={`p-4 sm:p-5 rounded-xl border space-y-4 ${styles.card}`}>
+      <div className={`p-4 sm:p-5 rounded-xl space-y-4 ${styles.card}`}>
         <div className="flex items-center justify-between">
           <h3 className={`text-sm font-bold flex items-center gap-2 ${styles.textBold}`}>
             <Clock className="w-4 h-4 text-primary" />
@@ -202,3 +202,4 @@ export default function BrowserHistoryView({ theme = "dark", deviceId = "" }) {
     </div>
   );
 }
+

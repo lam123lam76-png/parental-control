@@ -42,7 +42,7 @@ export default function ScreenTimeTodayCard({ deviceId, styles }) {
   const maxHourMinutes = Math.max(...hourly_breakdown.map((h) => h.minutes || 0), 1);
 
   return (
-    <div className={`p-4 sm:p-5 rounded-xl border space-y-4 ${styles.card}`}>
+    <div className={`p-4 sm:p-5 rounded-xl space-y-4 ${styles.card}`}>
       {/* Header */}
       <div className="flex items-center justify-between border-b border-zinc-800/60 pb-3">
         <div className="flex items-center gap-2">
@@ -89,7 +89,7 @@ export default function ScreenTimeTodayCard({ deviceId, styles }) {
           </span>
         </div>
 
-        <div className={`p-3.5 rounded-lg border flex flex-col justify-between ${styles.card}`}>
+        <div className={`p-3.5 rounded-lg flex flex-col justify-between ${styles.card}`}>
           <span className={`text-[10px] font-bold uppercase ${styles.textMuted}`}>
             Ứng Dụng Dùng Nhiều Nhất
           </span>
@@ -104,7 +104,7 @@ export default function ScreenTimeTodayCard({ deviceId, styles }) {
           </span>
         </div>
 
-        <div className={`p-3.5 rounded-lg border flex flex-col justify-between ${styles.card}`}>
+        <div className={`p-3.5 rounded-lg flex flex-col justify-between ${styles.card}`}>
           <span className={`text-[10px] font-bold uppercase ${styles.textMuted}`}>
             Trang Web Xem Nhiều Nhất
           </span>
@@ -123,7 +123,7 @@ export default function ScreenTimeTodayCard({ deviceId, styles }) {
       {/* Breakdown: Apps & Websites */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-1">
         {/* Top Applications Today */}
-        <div className={`p-3.5 rounded-lg border space-y-2.5 ${styles.card}`}>
+        <div className={`p-3.5 rounded-lg space-y-2.5 ${styles.card}`}>
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-1.5 text-xs font-bold text-primary">
               <Laptop className="w-3.5 h-3.5" />
@@ -159,7 +159,7 @@ export default function ScreenTimeTodayCard({ deviceId, styles }) {
         </div>
 
         {/* Top Websites Today */}
-        <div className={`p-3.5 rounded-lg border space-y-2.5 ${styles.card}`}>
+        <div className={`p-3.5 rounded-lg space-y-2.5 ${styles.card}`}>
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-1.5 text-xs font-bold text-primary">
               <Globe className="w-3.5 h-3.5" />
@@ -228,3 +228,4 @@ export default function ScreenTimeTodayCard({ deviceId, styles }) {
     </div>
   );
 }
+

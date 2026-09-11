@@ -137,7 +137,7 @@ export default function SystemConsoleLogBox({ theme = "dark", realLogs = [], ale
         {/* LOG CONTROLS: Filter, Pause, Clear, Copy */}
         <div className="flex items-center flex-wrap gap-2 text-xs">
           {/* Level Filter Buttons */}
-          <div className={`p-1 rounded-lg border flex items-center gap-1 ${styles.card}`}>
+          <div className={`p-1 rounded-lg flex items-center gap-1 ${styles.card}`}>
             <Filter className="w-3 h-3 ml-1 opacity-60" />
             {["ALL", "INFO", "SUCCESS", "WARN"].map((lvl) => (
               <button
@@ -234,3 +234,4 @@ export default function SystemConsoleLogBox({ theme = "dark", realLogs = [], ale
     </div>
   );
 }
+

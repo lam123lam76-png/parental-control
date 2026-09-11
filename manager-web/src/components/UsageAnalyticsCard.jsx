@@ -45,7 +45,7 @@ export default function UsageAnalyticsCard({ deviceId, styles }) {
   const maxApp = Math.max(...(analytics.top_apps?.map((a) => a.count) || [1]), 1);
 
   return (
-    <div className={`p-4 sm:p-5 rounded-xl border space-y-4 ${styles.card}`}>
+    <div className={`p-4 sm:p-5 rounded-xl space-y-4 ${styles.card}`}>
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
@@ -66,7 +66,7 @@ export default function UsageAnalyticsCard({ deviceId, styles }) {
 
       {/* Overview Stat Metrics */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-        <div className={`p-3 rounded-lg border flex flex-col gap-1 ${styles.card}`}>
+        <div className={`p-3 rounded-lg flex flex-col gap-1 ${styles.card}`}>
           <span className={`text-[10px] font-bold uppercase ${styles.textMuted}`}>Tổng Thời Lượng Tuần</span>
           <div className="flex items-baseline gap-2">
             <span className={`text-xl font-extrabold ${styles.textBold}`}>{fmtDur(analytics.total_seconds_week)}</span>
@@ -74,7 +74,7 @@ export default function UsageAnalyticsCard({ deviceId, styles }) {
           </div>
         </div>
 
-        <div className={`p-3 rounded-lg border flex flex-col gap-1 ${styles.card}`}>
+        <div className={`p-3 rounded-lg flex flex-col gap-1 ${styles.card}`}>
           <span className={`text-[10px] font-bold uppercase ${styles.textMuted}`}>So Với Tuần Trước</span>
           <div className="flex items-center gap-1.5">
             {isTrendUp ? (
@@ -93,7 +93,7 @@ export default function UsageAnalyticsCard({ deviceId, styles }) {
           </div>
         </div>
 
-        <div className={`p-3 rounded-lg border flex flex-col gap-1 ${styles.card}`}>
+        <div className={`p-3 rounded-lg flex flex-col gap-1 ${styles.card}`}>
           <span className={`text-[10px] font-bold uppercase ${styles.textMuted}`}>Trạng Thái Sử Dụng</span>
           <span className="text-xs font-bold text-primary">
             {analytics.total_seconds_week > 30 * 3600 ? "⚠️ Cần chú ý thời lượng" : "🟢 Mức độ sử dụng điều độ"}
@@ -178,3 +178,4 @@ export default function UsageAnalyticsCard({ deviceId, styles }) {
     </div>
   );
 }
+

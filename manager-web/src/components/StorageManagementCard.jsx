@@ -262,7 +262,7 @@ export default function StorageManagementCard({ theme = "dark", deviceId = "" })
   const shots = metrics?.screenshots || { count: 0, total_mb: 0 };
 
   return (
-    <div className={`p-4 sm:p-5 rounded-xl border space-y-5 font-sans ${styles.card}`}>
+    <div className={`p-4 sm:p-5 rounded-xl space-y-5 font-sans ${styles.card}`}>
       
       {/* HEADER */}
       <div className="flex items-center justify-between">
@@ -655,4 +655,5 @@ export default function StorageManagementCard({ theme = "dark", deviceId = "" })
     </div>
   );
 }
+
 

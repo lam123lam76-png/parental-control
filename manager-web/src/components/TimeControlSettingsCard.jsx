@@ -226,7 +226,7 @@ function AllowedHoursSection({ styles, deviceId }) {
   };
 
   return (
-    <div className={`p-4 rounded-xl border space-y-3 ${styles.card}`}>
+    <div className={`p-4 rounded-xl space-y-3 ${styles.card}`}>
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2.5">
           <div className="p-1.5 rounded-md bg-primary/30 text-primary">
@@ -248,7 +248,7 @@ function AllowedHoursSection({ styles, deviceId }) {
 
       <div className="space-y-3">
         {schedules.map((s, idx) => (
-          <div key={idx} className={`p-3 rounded-lg border space-y-2.5 ${styles.card}`}>
+          <div key={idx} className={`p-3 rounded-lg space-y-2.5 ${styles.card}`}>
             {/* Day Selector */}
             <div className="flex items-center gap-1.5 flex-wrap">
               {DAYS_VI.map((d, di) => (
@@ -390,7 +390,7 @@ function AppWebRestrictionsSection({ styles, deviceId }) {
   };
 
   return (
-    <div className={`p-4 rounded-xl border space-y-4 ${styles.card}`}>
+    <div className={`p-4 rounded-xl space-y-4 ${styles.card}`}>
       <div className="flex items-center gap-2.5">
         <div className="p-1.5 rounded-md bg-primary/30 text-primary">
           <Lock className="w-4 h-4" />
@@ -402,7 +402,7 @@ function AppWebRestrictionsSection({ styles, deviceId }) {
       </div>
 
       {/* Add Rule Form */}
-      <div className={`p-3 rounded-xl border space-y-3 ${styles.card}`}>
+      <div className={`p-3 rounded-xl space-y-3 ${styles.card}`}>
         <p className={`text-xs font-bold uppercase tracking-wider ${styles.textMuted}`}>Thêm quy tắc mới</p>
 
         {/* Type Toggle */}
@@ -494,7 +494,7 @@ function AppWebRestrictionsSection({ styles, deviceId }) {
             return (
               <div
                 key={r.id}
-                className={`flex items-center justify-between p-2.5 rounded-lg border ${styles.card}`}
+                className={`flex items-center justify-between p-2.5 rounded-lg ${styles.card}`}
               >
                 <div className="flex items-center gap-2">
                   <div className={`p-1 rounded-md ${r.type === "web" ? "bg-primary/30 text-primary" : "bg-primary/30 text-primary"}`}>
@@ -548,7 +548,7 @@ export default function TimeControlSettingsCard({ theme = "dark", deviceId }) {
   ];
 
   return (
-    <div className={`p-4 sm:p-5 rounded-xl border space-y-4 ${styles.card}`}>
+    <div className={`p-4 sm:p-5 rounded-xl space-y-4 ${styles.card}`}>
       {/* Header */}
       <div className="flex items-center gap-3">
         <div className="p-2.5 rounded-lg bg-primary/30 border border-primary/40 text-primary">
@@ -582,4 +582,5 @@ export default function TimeControlSettingsCard({ theme = "dark", deviceId }) {
     </div>
   );
 }
+
 

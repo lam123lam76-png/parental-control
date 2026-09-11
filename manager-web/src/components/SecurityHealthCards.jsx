@@ -23,7 +23,7 @@ export default function SecurityHealthCards({ theme = "dark" }) {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         
         {/* CARD 1: DPAPI ENCRYPTION STATUS */}
-        <div className={`p-5 rounded-xl border space-y-3 ${styles.card}`}>
+        <div className={`p-5 rounded-xl space-y-3 ${styles.card}`}>
           <div className="flex items-center justify-between">
             <h4 className={`text-xs font-bold flex items-center gap-1.5 ${styles.textBold}`}>
               <Lock className="w-4 h-4 stroke-[1.75]" />
@@ -43,7 +43,7 @@ export default function SecurityHealthCards({ theme = "dark" }) {
         </div>
 
         {/* CARD 2: HMAC FAIL-CLOSED INTEGRITY STATUS */}
-        <div className={`p-5 rounded-xl border space-y-3 ${styles.card}`}>
+        <div className={`p-5 rounded-xl space-y-3 ${styles.card}`}>
           <div className="flex items-center justify-between">
             <h4 className={`text-xs font-bold flex items-center gap-1.5 ${styles.textBold}`}>
               <FileCode2 className="w-4 h-4 stroke-[1.75]" />
@@ -63,7 +63,7 @@ export default function SecurityHealthCards({ theme = "dark" }) {
         </div>
 
         {/* CARD 3: MULTI-MONITOR BLOCKER OVERLAY */}
-        <div className={`p-5 rounded-xl border space-y-3 ${styles.card}`}>
+        <div className={`p-5 rounded-xl space-y-3 ${styles.card}`}>
           <div className="flex items-center justify-between">
             <h4 className={`text-xs font-bold flex items-center gap-1.5 ${styles.textBold}`}>
               <Monitor className="w-4 h-4 stroke-[1.75]" />
@@ -83,7 +83,7 @@ export default function SecurityHealthCards({ theme = "dark" }) {
         </div>
 
         {/* CARD 4: GRACEFUL SHUTDOWN & POWER BROADCAST */}
-        <div className={`p-5 rounded-xl border space-y-3 ${styles.card}`}>
+        <div className={`p-5 rounded-xl space-y-3 ${styles.card}`}>
           <div className="flex items-center justify-between">
             <h4 className={`text-xs font-bold flex items-center gap-1.5 ${styles.textBold}`}>
               <Power className="w-4 h-4 stroke-[1.75]" />
@@ -107,4 +107,5 @@ export default function SecurityHealthCards({ theme = "dark" }) {
     </div>
   );
 }
+
 

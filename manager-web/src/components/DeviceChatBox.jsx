@@ -87,7 +87,7 @@ export default function DeviceChatBox({ theme = "dark", deviceId = "", isOnline 
   };
 
   return (
-    <div className={`p-4 sm:p-5 rounded-xl border flex flex-col h-[480px] font-sans ${styles.card}`}>
+    <div className={`p-4 sm:p-5 rounded-xl flex flex-col h-[480px] font-sans ${styles.card}`}>
       
       {/* HEADER */}
       <div className="flex items-center justify-between pb-3 border-b border-opacity-20 shrink-0">
@@ -183,3 +183,4 @@ export default function DeviceChatBox({ theme = "dark", deviceId = "", isOnline 
     </div>
   );
 }
+

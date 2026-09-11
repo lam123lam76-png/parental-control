@@ -108,7 +108,7 @@ export default function AccountPermissionsSettings({ theme = "dark", adminEmail 
     <div className="space-y-6 font-sans">
       
       {/* HEADER SECTION */}
-      <div className={`p-4 sm:p-5 rounded-xl border flex items-center justify-between gap-3 ${styles.card}`}>
+      <div className={`p-4 sm:p-5 rounded-xl flex items-center justify-between gap-3 ${styles.card}`}>
         <div className="flex items-center gap-3">
           <div className="p-2.5 rounded-lg bg-zinc-900/70 border border-zinc-900 border-l-2 border-l-[#0E3746] text-[#F4F2EC]">
             <Settings className="w-5 h-5 stroke-[1.75]" />
@@ -129,7 +129,7 @@ export default function AccountPermissionsSettings({ theme = "dark", adminEmail 
       )}
 
       {/* CREATE SUB-ACCOUNT FORM CARD */}
-      <div className={`p-4 sm:p-5 rounded-xl border space-y-4 ${styles.card}`}>
+      <div className={`p-4 sm:p-5 rounded-xl space-y-4 ${styles.card}`}>
         <h3 className={`text-sm font-bold flex items-center gap-2 ${styles.textBold}`}>
           <UserPlus className="w-4 h-4 stroke-[1.75] text-[#F4F2EC]" />
           <span>Thêm Tài Khoản Phụ Mới</span>
@@ -211,7 +211,7 @@ export default function AccountPermissionsSettings({ theme = "dark", adminEmail 
       </div>
 
       {/* SUB-ACCOUNTS LIST CARD */}
-      <div className={`p-4 sm:p-5 rounded-xl border space-y-4 ${styles.card}`}>
+      <div className={`p-4 sm:p-5 rounded-xl space-y-4 ${styles.card}`}>
         <h3 className={`text-sm font-bold flex items-center gap-2 ${styles.textBold}`}>
           <Users className="w-4 h-4 stroke-[1.75] text-[#F4F2EC]" />
           <span>Danh Sách Tài Khoản Trong Gia Đình ({users.length})</span>
@@ -226,7 +226,7 @@ export default function AccountPermissionsSettings({ theme = "dark", adminEmail 
             {users.map((u) => (
               <div
                 key={u.id}
-                className={`p-4 rounded-xl border space-y-3 transition ${styles.card}`}
+                className={`p-4 rounded-xl space-y-3 transition ${styles.card}`}
               >
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2.5">
@@ -297,3 +297,4 @@ export default function AccountPermissionsSettings({ theme = "dark", adminEmail 
     </div>
   );
 }
+

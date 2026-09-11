@@ -91,7 +91,7 @@ export default function PeriodSettingsCard({ theme = "dark", deviceId }) {
 
   if (loading) {
     return (
-      <div className={`p-5 rounded-xl border ${styles.card}`}>
+      <div className={`p-5 rounded-xl ${styles.card}`}>
         <div className="flex items-center gap-2 animate-pulse">
           <RefreshCw className="w-4 h-4 animate-spin" />
           <span className={`text-xs ${styles.textMuted}`}>Đang tải cài đặt...</span>
@@ -101,7 +101,7 @@ export default function PeriodSettingsCard({ theme = "dark", deviceId }) {
   }
 
   return (
-    <div className={`p-4 sm:p-5 rounded-xl border space-y-5 ${styles.card}`}>
+    <div className={`p-4 sm:p-5 rounded-xl space-y-5 ${styles.card}`}>
       {/* Header */}
       <div className="flex items-center gap-3">
         <div className="p-2.5 rounded-lg bg-primary/30 border border-primary/40 text-primary">
@@ -113,7 +113,7 @@ export default function PeriodSettingsCard({ theme = "dark", deviceId }) {
       </div>
 
       {/* Screenshot Interval */}
-      <div className={`p-4 rounded-xl border ${styles.card} space-y-3`}>
+      <div className={`p-4 rounded-xl ${styles.card} space-y-3`}>
         <div className="flex items-center gap-2.5">
           <div className="p-1.5 rounded-md bg-primary/30 text-primary">
             <Camera className="w-4 h-4" />
@@ -164,7 +164,7 @@ export default function PeriodSettingsCard({ theme = "dark", deviceId }) {
       </div>
 
       {/* Heartbeat Interval */}
-      <div className={`p-4 rounded-xl border ${styles.card} space-y-3`}>
+      <div className={`p-4 rounded-xl ${styles.card} space-y-3`}>
         <div className="flex items-center gap-2.5">
           <div className="p-1.5 rounded-md bg-primary/30 text-primary">
             <Activity className="w-4 h-4" />
@@ -243,4 +243,5 @@ export default function PeriodSettingsCard({ theme = "dark", deviceId }) {
     </div>
   );
 }
+
 

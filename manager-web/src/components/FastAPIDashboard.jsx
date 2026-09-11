@@ -1280,7 +1280,7 @@ export default function FastAPIDashboard() {
               </h3>
 
               {/* Form Add Rule */}
-              <form onSubmit={handleAddRule} className={`p-3.5 rounded-lg border flex flex-col sm:flex-row gap-2 items-stretch sm:items-end ${styles.card}`}>
+              <form onSubmit={handleAddRule} className={`p-3.5 rounded-lg flex flex-col sm:flex-row gap-2 items-stretch sm:items-end ${styles.card}`}>
                 <div>
                   <label className={`block text-[10px] font-bold uppercase mb-1 ${styles.textBold}`}>Loại Rule</label>
                   <select
@@ -1328,7 +1328,7 @@ export default function FastAPIDashboard() {
                   <p className={`text-xs italic text-center py-4 ${styles.textMuted}`}>Chưa có quy tắc cấm nào.</p>
                 ) : (
                   rules.filter(r => r.rule_type !== 'time').map((rule) => (
-                    <div key={rule.id} className={`p-2.5 rounded-lg border flex items-center justify-between text-xs ${styles.card}`}>
+                    <div key={rule.id} className={`p-2.5 rounded-lg flex items-center justify-between text-xs ${styles.card}`}>
                       <div className="flex items-center gap-2">
                         <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${styles.badge}`}>
                           {rule.rule_type}
@@ -1361,7 +1361,7 @@ export default function FastAPIDashboard() {
               ) : (
                 <div className="space-y-2 font-mono text-xs max-h-[400px] overflow-y-auto">
                   {logs.map((log) => (
-                    <div key={log.id} className={`p-2.5 rounded-lg border flex justify-between items-center ${styles.card}`}>
+                    <div key={log.id} className={`p-2.5 rounded-lg flex justify-between items-center ${styles.card}`}>
                       <div>
                         <span className={`font-bold ${styles.textBold}`}>{log.process_name}</span>
                         <p className={`text-xs font-medium truncate max-w-[160px] sm:max-w-xs ${styles.textMuted}`}>{log.window_title || "—"}</p>
@@ -1790,4 +1790,5 @@ export default function FastAPIDashboard() {
     </div>
   );
 }
+
 

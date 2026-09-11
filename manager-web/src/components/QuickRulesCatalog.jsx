@@ -39,7 +39,7 @@ export default function QuickRulesCatalog({ currentRules = [], onToggleRule, sty
   const socials = CATALOG_ITEMS.filter((i) => i.category === "social");
 
   return (
-    <div className={`p-4 sm:p-5 rounded-xl border space-y-4 ${styles.card}`}>
+    <div className={`p-4 sm:p-5 rounded-xl space-y-4 ${styles.card}`}>
       <div className="flex items-center justify-between">
         <h4 className={`text-xs font-bold uppercase tracking-wider ${styles.textBold}`}>
           Danh Mục Chặn Nhanh (1 Chạm)
@@ -145,3 +145,4 @@ export default function QuickRulesCatalog({ currentRules = [], onToggleRule, sty
     </div>
   );
 }
+

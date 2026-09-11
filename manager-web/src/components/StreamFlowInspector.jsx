@@ -83,7 +83,7 @@ export default function StreamFlowInspector({ theme = "dark", deviceId }) {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         
         {/* LUỒNG 1: TUYẾN SINH TỬ (CLOUD POLLING 5s) */}
-        <div className={`p-5 rounded-xl border flex flex-col justify-between relative overflow-hidden ${styles.card}`}>
+        <div className={`p-5 rounded-xl flex flex-col justify-between relative overflow-hidden ${styles.card}`}>
           <div className="space-y-3">
             <div className="flex items-center justify-between">
               <span className={`text-[10px] uppercase px-2 py-0.5 rounded ${styles.badge}`}>
@@ -134,7 +134,7 @@ export default function StreamFlowInspector({ theme = "dark", deviceId }) {
         </div>
 
         {/* LUỒNG 2: TUYẾN BÁO ĐỘNG (HTTP ALERT QUEUE) */}
-        <div className={`p-5 rounded-xl border flex flex-col justify-between relative overflow-hidden ${styles.card}`}>
+        <div className={`p-5 rounded-xl flex flex-col justify-between relative overflow-hidden ${styles.card}`}>
           <div className="space-y-3">
             <div className="flex items-center justify-between">
               <span className={`text-[10px] uppercase px-2 py-0.5 rounded ${styles.badge}`}>
@@ -174,7 +174,7 @@ export default function StreamFlowInspector({ theme = "dark", deviceId }) {
         </div>
 
         {/* LUỒNG 3: TUYẾN XE TẢI (BATCH LOG UPLOAD) */}
-        <div className={`p-5 rounded-xl border flex flex-col justify-between relative overflow-hidden ${styles.card}`}>
+        <div className={`p-5 rounded-xl flex flex-col justify-between relative overflow-hidden ${styles.card}`}>
           <div className="space-y-3">
             <div className="flex items-center justify-between">
               <span className={`text-[10px] uppercase px-2 py-0.5 rounded ${styles.badge}`}>
@@ -225,4 +225,5 @@ export default function StreamFlowInspector({ theme = "dark", deviceId }) {
     </div>
   );
 }
+
 

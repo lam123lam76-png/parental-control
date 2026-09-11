@@ -84,7 +84,7 @@ export default function AgentUpdateManagerCard({ theme = "dark" }) {
   };
 
   return (
-    <div className={`p-4 sm:p-6 rounded-xl border space-y-6 font-sans ${styles.card}`}>
+    <div className={`p-4 sm:p-6 rounded-xl space-y-6 font-sans ${styles.card}`}>
       
       {/* HEADER */}
       <div className="flex items-center justify-between">
@@ -118,7 +118,7 @@ export default function AgentUpdateManagerCard({ theme = "dark" }) {
       )}
 
       {/* CURRENT VERSION DISPLAY */}
-      <div className={`p-4 rounded-xl border flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 ${styles.card}`}>
+      <div className={`p-4 rounded-xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 ${styles.card}`}>
         <div>
           <div className={`text-[10px] font-bold uppercase ${styles.textMuted}`}>PHIÊN BẢN ĐANG PHÁT HÀNH TRÊN SERVER</div>
           <div className={`text-sm font-bold flex items-center gap-2.5 mt-0.5 ${styles.textBold}`}>
@@ -218,5 +218,6 @@ export default function AgentUpdateManagerCard({ theme = "dark" }) {
     </div>
   );
 }
+
 
 

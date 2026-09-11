@@ -39,6 +39,9 @@ export const THEME_CONFIG = {
     cardCallout: "bg-[#0E3746] text-[#F4F2EC] shadow-[0_3px_14px_rgba(14,55,70,0.28)]",
     chip: "bg-[#EAE8DC] text-[#0E3746] shadow-[0_1px_4px_rgba(14,55,70,0.12)]",
     chipActive: "bg-[#0E3746] text-[#F4F2EC] shadow-[0_2px_8px_rgba(14,55,70,0.35)]",
+    // Text/icon that sits ON a chipActive surface (light mode: navy chip -> cream text).
+    onChip: "text-[#F4F2EC]",
+    onChipMuted: "text-[#F4F2EC] opacity-80",
     row: "bg-[#F4F2EC] text-[#0E3746] shadow-[0_1px_4px_rgba(14,55,70,0.10)]",
     rowHover: "hover:shadow-[0_3px_10px_rgba(14,55,70,0.18)]",
     rowSelected: "bg-[#0E3746]/15 text-[#0E3746] shadow-[0_2px_8px_rgba(14,55,70,0.20)]",
@@ -81,6 +84,9 @@ export const THEME_CONFIG = {
     cardCallout: "bg-zinc-800 text-zinc-100 shadow-lg shadow-black/50",
     chip: "bg-zinc-800 text-zinc-300 shadow-[0_1px_4px_rgba(0,0,0,0.45)]",
     chipActive: "bg-zinc-100 text-zinc-900 shadow-[0_2px_8px_rgba(0,0,0,0.55)]",
+    // Dark mode chipActive is a LIGHT chip, so on-chip text must be dark.
+    onChip: "text-zinc-900",
+    onChipMuted: "text-zinc-900 opacity-75",
     row: "bg-zinc-900 text-zinc-200 shadow-[0_1px_4px_rgba(0,0,0,0.40)]",
     rowHover: "hover:shadow-[0_3px_10px_rgba(0,0,0,0.60)]",
     rowSelected: "bg-zinc-800 text-zinc-100 shadow-[0_2px_8px_rgba(0,0,0,0.55)]",

@@ -1,5 +1,34 @@
 @import "tailwindcss";
 
+/*
+ * Tailwind v4 theme mapping.
+ *
+ * WHY: the app uses `text-primary`, `bg-primary/30`, `border-primary`, `bg-card`,
+ * `text-muted-foreground`, ... everywhere, but those utilities only exist if the
+ * palette is registered as `--color-*` in an `@theme` block. `tailwind.config.js`
+ * is NOT auto-loaded by Tailwind v4 (it needs `@config`), so previously NONE of
+ * those classes generated any CSS — `text-primary`/`bg-primary` were dead classes
+ * (faded/missing colours across the whole UI). `inline` keeps the utilities
+ * pointing at the runtime CSS variables, so `:root` / `.dark` switching still works.
+ */
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+}
+
 @layer base {
   :root {
     /* LIGHT MODE — Cream Background + Navy Primary */

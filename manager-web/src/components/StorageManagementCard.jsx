@@ -10,6 +10,9 @@ export default function StorageManagementCard({ theme = "dark", deviceId = "" })
   const [loading, setLoading] = useState(false);
   const [cleanLoading, setCleanLoading] = useState(false);
   const [message, setMessage] = useState("");
+  // Real error state: previously a failed fetch was swallowed and the UI showed
+  // fabricated zeros ("0 mục thực", "0 MB") plus a raw "HTTP 508" string.
+  const [loadError, setLoadError] = useState("");
 
   // Storage Category Selection: 'all' | 'screenshots' | 'web' | 'logs' | 'processes'
   const [activeCategory, setActiveCategory] = useState("all");
@@ -24,13 +27,34 @@ export default function StorageManagementCard({ theme = "dark", deviceId = "" })
   const [selectedPeriods, setSelectedPeriods] = useState([]);
   const [selectedItemIds, setSelectedItemIds] = useState([]);
 
+  // Turn a transport error into a short Vietnamese sentence (no raw HTTP codes).
+  const _friendlyError = (err) => {
+    const raw = String(err?.message || "");
+    const code = raw.match(/\b(4\d\d|5\d\d)\b/)?.[1];
+    if (code === "508") return "Máy chủ đang lỗi định tuyến (508) — tạm thời chưa lấy được dữ liệu.";
+    if (code === "401" || code === "403") return "Phiên đăng nhập đã hết hạn — vui lòng đăng nhập lại.";
+    if (code) return `Máy chủ trả về lỗi ${code}.`;
+    return "Không kết nối được tới máy chủ.";
+  };
+
   const fetchMetricsAndItems = async () => {
     setLoading(true);
+    setLoadError("");
+    setMessage("");
+    let itemFailures = 0;
     try {
-      // 1. Fetch Metrics
-      const resM = await api.getStorageMetrics();
-      if (resM.data) {
-        setMetrics(resM.data);
+      // 1. Fetch Metrics — the storage totals come from here (Supabase Storage).
+      let metricsOk = false;
+      try {
+        const resM = await api.getStorageMetrics();
+        if (resM?.data) {
+          setMetrics(resM.data);
+          metricsOk = true;
+        }
+      } catch (mErr) {
+        console.warn("Fetch storage metrics error:", mErr);
+        setMetrics(null);
+        setLoadError(_friendlyError(mErr));
       }
 
       // 2. Fetch Real Data Items
@@ -59,7 +83,7 @@ export default function StorageManagementCard({ theme = "dark", deviceId = "" })
               });
             });
           }
-        } catch (e) { console.warn("Fetch screenshots error:", e); }
+        } catch (e) { console.warn("Fetch screenshots error:", e); itemFailures++; }
 
         // Web History
         try {
@@ -76,7 +100,7 @@ export default function StorageManagementCard({ theme = "dark", deviceId = "" })
               });
             });
           }
-        } catch (e) { console.warn("Fetch browser history error:", e); }
+        } catch (e) { console.warn("Fetch browser history error:", e); itemFailures++; }
 
         // Alerts / System Logs
         try {
@@ -92,7 +116,7 @@ export default function StorageManagementCard({ theme = "dark", deviceId = "" })
               });
             });
           }
-        } catch (e) { console.warn("Fetch alerts error:", e); }
+        } catch (e) { console.warn("Fetch alerts error:", e); itemFailures++; }
 
         // Process Activity Logs
         try {
@@ -108,12 +132,19 @@ export default function StorageManagementCard({ theme = "dark", deviceId = "" })
               });
             });
           }
-        } catch (e) { console.warn("Fetch process logs error:", e); }
+        } catch (e) { console.warn("Fetch process logs error:", e); itemFailures++; }
       }
 
       setRealItems(allFetchedItems);
+      if (itemFailures > 0) {
+        setLoadError(
+          itemFailures >= 4
+            ? "Không tải được dữ liệu chi tiết từ máy chủ."
+            : `Có ${itemFailures}/4 nhóm dữ liệu chưa tải được.`
+        );
+      }
     } catch (err) {
-      setMessage(`Không thể tải dữ liệu tập trung: ${err.message}`);
+      setLoadError(_friendlyError(err));
     } finally {
       setLoading(false);
     }
@@ -260,34 +291,54 @@ export default function StorageManagementCard({ theme = "dark", deviceId = "" })
   };
 
   const shots = metrics?.screenshots || { count: 0, total_mb: 0 };
+  // When metrics could not be loaded, show "—" instead of a fabricated 0.
+  const m = (v) => (metrics ? (v ?? 0) : "—");
+  const totalMb = metrics
+    ? Number((shots.total_mb || 0) + (metrics?.web?.total_mb || 0) + (metrics?.logs?.total_mb || 0) + (metrics?.processes?.total_mb || 0)).toFixed(2)
+    : "—";
 
   return (
     <div className={`p-4 sm:p-5 rounded-xl space-y-5 font-sans ${styles.card}`}>
       
       {/* HEADER */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <div className={`p-2.5 rounded-lg ${styles.card} ${styles.text}`}>
+      <div className="flex items-center justify-between gap-3">
+        <div className="flex items-center gap-3 min-w-0">
+          <div className={`p-2.5 rounded-lg shrink-0 ${styles.card} ${styles.text}`}>
             <HardDrive className="w-5 h-5 stroke-[1.75]" />
           </div>
-          <div>
+          <div className="min-w-0">
             <h3 className={`text-sm font-bold ${styles.textBold}`}>
-              Module quản lý bộ nhớ &amp; dữ liệu tập trung (Storage &amp; Data Hub)
+              Module quản lý bộ nhớ &amp; dữ liệu tập trung
             </h3>
-            
           </div>
         </div>
 
         <button
           onClick={fetchMetricsAndItems}
           disabled={loading}
-          className={`p-2 rounded-lg border text-xs font-bold flex items-center gap-1.5 transition ${styles.buttonSecondary}`}
+          className={`p-2 rounded-lg text-xs font-bold flex items-center gap-1.5 transition shrink-0 ${styles.buttonSecondary}`}
           title="Làm mới dữ liệu"
         >
           <RefreshCw className={`w-3.5 h-3.5 ${loading ? "animate-spin" : ""}`} />
-          <span className="hidden sm:inline">Làm Mới</span>
+          <span className="hidden sm:inline whitespace-nowrap">Làm mới</span>
         </button>
       </div>
+
+      {/* REAL ERROR STATE (no fabricated zeros, no raw HTTP code) */}
+      {loadError && (
+        <div className={`p-3 rounded-lg text-xs font-bold flex items-center gap-2.5 ${styles.inset}`}>
+          <AlertTriangle className="w-4 h-4 text-rose-500 shrink-0" />
+          <span className={`flex-1 ${styles.text}`}>{loadError}</span>
+          <button
+            type="button"
+            onClick={fetchMetricsAndItems}
+            disabled={loading}
+            className={`px-3 py-1.5 rounded-md text-xs font-bold transition shrink-0 ${styles.buttonSecondary}`}
+          >
+            Thử lại
+          </button>
+        </div>
+      )}
 
       {message && (
         <div className={`p-3 rounded-lg text-xs font-bold flex items-center gap-2 ${styles.inset} ${styles.text}`}>
@@ -298,16 +349,16 @@ export default function StorageManagementCard({ theme = "dark", deviceId = "" })
 
       {/* CLOUD STORAGE SUMMARY */}
       <div className="space-y-2">
-        <div className="flex justify-between items-center text-xs">
+        <div className="flex justify-between items-center gap-3 text-xs">
           <span className={`font-bold ${styles.textBold}`}>
-            Dung lượng lưu trữ đám mây (Cloud Storage)
+            Dung lượng lưu trữ đám mây
           </span>
-          <span className={`font-mono ${styles.metricValue}`}>
-            {shots.total_mb} MB — Ảnh chụp màn hình
+          <span className={`font-mono shrink-0 ${styles.metricValue}`}>
+            Tổng: {totalMb} MB
           </span>
         </div>
         <div className={`text-xs ${styles.textMuted}`}>
-          Hệ thống lưu trữ trên đám mây (Supabase Storage). Không còn ổ đĩa vật lý cục bộ.
+          Toàn bộ dữ liệu lưu trên đám mây (Supabase Storage). Không dùng ổ đĩa cục bộ.
         </div>
       </div>
 
@@ -316,26 +367,24 @@ export default function StorageManagementCard({ theme = "dark", deviceId = "" })
         <label className={`text-xs font-bold uppercase tracking-wider block mb-2 ${styles.textMuted}`}>
           Phân loại nhóm dữ liệu (chọn danh mục để xem &amp; dọn dẹp)
         </label>
-        <div className="grid grid-cols-1 sm:grid-cols-5 gap-2.5 text-xs">
+        <div className="grid grid-cols-1 sm:grid-cols-5 gap-2.5 text-xs items-stretch">
 
           {/* Category 0: All Categories */}
           <button
             type="button"
             onClick={() => { setActiveCategory("all"); setSelectedPeriods([]); setSelectedItemIds([]); }}
-            className={`p-3 rounded-xl text-left flex items-start gap-2.5 transition ${
-              activeCategory === "all"
-                ? styles.chipActive
-                : styles.chip
+            className={`p-3 rounded-xl text-left flex items-start gap-2.5 transition h-full ${
+              activeCategory === "all" ? styles.chipActive : styles.chip
             }`}
           >
-            <Sparkles className="w-4 h-4 text-primary shrink-0 mt-0.5" />
-            <div>
-              <div className={`text-[10px] font-extrabold uppercase ${styles.metricLabel}`}>Toàn bộ dữ liệu</div>
-              <div className={`text-xs ${styles.metricValue}`}>
-                {realItems.length} mục thực
+            <Sparkles className={`w-4 h-4 shrink-0 mt-0.5 ${activeCategory === "all" ? styles.onChip : "text-primary"}`} />
+            <div className="min-w-0 flex-1">
+              <div className={`text-[10px] font-extrabold uppercase leading-tight min-h-[2.1em] ${activeCategory === "all" ? styles.onChipMuted : styles.metricLabel}`}>Toàn bộ dữ liệu</div>
+              <div className={`text-xs ${activeCategory === "all" ? styles.onChip : styles.metricValue}`}>
+                {realItems.length} mục
               </div>
-              <div className={`text-[10px] font-mono ${styles.metricLabel}`}>
-                Tất cả 4 nhóm
+              <div className={`text-[10px] font-mono ${activeCategory === "all" ? styles.onChipMuted : styles.metricLabel}`}>
+                Tất cả danh mục
               </div>
             </div>
           </button>
@@ -344,20 +393,18 @@ export default function StorageManagementCard({ theme = "dark", deviceId = "" })
           <button
             type="button"
             onClick={() => { setActiveCategory("screenshots"); setSelectedPeriods([]); setSelectedItemIds([]); }}
-            className={`p-3 rounded-xl text-left flex items-start gap-2.5 transition ${
-              activeCategory === "screenshots"
-                ? styles.chipActive
-                : styles.chip
+            className={`p-3 rounded-xl text-left flex items-start gap-2.5 transition h-full ${
+              activeCategory === "screenshots" ? styles.chipActive : styles.chip
             }`}
           >
-            <Camera className="w-4 h-4 text-primary shrink-0 mt-0.5" />
-            <div>
-              <div className={`text-[10px] font-extrabold uppercase ${styles.metricLabel}`}>Ảnh chụp màn hình</div>
-              <div className={`text-xs ${styles.metricValue}`}>
-                {metrics?.screenshots?.count ?? 0} ảnh
+            <Camera className={`w-4 h-4 shrink-0 mt-0.5 ${activeCategory === "screenshots" ? styles.onChip : "text-primary"}`} />
+            <div className="min-w-0 flex-1">
+              <div className={`text-[10px] font-extrabold uppercase leading-tight min-h-[2.1em] ${activeCategory === "screenshots" ? styles.onChipMuted : styles.metricLabel}`}>Ảnh màn hình</div>
+              <div className={`text-xs ${activeCategory === "screenshots" ? styles.onChip : styles.metricValue}`}>
+                {m(metrics?.screenshots?.count)} ảnh
               </div>
-              <div className={`text-[10px] font-mono ${styles.metricLabel}`}>
-                {metrics?.screenshots?.total_mb ?? 0} MB
+              <div className={`text-[10px] font-mono ${activeCategory === "screenshots" ? styles.onChipMuted : styles.metricLabel}`}>
+                {m(metrics?.screenshots?.total_mb)} MB
               </div>
             </div>
           </button>
@@ -366,20 +413,18 @@ export default function StorageManagementCard({ theme = "dark", deviceId = "" })
           <button
             type="button"
             onClick={() => { setActiveCategory("web"); setSelectedPeriods([]); setSelectedItemIds([]); }}
-            className={`p-3 rounded-xl text-left flex items-start gap-2.5 transition ${
-              activeCategory === "web"
-                ? styles.chipActive
-                : styles.chip
+            className={`p-3 rounded-xl text-left flex items-start gap-2.5 transition h-full ${
+              activeCategory === "web" ? styles.chipActive : styles.chip
             }`}
           >
-            <Globe className="w-4 h-4 text-primary shrink-0 mt-0.5" />
-            <div>
-              <div className={`text-[10px] font-extrabold uppercase ${styles.metricLabel}`}>Dữ liệu duyệt web</div>
-              <div className={`text-xs ${styles.metricValue}`}>
-                {metrics?.web?.count ?? 0} URL
+            <Globe className={`w-4 h-4 shrink-0 mt-0.5 ${activeCategory === "web" ? styles.onChip : "text-primary"}`} />
+            <div className="min-w-0 flex-1">
+              <div className={`text-[10px] font-extrabold uppercase leading-tight min-h-[2.1em] ${activeCategory === "web" ? styles.onChipMuted : styles.metricLabel}`}>Duyệt web</div>
+              <div className={`text-xs ${activeCategory === "web" ? styles.onChip : styles.metricValue}`}>
+                {m(metrics?.web?.count)} URL
               </div>
-              <div className={`text-[10px] font-mono ${styles.metricLabel}`}>
-                {metrics?.web?.total_mb ?? 0} MB
+              <div className={`text-[10px] font-mono ${activeCategory === "web" ? styles.onChipMuted : styles.metricLabel}`}>
+                {m(metrics?.web?.total_mb)} MB
               </div>
             </div>
           </button>
@@ -388,20 +433,18 @@ export default function StorageManagementCard({ theme = "dark", deviceId = "" })
           <button
             type="button"
             onClick={() => { setActiveCategory("logs"); setSelectedPeriods([]); setSelectedItemIds([]); }}
-            className={`p-3 rounded-xl text-left flex items-start gap-2.5 transition ${
-              activeCategory === "logs"
-                ? styles.chipActive
-                : styles.chip
+            className={`p-3 rounded-xl text-left flex items-start gap-2.5 transition h-full ${
+              activeCategory === "logs" ? styles.chipActive : styles.chip
             }`}
           >
-            <AlertTriangle className="w-4 h-4 text-primary shrink-0 mt-0.5" />
-            <div>
-              <div className={`text-[10px] font-extrabold uppercase ${styles.metricLabel}`}>Log hệ thống / cảnh báo</div>
-              <div className={`text-xs ${styles.metricValue}`}>
-                {metrics?.logs?.count ?? 0} báo động
+            <AlertTriangle className={`w-4 h-4 shrink-0 mt-0.5 ${activeCategory === "logs" ? styles.onChip : "text-primary"}`} />
+            <div className="min-w-0 flex-1">
+              <div className={`text-[10px] font-extrabold uppercase leading-tight min-h-[2.1em] ${activeCategory === "logs" ? styles.onChipMuted : styles.metricLabel}`}>Log hệ thống</div>
+              <div className={`text-xs ${activeCategory === "logs" ? styles.onChip : styles.metricValue}`}>
+                {m(metrics?.logs?.count)} báo động
               </div>
-              <div className={`text-[10px] font-mono ${styles.metricLabel}`}>
-                {metrics?.logs?.total_mb ?? 0} MB
+              <div className={`text-[10px] font-mono ${activeCategory === "logs" ? styles.onChipMuted : styles.metricLabel}`}>
+                {m(metrics?.logs?.total_mb)} MB
               </div>
             </div>
           </button>
@@ -410,20 +453,18 @@ export default function StorageManagementCard({ theme = "dark", deviceId = "" })
           <button
             type="button"
             onClick={() => { setActiveCategory("processes"); setSelectedPeriods([]); setSelectedItemIds([]); }}
-            className={`p-3 rounded-xl text-left flex items-start gap-2.5 transition ${
-              activeCategory === "processes"
-                ? styles.chipActive
-                : styles.chip
+            className={`p-3 rounded-xl text-left flex items-start gap-2.5 transition h-full ${
+              activeCategory === "processes" ? styles.chipActive : styles.chip
             }`}
           >
-            <FileText className="w-4 h-4 text-primary shrink-0 mt-0.5" />
-            <div>
-              <div className={`text-[10px] font-extrabold uppercase ${styles.metricLabel}`}>Nhật ký tiến trình</div>
-              <div className={`text-xs ${styles.metricValue}`}>
-                {metrics?.processes?.count ?? 0} bản ghi
+            <FileText className={`w-4 h-4 shrink-0 mt-0.5 ${activeCategory === "processes" ? styles.onChip : "text-primary"}`} />
+            <div className="min-w-0 flex-1">
+              <div className={`text-[10px] font-extrabold uppercase leading-tight min-h-[2.1em] ${activeCategory === "processes" ? styles.onChipMuted : styles.metricLabel}`}>Tiến trình</div>
+              <div className={`text-xs ${activeCategory === "processes" ? styles.onChip : styles.metricValue}`}>
+                {m(metrics?.processes?.count)} bản ghi
               </div>
-              <div className={`text-[10px] font-mono ${styles.metricLabel}`}>
-                {metrics?.processes?.total_mb ?? 0} MB
+              <div className={`text-[10px] font-mono ${activeCategory === "processes" ? styles.onChipMuted : styles.metricLabel}`}>
+                {m(metrics?.processes?.total_mb)} MB
               </div>
             </div>
           </button>
@@ -440,7 +481,7 @@ export default function StorageManagementCard({ theme = "dark", deviceId = "" })
       </div>
 
       {/* TIME GROUPING FILTER & REAL ITEM RENDERING */}
-      <div className="pt-3 border-t border-opacity-20 space-y-4">
+      <div className="pt-4 space-y-4 shadow-[0_-1px_0_rgba(14,55,70,0.10)] dark:shadow-[0_-1px_0_rgba(255,255,255,0.08)]">
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
           
           {/* Time Filter Tabs */}
@@ -491,7 +532,7 @@ export default function StorageManagementCard({ theme = "dark", deviceId = "" })
               selectedItemIds.length > 0 || selectedPeriods.length > 0
                 ? styles.buttonDanger
                 : styles.buttonSecondary
-            } disabled:opacity-40`}
+            } disabled:opacity-60`}
           >
             <Trash2 className="w-4 h-4" />
           </button>
@@ -500,7 +541,7 @@ export default function StorageManagementCard({ theme = "dark", deviceId = "" })
 
         {/* REAL ITEMS GROUPED BY DATE HEADERS */}
         {groupedData.length === 0 ? (
-          <div className={`text-center py-12 space-y-2 border border-dashed border-[#0E3746]/20 dark:border-zinc-800 rounded-xl ${styles.inset}`}>
+          <div className={`text-center py-12 space-y-2 rounded-xl ${styles.inset}`}>
             <HardDrive className={`w-8 h-8 mx-auto ${styles.textMuted}`} />
             <p className={`text-xs italic ${styles.textMuted}`}>
               Không có dữ liệu thực tế nào trong danh mục này.
@@ -643,7 +684,7 @@ export default function StorageManagementCard({ theme = "dark", deviceId = "" })
               selectedItemIds.length > 0 || selectedPeriods.length > 0
                 ? styles.buttonDanger
                 : styles.buttonSecondary
-            } disabled:opacity-40`}
+            } disabled:opacity-60`}
           >
             <Trash2 className="w-4 h-4" />
             <span>Xóa {selectedItemIds.length || selectedPeriods.length} mục đã chọn (bulk delete)</span>

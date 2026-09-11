@@ -3,7 +3,7 @@ import time
 import shutil
 import json
 import logging
-from fastapi import APIRouter, Depends, UploadFile, File, Form, BackgroundTasks
+from fastapi import APIRouter, Depends, UploadFile, File, Form
 from sqlalchemy.orm import Session
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import text, cast, String, select
@@ -154,14 +154,11 @@ def _bg_cleanup_storage_by_period(req: schemas.StoragePeriodCleanRequest):
 
         # 1. Clean Screenshots
         if cat in ("screenshots", "all"):
+            from core.supabase_storage import delete_files, list_files, _filename_from_url
             query = db.query(models.Screenshot)
             if req.item_ids:
                 query = query.filter(cast(models.Screenshot.id, String).in_(req.item_ids))
             all_shots = query.all()
-            # Cloud-first: the image lives in Supabase Storage, NOT on a local disk
-            # (the old code moved SCREENSHOTS_DIR/<file> which never exists on Vercel,
-            # so DB rows vanished but the cloud objects stayed -> storage never freed).
-            from core.supabase_storage import delete_files, list_files, _filename_from_url
             to_delete_cloud = []
             for shot in all_shots:
                 if req.item_ids or _matches_period(shot.timestamp, req.periods, req.period_type):
@@ -169,14 +166,17 @@ def _bg_cleanup_storage_by_period(req: schemas.StoragePeriodCleanRequest):
                     db.delete(shot)
                     deleted_counts["screenshots"] += 1
 
+            # Commit the DB deletions FIRST (release the connection) before doing any
+            # network I/O against Supabase Storage — holding an open transaction while
+            # waiting on HTTP is what made this endpoint hang/time out on serverless.
+            db.commit()
+
             # When the parent clears SCREENSHOTS by period (no explicit item selection),
-            # also purge ORPHANED bucket objects that have no DB row left — otherwise
-            # leftover bytes keep occupying the bucket (observed: 179 objects / 75 MB
-            # with an empty screenshots table) and the UI can never select them because
-            # its list is built from the DB.
+            # also purge ORPHANED bucket objects that have no DB row — otherwise leftover
+            # bytes keep occupying the bucket (observed: 179 objects / 75 MB with an
+            # empty screenshots table); the DB-driven UI can never select them.
             if cat == "screenshots" and not req.item_ids:
                 try:
-                    db.flush()
                     referenced = {
                         _filename_from_url(u)
                         for (u,) in db.query(models.Screenshot.image_url).all()
@@ -236,11 +236,10 @@ def _bg_cleanup_storage_by_period(req: schemas.StoragePeriodCleanRequest):
 
         db.commit()
 
-        try:
-            db.execute(text("VACUUM"))
-            db.commit()
-        except Exception:
-            pass
+        # NOTE: no VACUUM here. On Supabase's transaction-mode pooler (port 6543)
+        # VACUUM cannot run inside a transaction and was closing the SSL connection
+        # ("SSL connection has been closed unexpectedly"), which surfaced as failures
+        # across unrelated requests. Postgres autovacuum handles reclaiming space.
 
         return {
             "deleted_counts": deleted_counts,
@@ -254,9 +253,25 @@ def _bg_cleanup_storage_by_period(req: schemas.StoragePeriodCleanRequest):
 
 
 @router.post("/api/v1/system/storage/clean", response_model=schemas.StandardResponse, dependencies=[Depends(require_system_admin)])
-def clean_system_storage_endpoint(req: schemas.StorageCleanRequest, background_tasks: BackgroundTasks):
-    background_tasks.add_task(_bg_clean_system_storage, req)
-    return schemas.StandardResponse(data={"msg": "Tiến trình dọn dẹp đang được chạy ngầm. Vui lòng kiểm tra lại sau ít phút.", "freed_mb": 0}, status_code=202)
+def clean_system_storage_endpoint(req: schemas.StorageCleanRequest):
+    """Clean storage synchronously (see cleanup-by-period: BackgroundTasks are
+    unreliable on Vercel serverless because the function freezes on response)."""
+    try:
+        result = _bg_clean_system_storage(req)
+    except Exception as e:
+        logger.error(f"storage/clean failed: {e}", exc_info=True)
+        return schemas.StandardResponse(error=f"Dọn dẹp thất bại: {e}", status_code=500)
+    deleted = (result or {}).get("deleted_counts", {})
+    freed_mb = round((result or {}).get("freed_bytes", 0) / (1024 * 1024), 2)
+    total = sum(deleted.values()) if deleted else 0
+    return schemas.StandardResponse(
+        data={
+            "msg": f"Đã dọn dẹp {total} mục. Giải phóng ~{freed_mb} MB.",
+            "deleted_counts": deleted,
+            "freed_mb": freed_mb,
+        },
+        status_code=200,
+    )
 
 def _bg_clean_system_storage(req: schemas.StorageCleanRequest):
     db = SessionLocal()
@@ -272,20 +287,23 @@ def _bg_clean_system_storage(req: schemas.StorageCleanRequest):
 
         # 1. Screenshots (cloud-first: file lives in Supabase Storage)
         if target in ("screenshots", "all"):
+            from core.supabase_storage import delete_files, _filename_from_url
             query = db.query(models.Screenshot)
             if cutoff:
                 query = query.filter(models.Screenshot.timestamp < cutoff)
             shots = query.all()
-            from core.supabase_storage import delete_file
+            cloud_names = [_filename_from_url(s.image_url or "") for s in shots]
             for shot in shots:
-                filename = shot.image_url.split("/")[-1]
-                try:
-                    delete_file(filename)  # remove from Supabase Storage
-                except Exception as e:
-                    logger.warning(f"Could not delete Supabase screenshot {filename}: {e}")
                 db.delete(shot)
                 deleted_counts["screenshots"] += 1
                 freed_bytes += 100000  # approximate per-shot storage freed
+            # Commit DB first, then delete cloud objects in one batched call.
+            db.commit()
+            if cloud_names:
+                try:
+                    delete_files(cloud_names)  # batch: 1 HTTP call per 100 objects
+                except Exception as e:
+                    logger.warning(f"Supabase batch delete failed: {e}")
 
         # 2. Browser History
         if target in ("web", "all"):
@@ -322,11 +340,10 @@ def _bg_clean_system_storage(req: schemas.StorageCleanRequest):
 
         db.commit()
 
-        try:
-            db.execute(text("VACUUM"))
-            db.commit()
-        except Exception:
-            pass
+        # No VACUUM — see the note in _bg_cleanup_storage_by_period: it breaks the
+        # Supabase transaction-mode pooler connection.
+
+        return {"deleted_counts": deleted_counts, "freed_bytes": freed_bytes}
 
     finally:
         db.close()

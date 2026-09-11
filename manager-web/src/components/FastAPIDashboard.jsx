@@ -366,7 +366,7 @@ export default function FastAPIDashboard() {
     try {
       await api.sendCommand(deviceId, "unlock_screen", {});
       setIsLocked(false);
-      setMessage("Đã gửi lệnh Mở khóa màn hình tới thiết bị.");
+      setMessage("Đã gửi lệnh mở khóa màn hình tới thiết bị.");
       addConsoleLog("SUCCESS", "LUỒNG 1: CLOUD", "Gửi lệnh: Unlock Screen -> Device OK");
     } catch (err) {
       setMessage(`Lỗi gửi lệnh mở khóa: ${err.message}`);
@@ -390,7 +390,7 @@ export default function FastAPIDashboard() {
     if (!deviceId) return setMessage("Chưa có thiết bị nào được ghép nối!");
     setIsShuttingDown(true);
     try {
-      addConsoleLog("INFO", "COMMAND: SHUTDOWN", `Phát lệnh Tắt Nguồn máy tính tới thiết bị ${deviceId}...`);
+      addConsoleLog("INFO", "COMMAND: SHUTDOWN", `Phát lệnh tắt nguồn máy tính tới thiết bị ${deviceId}...`);
       const res = await api.shutdownDevice(deviceId, shutdownReason);
       if (res && res.data) {
         setMessage(`⚡ ${res.data.msg || "Đã gửi lệnh tắt máy từ xa thành công!"}`);
@@ -409,28 +409,28 @@ export default function FastAPIDashboard() {
 
   const handleTakeScreenshot = async () => {
     if (!deviceId) return setMessage("Chưa có thiết bị nào ghép nối!");
-    addConsoleLog("INFO", "COMMAND: SCREENSHOT", `Phát lệnh Chụp Màn Hình (take_screenshot) tới thiết bị ${deviceId}...`);
+    addConsoleLog("INFO", "COMMAND: SCREENSHOT", `Phát lệnh chụp màn hình (take_screenshot) tới thiết bị ${deviceId}...`);
     try {
       lastScreenshotIdRef.current = screenshots[0]?.id || null;
       waitingForScreenshotRef.current = true;
 
       await api.requestScreenshot(deviceId);
-      setMessage("⏳ Đã gửi lệnh Chụp màn hình. Đang chờ Agent chụp và tải ảnh lên...");
+      setMessage("⏳ Đã gửi lệnh chụp màn hình. Đang chờ Agent chụp và tải ảnh lên...");
       addConsoleLog("SUCCESS", "LỆNH", `Đã gửi lệnh 'take_screenshot'. Đang chờ Agent tải ảnh lên...`);
 
       if (screenshotTimeoutRef.current) clearTimeout(screenshotTimeoutRef.current);
       screenshotTimeoutRef.current = setTimeout(() => {
         if (waitingForScreenshotRef.current) {
           waitingForScreenshotRef.current = false;
-          setMessage("⚠️ Hết thời gian chờ 15s: Thiết bị chưa gửi lại ảnh mới.");
+          setMessage("⚠️ Hết thời gian chờ 15s: thiết bị chưa gửi lại ảnh mới.");
           setTimeout(() => setMessage(""), 5000);
         }
       }, 15000);
 
     } catch (e) {
       waitingForScreenshotRef.current = false;
-      setMessage(`Không thể chụp màn hình: ${e.message || "Thiết bị Offline"}`);
-      addConsoleLog("ERROR", "COMMAND: SCREENSHOT", `Không thể gửi lệnh chụp màn hình: ${e.message || "Thiết bị Offline"}`);
+      setMessage(`Không thể chụp màn hình: ${e.message || "Thiết bị offline"}`);
+      addConsoleLog("ERROR", "COMMAND: SCREENSHOT", `Không thể gửi lệnh chụp màn hình: ${e.message || "Thiết bị offline"}`);
     }
   };
 
@@ -601,7 +601,7 @@ export default function FastAPIDashboard() {
                   authMode === "login" ? "bg-[#0E3746] text-[#F4F2EC]" : "text-zinc-500 hover:text-zinc-300"
                 }`}
               >
-                Đăng Nhập
+                Đăng nhập
               </button>
               <button
                 type="button"
@@ -610,7 +610,7 @@ export default function FastAPIDashboard() {
                   authMode === "register" ? "bg-[#0E3746] text-[#F4F2EC]" : "text-zinc-500 hover:text-zinc-300"
                 }`}
               >
-                Đăng Ký Mới
+                Đăng ký mới
               </button>
             </div>
 
@@ -645,7 +645,7 @@ export default function FastAPIDashboard() {
             </div>
 
             {authError && (
-              <div className="p-2.5 rounded-lg bg-primary/30 border border-primary/50 text-xs text-primary font-bold">
+              <div className="p-2.5 rounded-lg bg-primary/30 text-xs text-primary font-bold shadow-[0_2px_8px_rgba(14,55,70,0.25)]">
                 {authError}
               </div>
             )}
@@ -655,7 +655,7 @@ export default function FastAPIDashboard() {
               disabled={authLoading}
               className="w-full py-3 text-sm font-bold rounded-lg bg-[#0E3746] text-[#F4F2EC] hover:bg-[#065f46] transition disabled:opacity-50"
             >
-              {authLoading ? "Đang xử lý..." : authMode === "login" ? "Đăng Nhập" : "Đăng Ký & Đăng Nhập"}
+              {authLoading ? "Đang xử lý..." : authMode === "login" ? "Đăng nhập" : "Đăng ký & đăng nhập"}
             </button>
           </form>
         </div>
@@ -701,7 +701,7 @@ export default function FastAPIDashboard() {
 
             {/* System Admin Badge */}
             {isSystemAdmin && (
-              <span className="hidden lg:flex items-center gap-1 px-2.5 py-1 rounded-lg text-[10px] font-extrabold tracking-wider bg-primary/30 border border-primary/60 text-primary">
+              <span className="hidden lg:flex items-center gap-1 px-2.5 py-1 rounded-lg text-[10px] font-extrabold tracking-wider bg-primary/30 text-primary shadow-[0_2px_8px_rgba(14,55,70,0.25)]">
                 <Shield className="w-3 h-3" />
                 SYSTEM ADMIN
               </span>
@@ -745,7 +745,7 @@ export default function FastAPIDashboard() {
 
         {/* MOBILE SLIDE-OVER DRAWER MENU */}
         {isMobileMenuOpen && (
-          <div className={`md:hidden border-b p-4 space-y-3 shadow-xl ${styles.card}`}>
+          <div className={`md:hidden p-4 space-y-3 shadow-xl ${styles.card}`}>
             <div className="space-y-1">
               {[
                 { id: "overview", label: "Overview & Controls", icon: LayoutDashboard },
@@ -796,36 +796,43 @@ export default function FastAPIDashboard() {
               </button>
             </div>
 
-            {/* TÀI KHOẢN & THIẾT BỊ (MOBILE) */}
-            <div className="pt-2 mt-2 border-t border-zinc-200 dark:border-zinc-800 space-y-2">
-              <div className={`p-2 rounded-md border ${styles.card}`}>
-                <span className={`text-[10px] font-medium ${styles.textMuted}`}>Đăng nhập:</span>
-                <div className={`text-xs font-bold truncate ${styles.textBold}`}>{parentEmail}</div>
+            {/* ACCOUNT + DEVICE (MOBILE) — merged into ONE shape */}
+            <div className="pt-3 mt-3 space-y-2">
+              <div className={`p-3 rounded-lg space-y-2.5 ${styles.row}`}>
+                <div className="flex items-center justify-between gap-3 text-xs">
+                  <span className={`text-[10px] font-medium shrink-0 ${styles.textMuted}`}>Đăng nhập</span>
+                  <span className={`font-bold truncate ${styles.textBold}`}>{parentEmail}</span>
+                </div>
+                <div className="flex items-center justify-between gap-3 text-xs">
+                  <span className={`text-[10px] font-medium shrink-0 ${styles.textMuted}`}>Thiết bị</span>
+                  {allDevices.length > 1 ? (
+                    <select
+                      value={deviceId}
+                      onChange={(e) => {
+                        const dev = allDevices.find(d => d.device_id === e.target.value);
+                        setDeviceId(e.target.value);
+                        setDeviceName(dev?.device_name || "Agent PC");
+                        localStorage.setItem("pc_device_id", e.target.value);
+                        setIsMobileMenuOpen(false);
+                      }}
+                      className={`p-1.5 text-xs font-bold rounded-md focus:outline-none max-w-[65%] ${styles.input}`}
+                    >
+                      {allDevices.map(d => (
+                        <option key={d.device_id} value={d.device_id}>
+                          {d.device_name} {d.is_online ? "🟢" : "🔴"}
+                        </option>
+                      ))}
+                    </select>
+                  ) : (
+                    <span className={`font-bold truncate ${styles.textBold}`}>{deviceName}</span>
+                  )}
+                </div>
               </div>
-              {allDevices.length > 1 && (
-                <select
-                  value={deviceId}
-                  onChange={(e) => {
-                    const dev = allDevices.find(d => d.device_id === e.target.value);
-                    setDeviceId(e.target.value);
-                    setDeviceName(dev?.device_name || "Agent PC");
-                    localStorage.setItem("pc_device_id", e.target.value);
-                    setIsMobileMenuOpen(false);
-                  }}
-                  className={`w-full p-2 text-xs font-bold rounded-md border focus:outline-none ${styles.input}`}
-                >
-                  {allDevices.map(d => (
-                    <option key={d.device_id} value={d.device_id}>
-                      {d.device_name} {d.is_online ? "🟢" : "🔴"}
-                    </option>
-                  ))}
-                </select>
-              )}
               <button
                 onClick={handleLogout}
-                className="w-full py-2 text-xs font-bold rounded-md bg-primary/40 border border-primary/50 text-primary hover:bg-primary/60 transition"
+                className={`w-full py-2 text-xs font-bold rounded-md transition ${styles.buttonDanger}`}
               >
-                Đăng Xuất
+                Đăng xuất
               </button>
             </div>
           </div>
@@ -833,7 +840,7 @@ export default function FastAPIDashboard() {
       </header>
 
       {/* Origin / backend indicator line */}
-      <div className="flex-none px-4 py-1 text-[10px] font-mono text-zinc-500 border-b border-zinc-800 flex items-center gap-2">
+      <div className="flex-none px-4 py-1 text-[10px] font-mono text-zinc-500 shadow-[0_1px_0_rgba(14,55,70,0.12)] dark:shadow-[0_1px_0_rgba(255,255,255,0.08)] flex items-center gap-2">
         <span className={(() => { const h = typeof window !== 'undefined' ? window.location.hostname : ''; const isLocal = ['localhost','127.0.0.1','::1'].includes(h); return isLocal ? 'text-primary' : 'text-sky-400'; })()}>●</span>
         <span>Nguồn: <b className="text-zinc-300">{(() => { const h = typeof window !== 'undefined' ? window.location.hostname : ''; if (['localhost','127.0.0.1','::1'].includes(h)) return 'Local'; return (serverSource === 'vercel' ? 'Cloud (Vercel)' : 'Cloud'); })()}</b></span>
         <span className="opacity-60">{typeof window !== 'undefined' ? window.location.hostname : 'localhost'}</span>
@@ -924,7 +931,7 @@ export default function FastAPIDashboard() {
           </div>
 
           {/* System Footer Info */}
-          <div className={`p-3.5 rounded-xl border text-xs space-y-1 ${styles.card}`}>
+          <div className={`p-3.5 rounded-xl text-xs space-y-1 ${styles.card}`}>
             <div className={`font-extrabold ${styles.textBold}`}>Parental Control MVP v2.0</div>
             <div className={`font-medium ${styles.textMuted}`}>Architecture: Decoupled 3-Stream</div>
             <div className={`font-medium ${styles.textMuted}`}>Security: DPAPI + HMAC Fail-Closed</div>
@@ -937,7 +944,7 @@ export default function FastAPIDashboard() {
 
           {/* Action Notification Banner */}
           {message && (
-            <div className={`p-3 rounded-lg border text-xs font-bold flex items-center justify-between ${styles.badgeMuted}`}>
+            <div className={`p-3 rounded-lg text-xs font-bold flex items-center justify-between ${styles.badgeMuted}`}>
               <span className="flex items-center gap-2">
                 <CheckCircle2 className="w-4 h-4 shrink-0" />
                 <span>{message}</span>
@@ -948,11 +955,11 @@ export default function FastAPIDashboard() {
 
           {/* COMPACT CONTROL WIDGET */}
           {userPermissions.can_remote_control !== false && (
-            <div className={`p-3.5 rounded-xl border flex items-center justify-between gap-3 ${styles.card}`}>
+            <div className={`p-3.5 rounded-xl flex items-center justify-between gap-3 ${styles.card}`}>
               
               {/* Lock Screen Switch Toggle */}
               <div className="flex items-center gap-3">
-                <div className={`p-2 rounded-lg ${isLocked ? "bg-rose-900/30 border border-rose-800/50 text-rose-300" : "bg-zinc-900/70 border border-zinc-900 border-l-2 border-l-[#0E3746] text-[#F4F2EC]"}`}>
+                <div className={`p-2 rounded-lg ${isLocked ? "bg-rose-900/30 text-rose-300 shadow-[0_2px_8px_rgba(190,38,35,0.30)]" : "${styles.inset} ${styles.text}"}`}>
                   {isLocked ? <Lock className="w-4 h-4" /> : <Unlock className="w-4 h-4" />}
                 </div>
                 <div>
@@ -1003,7 +1010,7 @@ export default function FastAPIDashboard() {
               {/* STAT CARDS ROW */}
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                 {/* Online Status */}
-                <div className={`p-3.5 rounded-xl border flex flex-col gap-1.5 ${styles.card}`}>
+                <div className={`p-3.5 rounded-xl flex flex-col gap-1.5 ${styles.card}`}>
                   <span className={`text-[10px] font-bold uppercase tracking-wider ${styles.textMuted}`}>Trạng Thái</span>
                   <div className="flex items-center gap-2">
                     <span className={`relative flex h-2.5 w-2.5 shrink-0`}>
@@ -1018,7 +1025,7 @@ export default function FastAPIDashboard() {
                 </div>
 
                 {/* Screenshots Count */}
-                <div className={`p-3.5 rounded-xl border flex flex-col gap-1.5 ${styles.card}`}>
+                <div className={`p-3.5 rounded-xl flex flex-col gap-1.5 ${styles.card}`}>
                   <span className={`text-[10px] font-bold uppercase tracking-wider ${styles.textMuted}`}>Ảnh Chụp</span>
                   <span className={`text-2xl font-extrabold ${styles.textBold}`}>{screenshots.length}</span>
                   <button
@@ -1028,7 +1035,7 @@ export default function FastAPIDashboard() {
                 </div>
 
                 {/* Rules Count */}
-                <div className={`p-3.5 rounded-xl border flex flex-col gap-1.5 ${styles.card}`}>
+                <div className={`p-3.5 rounded-xl flex flex-col gap-1.5 ${styles.card}`}>
                   <span className={`text-[10px] font-bold uppercase tracking-wider ${styles.textMuted}`}>Quy Tắc</span>
                   <span className={`text-2xl font-extrabold ${styles.textBold}`}>{rules.length}</span>
                   <button
@@ -1038,7 +1045,7 @@ export default function FastAPIDashboard() {
                 </div>
 
                 {/* Logs Count */}
-                <div className={`p-3.5 rounded-xl border flex flex-col gap-1.5 ${styles.card}`}>
+                <div className={`p-3.5 rounded-xl flex flex-col gap-1.5 ${styles.card}`}>
                   <span className={`text-[10px] font-bold uppercase tracking-wider ${styles.textMuted}`}>Process Log</span>
                   <span className={`text-2xl font-extrabold ${styles.textBold}`}>{logs.length}</span>
                   <button
@@ -1049,7 +1056,7 @@ export default function FastAPIDashboard() {
               </div>
 
               {/* RULE BREAKDOWN */}
-              <div className={`p-4 rounded-xl border space-y-3 ${styles.card}`}>
+              <div className={`p-4 rounded-xl space-y-3 ${styles.card}`}>
                 <h4 className={`text-xs font-bold uppercase tracking-wider ${styles.textBold}`}>Phân Loại Quy Tắc Đang Kích Hoạt</h4>
                 <div className="space-y-2">
                   {[
@@ -1072,46 +1079,46 @@ export default function FastAPIDashboard() {
               </div>
 
               {/* QUICK ACTIONS */}
-              <div className={`p-4 rounded-xl border space-y-3 ${styles.card}`}>
+              <div className={`p-4 rounded-xl space-y-3 ${styles.card}`}>
                 <h4 className={`text-xs font-bold uppercase tracking-wider ${styles.textBold}`}>Hành Động Nhanh</h4>
                 <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
                   <button
                     onClick={handleTakeScreenshot}
-                    className={`p-3 rounded-lg border text-xs font-bold flex flex-col items-center gap-1.5 transition hover:border-[#0E3746] ${styles.card}`}
+                    className={`p-3 rounded-lg text-xs font-bold flex flex-col items-center gap-1.5 transition hover:shadow-[0_3px_10px_rgba(14,55,70,0.18)] ${styles.card}`}
                   >
                     <Camera className="w-5 h-5 text-primary" />
-                    <span>Chụp Màn Hình</span>
+                    <span>Chụp màn hình</span>
                   </button>
                   <button
                     onClick={() => handleToggleFocusMode(60)}
-                    className={`p-3 rounded-lg border text-xs font-bold flex flex-col items-center gap-1.5 transition ${
-                      isFocusMode ? "bg-primary/60 border-primary text-primary" : `${styles.card} hover:border-primary`
+                    className={`p-3 rounded-lg text-xs font-bold flex flex-col items-center gap-1.5 transition ${
+                      isFocusMode ? styles.chipActive : `${styles.card} hover:shadow-[0_3px_10px_rgba(14,55,70,0.18)]`
                     }`}
                   >
                     <Target className={`w-5 h-5 ${isFocusMode ? "text-primary animate-pulse" : "text-primary"}`} />
-                    <span>{isFocusMode ? "Tắt Học Bài" : "🎯 Học Bài (1h)"}</span>
+                    <span>{isFocusMode ? "Tắt học bài" : "🎯 Học Bài (1h)"}</span>
                   </button>
                   <button
                     onClick={() => setActiveNav("system_logs")}
-                    className={`p-3 rounded-lg border text-xs font-bold flex flex-col items-center gap-1.5 transition hover:border-[#0E3746] ${styles.card}`}
+                    className={`p-3 rounded-lg text-xs font-bold flex flex-col items-center gap-1.5 transition hover:shadow-[0_3px_10px_rgba(14,55,70,0.18)] ${styles.card}`}
                   >
                     <Terminal className="w-5 h-5 text-primary" />
                     <span>System Console</span>
                   </button>
                   <button
                     onClick={() => setActiveNav("rules")}
-                    className={`p-3 rounded-lg border text-xs font-bold flex flex-col items-center gap-1.5 transition hover:border-[#0E3746] ${styles.card}`}
+                    className={`p-3 rounded-lg text-xs font-bold flex flex-col items-center gap-1.5 transition hover:shadow-[0_3px_10px_rgba(14,55,70,0.18)] ${styles.card}`}
                   >
                     <Shield className="w-5 h-5 text-primary" />
-                    <span>Quản Lý Rules</span>
+                    <span>Quản lý Rules</span>
                   </button>
                   <button
                     onClick={() => setShowShutdownModal(true)}
-                    className={`p-3 rounded-lg border text-xs font-bold flex flex-col items-center gap-1.5 transition bg-primary/20 border-primary/40 text-primary hover:bg-primary/40 hover:border-primary`}
+                    className={`p-3 rounded-lg border text-xs font-bold flex flex-col items-center gap-1.5 transition bg-primary/20 text-primary hover:bg-primary/30 shadow-[0_2px_8px_rgba(14,55,70,0.25)]`}
                     title="Tắt nguồn thiết bị từ xa (Hẹn giờ 10s)"
                   >
                     <Power className="w-5 h-5 text-primary" />
-                    <span>Tắt Máy Từ Xa</span>
+                    <span>Tắt máy từ xa</span>
                   </button>
                 </div>
               </div>
@@ -1129,7 +1136,7 @@ export default function FastAPIDashboard() {
 
               {/* LATEST SCREENSHOTS PREVIEW */}
               {screenshots.length > 0 && (
-                <div className={`p-4 rounded-xl border space-y-3 ${styles.card}`}>
+                <div className={`p-4 rounded-xl space-y-3 ${styles.card}`}>
                   <div className="flex items-center justify-between">
                     <h4 className={`text-xs font-bold uppercase tracking-wider ${styles.textBold}`}>Ảnh Chụp Gần Nhất</h4>
                     <button
@@ -1142,7 +1149,7 @@ export default function FastAPIDashboard() {
                       <button
                         key={idx}
                         onClick={() => setSelectedImage(shot.image_url || shot.url)}
-                        className="aspect-video rounded-lg overflow-hidden border border-zinc-700 hover:border-[#0E3746] transition"
+                        className="aspect-video rounded-lg overflow-hidden transition shadow-[0_2px_10px_rgba(14,55,70,0.18)] hover:shadow-[0_4px_16px_rgba(14,55,70,0.28)]"
                       >
                         <img
                           src={shot.image_url || shot.url}
@@ -1164,7 +1171,7 @@ export default function FastAPIDashboard() {
 
               {/* RECENT ALERTS */}
               {alerts.length > 0 && (
-                <div className={`p-4 rounded-xl border space-y-3 ${styles.card}`}>
+                <div className={`p-4 rounded-xl space-y-3 ${styles.card}`}>
                   <h4 className={`text-xs font-bold uppercase tracking-wider ${styles.textBold}`}>Cảnh Báo Gần Nhất</h4>
                   <div className="space-y-1.5">
                     {alerts.slice(0, 5).map((alert, idx) => (
@@ -1194,11 +1201,11 @@ export default function FastAPIDashboard() {
 
           {/* TAB 1: SCREENSHOTS GALLERY */}
           {(activeNav === "screenshots") && (
-            <div className={`p-4 sm:p-5 rounded-xl border space-y-4 ${styles.card}`}>
+            <div className={`p-4 sm:p-5 rounded-xl space-y-4 ${styles.card}`}>
               <div className="flex items-center justify-between flex-wrap gap-2">
                 <h3 className={`text-sm font-bold flex items-center gap-2 ${styles.textBold}`}>
                   <Camera className="w-4 h-4 stroke-[1.75]" />
-                  <span>Thư Viện Ảnh Chụp Màn Hình ({screenshots.length})</span>
+                  <span>Thư viện ảnh chụp màn hình ({screenshots.length})</span>
                 </h3>
                 <div className="flex items-center gap-2">
                   {screenshots.length > 0 && (
@@ -1217,7 +1224,7 @@ export default function FastAPIDashboard() {
 
               {screenshots.length === 0 ? (
                 <div className={`text-center py-10 text-xs italic ${styles.textMuted}`}>
-                  Chưa có ảnh chụp màn hình. Hãy bấm "Chụp Màn Hình" ở trên để ghi nhận khoảnh khắc.
+                  Chưa có ảnh chụp màn hình. Hãy bấm "Chụp màn hình" ở trên để ghi nhận khoảnh khắc.
                 </div>
               ) : (
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
@@ -1229,7 +1236,7 @@ export default function FastAPIDashboard() {
                       <div
                         key={shot.id}
                         onClick={() => setSelectedImage(fullUrl)}
-                        className={`group relative rounded-lg overflow-hidden border cursor-pointer transition hover:border-[#0E3746] ${styles.card}`}
+                        className={`group relative rounded-lg overflow-hidden cursor-pointer transition hover:shadow-[0_3px_10px_rgba(14,55,70,0.20)] ${styles.card}`}
                       >
                         <img
                           src={fullUrl}
@@ -1266,7 +1273,7 @@ export default function FastAPIDashboard() {
 
           {/* TAB 2: RULES MANAGEMENT */}
           {(activeNav === "rules") && (
-            <div className={`p-4 sm:p-5 rounded-xl border space-y-5 ${styles.card}`}>
+            <div className={`p-4 sm:p-5 rounded-xl space-y-5 ${styles.card}`}>
               <h3 className={`text-sm font-bold flex items-center gap-2 ${styles.textBold}`}>
                 <Shield className="w-4 h-4 stroke-[1.75]" />
                 <span>Quản Lý Quy Tắc Cấm (Push tức thời)</span>
@@ -1299,8 +1306,8 @@ export default function FastAPIDashboard() {
                   type="submit"
                   className={`px-4 py-2 text-xs font-bold rounded-md transition flex items-center justify-center gap-1 ${styles.buttonPrimary}`}
                 >
-                  <Plus className="w-3.5 h-3.5 text-[#F4F2EC]" />
-                  <span className="text-[#F4F2EC]">Thêm Rule</span>
+                  <Plus className="w-3.5 h-3.5" />
+                  <span>Thêm Rule</span>
                 </button>
               </form>
 
@@ -1344,7 +1351,7 @@ export default function FastAPIDashboard() {
 
           {/* TAB: PROCESS ACTIVITY LOGS (Real Data from Backend) */}
           {(activeNav === "logs") && userPermissions.can_view_logs !== false && (
-            <div className={`p-4 sm:p-5 rounded-xl border space-y-3 ${styles.card}`}>
+            <div className={`p-4 sm:p-5 rounded-xl space-y-3 ${styles.card}`}>
               <h3 className={`text-sm font-bold flex items-center gap-2 ${styles.textBold}`}>
                 <FileText className="w-4 h-4 stroke-[1.75]" />
                 <span>Nhật Ký Hoạt Động Tiến Trình ({logs.length} bản ghi)</span>
@@ -1385,9 +1392,9 @@ export default function FastAPIDashboard() {
               
               {/* MASTER SETTINGS MENU (1-LINE ITEM ROWS) */}
               {settingSubTab === "menu" && (
-                <div className={`p-4 sm:p-5 rounded-xl border space-y-4 ${styles.card}`}>
+                <div className={`p-4 sm:p-5 rounded-xl space-y-4 ${styles.card}`}>
                   <div className="flex items-center gap-3 pb-3 border-b border-opacity-20">
-                    <div className="p-2.5 rounded-lg bg-zinc-900/70 border border-zinc-900 border-l-2 border-l-[#0E3746] text-[#F4F2EC]">
+                    <div className="p-2.5 rounded-lg ${styles.inset} ${styles.text}">
                       <Settings className="w-5 h-5 stroke-[1.75]" />
                     </div>
                     <div>
@@ -1404,7 +1411,7 @@ export default function FastAPIDashboard() {
                     {/* Row 1: Sub-Accounts & RBAC */}
                     <button
                       onClick={() => setSettingSubTab("rbac")}
-                      className={`w-full p-3.5 rounded-xl border flex items-center justify-between transition hover:border-[#0E3746] ${styles.card}`}
+                      className={`w-full p-3.5 rounded-xl flex items-center justify-between transition hover:shadow-[0_3px_10px_rgba(14,55,70,0.18)] ${styles.card}`}
                     >
                       <div className="flex items-center gap-3">
                         <div className="p-2 rounded-lg bg-primary/30 text-primary">
@@ -1421,7 +1428,7 @@ export default function FastAPIDashboard() {
                     {/* Row 2: Silent Auto-Updater */}
                     <button
                       onClick={() => setSettingSubTab("agent_update")}
-                      className={`w-full p-3.5 rounded-xl border flex items-center justify-between transition hover:border-[#0E3746] ${styles.card}`}
+                      className={`w-full p-3.5 rounded-xl flex items-center justify-between transition hover:shadow-[0_3px_10px_rgba(14,55,70,0.18)] ${styles.card}`}
                     >
                       <div className="flex items-center gap-3">
                         <div className="p-2 rounded-lg bg-primary/30 text-primary">
@@ -1438,7 +1445,7 @@ export default function FastAPIDashboard() {
                     {/* Row 3: Server Storage & Cleanup */}
                     <button
                       onClick={() => setSettingSubTab("storage")}
-                      className={`w-full p-3.5 rounded-xl border flex items-center justify-between transition hover:border-[#0E3746] ${styles.card}`}
+                      className={`w-full p-3.5 rounded-xl flex items-center justify-between transition hover:shadow-[0_3px_10px_rgba(14,55,70,0.18)] ${styles.card}`}
                     >
                       <div className="flex items-center gap-3">
                         <div className="p-2 rounded-lg bg-primary/30 text-primary">
@@ -1455,7 +1462,7 @@ export default function FastAPIDashboard() {
                     {/* Row 4: Period Settings */}
                     <button
                       onClick={() => setSettingSubTab("periods")}
-                      className={`w-full p-3.5 rounded-xl border flex items-center justify-between transition hover:border-[#0E3746] ${styles.card}`}
+                      className={`w-full p-3.5 rounded-xl flex items-center justify-between transition hover:shadow-[0_3px_10px_rgba(14,55,70,0.18)] ${styles.card}`}
                     >
                       <div className="flex items-center gap-3">
                         <div className="p-2 rounded-lg bg-primary/30 text-primary">
@@ -1472,7 +1479,7 @@ export default function FastAPIDashboard() {
                     {/* Row 5: Time Control */}
                     <button
                       onClick={() => setSettingSubTab("time_control")}
-                      className={`w-full p-3.5 rounded-xl border flex items-center justify-between transition hover:border-[#0E3746] ${styles.card}`}
+                      className={`w-full p-3.5 rounded-xl flex items-center justify-between transition hover:shadow-[0_3px_10px_rgba(14,55,70,0.18)] ${styles.card}`}
                     >
                       <div className="flex items-center gap-3">
                         <div className="p-2 rounded-lg bg-primary/30 text-primary">
@@ -1577,21 +1584,23 @@ export default function FastAPIDashboard() {
         <aside className="hidden md:block md:col-span-3 space-y-6 overflow-y-auto h-full pl-1">
 
           {/* CARD: DEVICE REAL-TIME STATUS */}
-          <div className={`p-4 sm:p-5 rounded-xl border space-y-4 ${styles.card}`}>
+          <div className={`p-4 sm:p-5 rounded-xl space-y-4 ${styles.card}`}>
             <h4 className={`text-xs font-bold uppercase tracking-wider ${styles.textBold}`}>
-              ON THIS PAGE / DEVICE INFO
+              Thông tin thiết bị
             </h4>
 
-            {/* Status Indicator */}
-            <div className="flex items-center gap-3 p-3 rounded-lg border bg-[#0E3746]/10 border-zinc-800">
+            {/* Status Indicator — ONLINE = leaf green, OFFLINE = rose */}
+            <div className={`flex items-center gap-3 p-3 rounded-lg ${styles.inset}`}>
               <span className="relative flex h-3 w-3 shrink-0">
-                <span className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 ${status.is_online ? "bg-[#0E3746] dark:bg-primary" : "bg-rose-500"}`} />
-                <span className={`relative inline-flex rounded-full h-3 w-3 ${status.is_online ? "bg-[#0E3746] dark:bg-primary" : "bg-rose-500"}`} />
+                <span className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 ${status.is_online ? styles.statusOnline : styles.statusOffline}`} />
+                <span className={`relative inline-flex rounded-full h-3 w-3 ${status.is_online ? styles.statusOnline : styles.statusOffline}`} />
               </span>
               <div>
                 <div className={`text-xs font-extrabold flex items-center gap-1.5 ${styles.textBold}`}>
                   <Monitor className="w-3.5 h-3.5 stroke-[1.75]" />
-                  <span className={status.is_online ? "" : "text-rose-400"}>{status.is_online ? "CONNECTED" : "OFFLINE"}</span>
+                  <span className={status.is_online ? styles.statusOnlineText : styles.statusOfflineText}>
+                    {status.is_online ? "ONLINE" : "OFFLINE"}
+                  </span>
                 </div>
                 <div className={`text-[10px] font-medium ${styles.textMuted}`}>
                   Heartbeat 15s interval
@@ -1601,16 +1610,16 @@ export default function FastAPIDashboard() {
 
             {/* Device Info Fields */}
             <div className="space-y-2 text-xs">
-              <div className="flex justify-between border-b border-opacity-20 pb-1">
-                <span className={`font-medium ${styles.textMuted}`}>Device Name</span>
+              <div className="flex justify-between pb-1 shadow-[0_1px_0_rgba(14,55,70,0.12)] dark:shadow-[0_1px_0_rgba(255,255,255,0.08)]">
+                <span className={`font-medium ${styles.textMuted}`}>Tên thiết bị</span>
                 <span className={`font-bold ${styles.textBold}`}>{deviceName}</span>
               </div>
-              <div className="flex justify-between border-b border-opacity-20 pb-1">
-                <span className={`font-medium ${styles.textMuted}`}>Device ID</span>
+              <div className="flex justify-between pb-1 shadow-[0_1px_0_rgba(14,55,70,0.12)] dark:shadow-[0_1px_0_rgba(255,255,255,0.08)]">
+                <span className={`font-medium ${styles.textMuted}`}>ID thiết bị</span>
                 <span className={`font-mono font-bold text-[10px] truncate max-w-[110px] ${styles.textBold}`}>{deviceId}</span>
               </div>
               <div className="flex justify-between">
-                <span className={`font-medium ${styles.textMuted}`}>Last Heartbeat</span>
+                <span className={`font-medium ${styles.textMuted}`}>Nhịp tim cuối</span>
                 <span className={`text-[10px] font-mono font-bold ${styles.textBold}`}>
                   {status.last_seen_at ? new Date(status.last_seen_at).toLocaleTimeString() : "N/A"}
                 </span>
@@ -1618,41 +1627,48 @@ export default function FastAPIDashboard() {
             </div>
           </div>
 
-          {/* DEVICE SELECTOR & ACCOUNT CARD */}
-          <div className={`p-4 sm:p-5 rounded-xl border space-y-3 ${styles.card}`}>
+          {/* ACCOUNT + DEVICE — merged into ONE shape */}
+          <div className={`p-4 sm:p-5 rounded-xl space-y-3 ${styles.card}`}>
             <h4 className={`text-xs font-bold uppercase tracking-wider ${styles.textBold}`}>
-              TÀI KHOẢN & THIẾT BỊ
+              Tài khoản &amp; thiết bị
             </h4>
-            <div className="space-y-2 text-xs">
-              <div className={`p-2 rounded-md border ${styles.card}`}>
-                <span className={`text-[10px] font-medium ${styles.textMuted}`}>Đăng nhập:</span>
-                <div className={`font-bold truncate ${styles.textBold}`}>{parentEmail}</div>
+
+            <div className={`p-3 rounded-lg space-y-2.5 ${styles.row}`}>
+              <div className="flex items-center justify-between gap-3 text-xs">
+                <span className={`text-[10px] font-medium shrink-0 ${styles.textMuted}`}>Đăng nhập</span>
+                <span className={`font-bold truncate ${styles.textBold}`}>{parentEmail}</span>
               </div>
-              {allDevices.length > 1 && (
-                <select
-                  value={deviceId}
-                  onChange={(e) => {
-                    const dev = allDevices.find(d => d.device_id === e.target.value);
-                    setDeviceId(e.target.value);
-                    setDeviceName(dev?.device_name || "Agent PC");
-                    localStorage.setItem("pc_device_id", e.target.value);
-                  }}
-                  className={`w-full p-2 text-xs font-bold rounded-md border focus:outline-none ${styles.input}`}
-                >
-                  {allDevices.map(d => (
-                    <option key={d.device_id} value={d.device_id}>
-                      {d.device_name} {d.is_online ? "🟢" : "🔴"}
-                    </option>
-                  ))}
-                </select>
-              )}
-              <button
-                onClick={handleLogout}
-                className="w-full py-2 sm:py-1.5 text-xs font-bold rounded-md bg-primary/40 border border-primary/50 text-primary hover:bg-primary/60 transition"
-              >
-                Đăng Xuất
-              </button>
+              <div className="flex items-center justify-between gap-3 text-xs">
+                <span className={`text-[10px] font-medium shrink-0 ${styles.textMuted}`}>Thiết bị</span>
+                {allDevices.length > 1 ? (
+                  <select
+                    value={deviceId}
+                    onChange={(e) => {
+                      const dev = allDevices.find(d => d.device_id === e.target.value);
+                      setDeviceId(e.target.value);
+                      setDeviceName(dev?.device_name || "Agent PC");
+                      localStorage.setItem("pc_device_id", e.target.value);
+                    }}
+                    className={`p-1.5 text-xs font-bold rounded-md focus:outline-none max-w-[65%] ${styles.input}`}
+                  >
+                    {allDevices.map(d => (
+                      <option key={d.device_id} value={d.device_id}>
+                        {d.device_name} {d.is_online ? "🟢" : "🔴"}
+                      </option>
+                    ))}
+                  </select>
+                ) : (
+                  <span className={`font-bold truncate ${styles.textBold}`}>{deviceName}</span>
+                )}
+              </div>
             </div>
+
+            <button
+              onClick={handleLogout}
+              className={`w-full py-2 sm:py-1.5 text-xs font-bold rounded-md transition ${styles.buttonDanger}`}
+            >
+              Đăng xuất
+            </button>
           </div>
 
         </aside>
@@ -1683,7 +1699,7 @@ export default function FastAPIDashboard() {
               </div>
               <div>
                 <h3 className="text-sm font-black uppercase tracking-wider text-primary">
-                  Xác Nhận Tắt Nguồn Thiết Bị
+                  Xác nhận tắt nguồn thiết bị
                 </h3>
                 <p className="text-xs text-zinc-400">
                   Lệnh tắt máy tính từ xa (Hẹn giờ 10 giây)

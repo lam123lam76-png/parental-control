@@ -182,6 +182,7 @@ def _bg_cleanup_storage_by_period(req: schemas.StoragePeriodCleanRequest):
                         for (u,) in db.query(models.Screenshot.image_url).all()
                         if u
                     }
+                    db.commit()  # end the transaction -> don't hold the connection during HTTP I/O
                     pending = set(to_delete_cloud)
                     for name, _size in list_files():
                         if name and name not in referenced and name not in pending:

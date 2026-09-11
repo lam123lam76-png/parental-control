@@ -34,6 +34,11 @@ from core.telegram_approval import get_updates_poller
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+# Throttle for the per-request presence reconcile (see middleware). The reconcile
+# opens a DB connection; running it on every request can exhaust the small pool.
+RECONCILE_MIN_INTERVAL = 20.0   # seconds between reconciles, per process
+_LAST_RECONCILE_TS = 0.0
+
 def _init_schema_background():
     """Create/migrate schema in a background thread so a slow or unreachable DB
     never blocks uvicorn startup (tables already exist from migration; requests
@@ -230,11 +235,28 @@ async def add_server_source_header(request, call_next):
     """
     path = request.url.path
 
-    # Bỏ qua offline-check cho auth routes — login không được bị chặn bởi DB chậm
-    _SKIP_CHECK_PREFIXES = ("/static", "/api/auth/", "/api/register", "/api/pair")
+    # Bỏ qua offline-check cho auth routes — login không được bị chặn bởi DB chậm.
+    # Cũng bỏ qua các route dọn dẹp bộ nhớ: chúng là thao tác admin nặng và cần
+    # connection pool trống; reconcile ở đây chỉ tranh chấp connection (pool nhỏ).
+    _SKIP_CHECK_PREFIXES = (
+        "/static", "/api/auth/", "/api/register", "/api/pair",
+        "/api/v1/storage/", "/api/v1/system/storage",
+    )
     should_check = not any(path.startswith(p) for p in _SKIP_CHECK_PREFIXES)
 
+    # THROTTLE: reconcile mở 1 DB connection mỗi lần chạy. Chạy nó trên MỌI request
+    # làm cạn connection pool (size 3 + overflow 5) khi nhiều request đồng thời +
+    # Supabase chậm (mỗi query vài giây), gây lỗi "QueuePool limit ... reached" ở
+    # các endpoint khác. Chỉ reconcile tối đa 1 lần / RECONCILE_MIN_INTERVAL giây
+    # cho mỗi process; cron-job.org ping /api/health mỗi phút vẫn đủ để phát hiện
+    # thiết bị offline đột ngột.
+    global _LAST_RECONCILE_TS
+    now_mono = time.monotonic()
+    if should_check and (now_mono - _LAST_RECONCILE_TS) < RECONCILE_MIN_INTERVAL:
+        should_check = False
     if should_check:
+        _LAST_RECONCILE_TS = now_mono
+
         def _run_check():
             db = SessionLocal()
             try:

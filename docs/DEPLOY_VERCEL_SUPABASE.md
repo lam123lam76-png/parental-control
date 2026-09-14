@@ -157,6 +157,14 @@ curl "https://api.telegram.org/bot<TOKEN>/getWebhookInfo"
 
 ### Quy trình phát hành (đã kiểm chứng 14/09/2026)
 
+0. **Chạy cổng kiểm thử mô phỏng local trước khi phát hành** (PROJECT_RULES 3.4):
+   ```bat
+   python tools\test_agent_update_gate.py
+   ```
+   Bài test dùng chính `Updater.exe` vừa build và hai "agent giả" trong thư mục tạm để
+   kiểm chứng 2 kịch bản: (a) bản mới thay thế và chạy được, (b) bản mới crash thì
+   Updater tự khôi phục `.bak` và chạy lại bản cũ. **Chỉ được phát hành khi PASS 100%**;
+   bài test không khởi động agent thật và không gửi lệnh nào lên máy con.
 1. Máy dev: **tăng `AGENT_VERSION`** trong `build_and_pack_agent.bat` rồi chạy file đó
    (build PyInstaller + zip ra `backend_api/storage/updates/agent-update.zip`).
    ⚠️ **Bắt buộc tăng version mỗi lần build**: cùng một nhãn version có thể ứng với 2 bộ
@@ -220,6 +228,10 @@ cấp quyền admin, hoặc nếu key tĩnh bị phát tán ra ngoài `core/secu
    khác mật khẩu đăng nhập) trên Vercel rồi redeploy; không đặt thì cơ chế này tắt.
 4. Sau khi máy đích đã cập nhật agent v0032: xoá `LEGACY_AGENT_KEY` khỏi
    `core/security.py` và xoá `API_KEY` khỏi `.env` của agent/backend.
+   *Cách biết máy đã cập nhật:* lệnh `force_update` chuyển sang `delivered_at` khác NULL,
+   và log Vercel không còn request nào dùng key tĩnh (agent v0032 chỉ dùng
+   `secret_token` riêng của máy). Bản v0032 đã phát hành ngày 14/09/2026
+   (`sha256 20b744cb…`) và cổng test local đã PASS 100%.
 
 ---
 

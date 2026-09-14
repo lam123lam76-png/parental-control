@@ -1,4 +1,4 @@
-@echo off
+﻿@echo off
 chcp 65001 > nul
 echo ============================================================
 echo   BUILD + PACK AGENT (REBUILD + COPY TO C:\Test)
@@ -16,7 +16,7 @@ set "BACKEND_STORAGE=%PROJECT_ROOT%backend_api\storage\updates"
 set "ZIP_PATH=%BACKEND_STORAGE%\agent-update.zip"
 
 rem --- Nho TANG so version moi lan build (v0004, v0005, ...) ---
-set "AGENT_VERSION=v0031"
+set "AGENT_VERSION=v0032"
 
 if not exist "%BACKEND_STORAGE%" mkdir "%BACKEND_STORAGE%"
 

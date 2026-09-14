@@ -295,6 +295,24 @@ def object_size(key: str, timeout: int = 15) -> int | None:
 # --------------------------------------------------------------------------- #
 # One-time bucket setup
 # --------------------------------------------------------------------------- #
+def cors_policy_json(origins: list[str], max_age: int = 3600) -> str:
+    """The CORS policy as Cloudflare's dashboard expects it (R2 → bucket →
+    Settings → CORS Policy). Needed when the API token is object-scoped and
+    therefore cannot apply the policy through the S3 API."""
+    return json.dumps(
+        [
+            {
+                "AllowedOrigins": [o for o in origins if o and o.strip()],
+                "AllowedMethods": ["PUT", "GET", "HEAD"],
+                "AllowedHeaders": ["*"],
+                "ExposeHeaders": ["ETag"],
+                "MaxAgeSeconds": int(max_age),
+            }
+        ],
+        indent=2,
+    )
+
+
 def get_bucket_cors() -> str | None:
     """Current CORS policy XML of the bucket (None when no policy is set)."""
     resp = _signed_request("GET", f"/{_bucket()}", query={"cors": ""})

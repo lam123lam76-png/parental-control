@@ -487,7 +487,7 @@ export default function AgentUpdateManagerCard({ theme = "dark" }) {
         </div>
 
         {r2Status && (
-          <div className={`p-3 rounded-xl text-[11px] space-y-1.5 ${styles.inset}`}>
+          <div className={`p-3 rounded-xl text-[11px] space-y-2 ${styles.inset}`}>
             <div className={styles.text}>
               Token R2:{" "}
               <span className="font-bold">{r2Status.configured ? "đã cấu hình" : "chưa cấu hình"}</span>
@@ -496,21 +496,43 @@ export default function AgentUpdateManagerCard({ theme = "dark" }) {
             </div>
             <div className={styles.text}>
               CORS cho trình duyệt:{" "}
-              <span className="font-bold">{r2Status.cors_configured ? "đã bật" : "chưa bật"}</span>
+              <span className="font-bold">
+                {r2Status.cors_configured === true
+                  ? "đã bật"
+                  : r2Status.cors_configured === false
+                  ? "chưa bật"
+                  : "chưa rõ"}
+              </span>
               {r2Status.cors_origins?.length ? ` (${r2Status.cors_origins.join(", ")})` : ""}
             </div>
             {r2Status.error && (
               <div className={`font-bold ${styles.statusOfflineText}`}>{r2Status.error}</div>
             )}
-            {r2Status.configured && !r2Status.cors_configured && (
+
+            {r2Status.configured && r2Status.cors_configured === false && (
               <button
                 type="button"
                 onClick={handleSetupCors}
                 disabled={settingCors}
-                className={`mt-1 px-3 py-1.5 rounded-lg text-[11px] font-bold transition disabled:opacity-50 ${styles.buttonPrimary}`}
+                className={`px-3 py-1.5 rounded-lg text-[11px] font-bold transition disabled:opacity-50 ${styles.buttonPrimary}`}
               >
                 {settingCors ? "Đang thiết lập…" : "Thiết lập CORS cho R2"}
               </button>
+            )}
+
+            {r2Status.configured && r2Status.cors_configured !== true && (
+              <div className="space-y-1.5">
+                <div className={styles.text}>
+                  Nếu nút trên báo <span className="font-mono">AccessDenied</span> (token chỉ có quyền
+                  Object Read &amp; Write), hãy dán policy này vào Cloudflare → R2 → bucket{" "}
+                  <span className="font-mono">{r2Status.bucket}</span> → Settings → CORS Policy:
+                </div>
+                <pre
+                  className={`p-2 rounded-lg text-[10px] font-mono overflow-x-auto whitespace-pre ${styles.row}`}
+                >
+                  {r2Status.cors_policy_json}
+                </pre>
+              </div>
             )}
           </div>
         )}

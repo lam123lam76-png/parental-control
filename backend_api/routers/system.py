@@ -653,13 +653,24 @@ def agent_r2_status():
 
     try:
         status["zip_size_bytes"] = r2_storage.object_size(r2_storage.ZIP_KEY)
+    except Exception as e:
+        status["error"] = str(e)
+
+    try:
         cors_xml = r2_storage.get_bucket_cors()
         if cors_xml:
             status["cors_configured"] = True
             status["cors_origins"] = re.findall(r"<AllowedOrigin>(.*?)</AllowedOrigin>", cors_xml)
+        else:
+            status["cors_configured"] = False
     except Exception as e:
-        status["error"] = str(e)
+        # A token scoped "Object Read & Write" cannot read/write bucket config
+        # (R2 answers AccessDenied), so CORS stays unknown — not a real failure:
+        # the policy only has to be set once in the Cloudflare dashboard.
+        status["cors_configured"] = None
+        status["cors_error"] = str(e)
 
+    status["cors_policy_json"] = r2_storage.cors_policy_json(_agent_web_origins())
     return schemas.StandardResponse(data=status, status_code=200)
 
 

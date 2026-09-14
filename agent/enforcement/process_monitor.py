@@ -129,6 +129,7 @@ def get_all_browser_windows() -> list[dict]:
                         "pid": pid,
                         "process_name": proc_name,
                         "window_title": title,
+                        "hwnd": hwnd,
                     })
             except Exception:
                 pass

@@ -120,30 +120,13 @@ def run_startup_diagnostic(device_id: str, secret_token: str, backend_url: str, 
             f"🎉 <b>KẾT LUẬN:</b> Agent đang hoạt động toàn vẹn 100%."
         )
 
-        # Dispatch Alert to Backend
-        alert_payload = {
-            "device_id": device_id,
-            "alert_type": "update_integrity_report",
-            "message": report_msg
-        }
-
-        try:
-            from utils.config import API_KEY
-        except Exception:
-            API_KEY = "732F636DF7E2E6A0B95AAB8C139AB375D5B65D82241661C7"
-
-        auth_token = secret_token or API_KEY
-        headers = {
-            "Authorization": f"Bearer {auth_token}",
-            "Content-Type": "application/json"
-        }
-
-        logger.info("[Diagnostic] Sending update integrity report to backend / Telegram...")
-        resp = requests.post(f"{backend_url}/api/alerts", json=alert_payload, headers=headers, timeout=15)
-        if resp.status_code == 200:
-            logger.info("[Diagnostic] Report dispatched successfully to Telegram!")
-        else:
-            logger.warning(f"[Diagnostic] Report dispatch response: {resp.status_code} - {resp.text}")
+        # NOTE: We deliberately DO NOT dispatch this report to Telegram on every
+        # on/offline cycle. It previously sent a long "[BÁO CÁO CẬP NHẬT]" message
+        # that parents misread as "update thành công" on every boot. The report is
+        # still computed + logged locally for diagnostics, but only the short
+        # on/off notification ("Hệ thống giám sát thiết bị X đã bật/tắt") is sent
+        # to Telegram via the agent_online / backend offline detection.
+        logger.info(f"[Diagnostic] Integrity report (local only, not sent to Telegram): {current_version}")
 
     except Exception as e:
         logger.error(f"[Diagnostic] Error running startup diagnostic: {e}", exc_info=True)

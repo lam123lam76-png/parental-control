@@ -31,10 +31,16 @@ class AutoUpdater:
         self.updates_dir = self.appdata_dir / "updates"
         self.updates_dir.mkdir(parents=True, exist_ok=True)
 
-    def trigger_silent_update(self, download_url: str, new_version: str, force: bool = True) -> bool:
+    def trigger_silent_update(self, download_url: str, new_version: str, force: bool = True,
+                              expected_sha256: str | None = None) -> bool:
         """
         Downloads update package from backend, stages update files,
         spawns detached script, and exits main process cleanly.
+
+        SECURITY (Task 10): the update package is executed as Administrator, so we
+          - ONLY accept https:// URLs (never plain http — MITM risk).
+          - verify the downloaded zip's SHA-256 against an expected hash when the
+            caller provides one, before extracting/running anything.
         """
         if not force and new_version == CURRENT_AGENT_VERSION:
             logger.info(f"[AutoUpdater] Already running latest version {new_version}. Skip update.")
@@ -44,9 +50,12 @@ class AutoUpdater:
 
         # Cloud (R2) is the package source now that the home machine is removed.
         # A relative download_url (e.g. /static/updates/agent-update.zip) is resolved
-        # against the cloud URL; an absolute http(s) URL is used as-is.
-        if download_url.startswith("http"):
+        # against the cloud URL; an absolute URL MUST be https:// (never http://).
+        if download_url.startswith("https://"):
             full_url = download_url
+        elif download_url.startswith("http://"):
+            logger.error(f"[AutoUpdater] REFUSED insecure http:// update URL: {download_url}")
+            return False
         else:
             full_url = f"https://pub-68ac9fad65e94c8f886542276f2e490c.r2.dev/{os.path.basename(download_url)}"
         zip_path = self.updates_dir / "agent-update.zip"
@@ -59,6 +68,18 @@ class AutoUpdater:
             if resp.status_code != 200:
                 logger.error(f"[AutoUpdater] Download failed HTTP {resp.status_code}")
                 return False
+
+            # 1b. SHA-256 verification (if an expected hash was provided).
+            if expected_sha256:
+                import hashlib
+                actual = hashlib.sha256(resp.content).hexdigest()
+                if actual.lower() != expected_sha256.lower():
+                    logger.error(
+                        f"[AutoUpdater] SHA-256 MISMATCH. Refusing to apply update. "
+                        f"expected={expected_sha256} actual={actual}"
+                    )
+                    return False
+                logger.info("[AutoUpdater] SHA-256 verified.")
 
             with open(zip_path, "wb") as f:
                 f.write(resp.content)

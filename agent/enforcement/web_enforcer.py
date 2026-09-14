@@ -132,14 +132,23 @@ class WebEnforcer:
                 )
 
                 if matched and pid and pid not in killed_pids:
-                    if self._kill_process(pid):
+                    # Close ONLY the offending tab/window (via WM_CLOSE to that
+                    # specific HWND) instead of killing the whole browser process.
+                    # This spares the child's other open tabs (schoolwork etc.).
+                    hwnd = window.get("hwnd")
+                    closed = self._close_window(pid, hwnd)
+                    # If we could not close just the tab (no hwnd / API failure),
+                    # fall back to killing the browser process so the block holds.
+                    if not closed:
+                        closed = self._kill_process(pid)
+                    if closed:
                         killed_pids.add(pid)
-                        alert_msg = f"Blocked web access: {target} in window '{window_title}'"
+                        alert_msg = f"Blocked web access: {target} in tab '{window_title}'"
                         self._send_alert(
                             alert_sender, device_id, "banned_website_opened", alert_msg
                         )
                         actions_taken.append({
-                            "action": "killed_browser_window",
+                            "action": "closed_browser_tab",
                             "pid": pid,
                             "process_name": process_name,
                             "window_title": window_title,
@@ -148,6 +157,47 @@ class WebEnforcer:
                         break  # Stop checking further rules for this window
 
         return actions_taken
+
+    def _close_window(self, pid: int, hwnd) -> bool:
+        """Close a specific browser window/tab without killing the process.
+
+        Sends WM_CLOSE to the window handle so the browser closes just that tab
+        (or window) gracefully; other tabs remain open. Falls back to closing
+        the window by PID enumeration if no hwnd is available.
+        """
+        if hwnd:
+            try:
+                import win32api
+                import win32con
+                win32api.PostMessage(hwnd, win32con.WM_CLOSE, 0, 0)
+                return True
+            except Exception:
+                pass
+        # Fallback: close the browser window owned by pid (enumerate top-level windows).
+        try:
+            import win32gui
+            import win32process
+
+            found = False
+
+            def _close_cb(h, _):
+                nonlocal found
+                try:
+                    _, w_pid = win32process.GetWindowThreadProcessId(h)
+                    if w_pid == pid and win32gui.IsWindowVisible(h):
+                        import win32api
+                        import win32con
+                        win32api.PostMessage(h, win32con.WM_CLOSE, 0, 0)
+                        found = True
+                        return False  # stop enumeration
+                except Exception:
+                    pass
+                return True
+
+            win32gui.EnumWindows(_close_cb, None)
+            return found
+        except Exception:
+            return False
 
 
     def _kill_process(self, pid: int) -> bool:

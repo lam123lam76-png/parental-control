@@ -59,7 +59,8 @@ class LocalDB:
                         id INTEGER PRIMARY KEY AUTOINCREMENT,
                         process_name TEXT,
                         window_title TEXT,
-                        timestamp TEXT
+                        timestamp TEXT,
+                        duration INTEGER DEFAULT 0
                     )
                 """)
             cursor.execute("""
@@ -76,6 +77,13 @@ class LocalDB:
                         value TEXT
                     )
                 """)
+            # Migration: ensure pending_logs has the duration column (older DBs).
+            try:
+                cols = [r[1] for r in cursor.execute("PRAGMA table_info(pending_logs)").fetchall()]
+                if cols and "duration" not in cols:
+                    cursor.execute("ALTER TABLE pending_logs ADD COLUMN duration INTEGER DEFAULT 0")
+            except Exception:
+                pass
             conn.commit()
 
     # --- Cached Rules Methods ---
@@ -123,17 +131,18 @@ class LocalDB:
 
     # --- Pending Logs Methods ---
 
-    def add_pending_log(self, process_name: str, window_title: str | None = None, timestamp: str | None = None) -> None:
-        """Add a pending process log to local queue."""
+    def add_pending_log(self, process_name: str, window_title: str | None = None, timestamp: str | None = None,
+                        duration: int = 0) -> None:
+        """Add a pending process log to local queue (a NEW state-change row)."""
         if not timestamp:
             timestamp = datetime.now(timezone.utc).isoformat()
         try:
             with self._lock, self._get_connection() as conn:
                 cursor = conn.cursor()
                 cursor.execute("""
-                        INSERT INTO pending_logs (process_name, window_title, timestamp)
-                        VALUES (?, ?, ?)
-                    """, (process_name, window_title, timestamp))
+                        INSERT INTO pending_logs (process_name, window_title, timestamp, duration)
+                        VALUES (?, ?, ?, ?)
+                    """, (process_name, window_title, timestamp, duration))
                 # SQLite FIFO Limit: Keep only the latest 10,000 records
                 cursor.execute("""
                         DELETE FROM pending_logs 
@@ -145,12 +154,35 @@ class LocalDB:
         except Exception:
             pass
 
+    def add_pending_log_duration(self, process_name: str, window_title: str | None, duration: int) -> None:
+        """Accumulate duration into the most recent row with the SAME (process, title).
+
+        Used for state-change logging: while the child stays in one app/window we do
+        NOT insert a new row every scan — we only bump the duration of the current row.
+        """
+        if duration <= 0:
+            return
+        try:
+            with self._lock, self._get_connection() as conn:
+                cursor = conn.cursor()
+                cursor.execute("""
+                        UPDATE pending_logs SET duration = duration + ?
+                        WHERE id = (
+                            SELECT id FROM pending_logs
+                            WHERE process_name = ? AND IFNULL(window_title, '') = IFNULL(?, '')
+                            ORDER BY id DESC LIMIT 1
+                        )
+                    """, (duration, process_name, window_title))
+                conn.commit()
+        except Exception:
+            pass
+
     def get_pending_logs(self, limit: int = 100) -> list[dict[str, Any]]:
         """Fetch pending process logs up to the specified limit."""
         with self._lock, self._get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute("""
-                    SELECT id, process_name, window_title, timestamp
+                    SELECT id, process_name, window_title, timestamp, duration
                     FROM pending_logs
                     ORDER BY id ASC
                     LIMIT ?

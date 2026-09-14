@@ -137,44 +137,37 @@ def remove_scheduled_task() -> bool:
 
 
 def install_autostart() -> bool:
-    """Add watchdog silent launch command to Windows Registry Startup and setup persistence Task Scheduler."""
-    success = False
-    cmd = get_watchdog_launch_cmd()
-    try:
-        key = winreg.OpenKey(winreg.HKEY_CURRENT_USER, REG_PATH, 0, winreg.KEY_WRITE)
-        winreg.SetValueEx(key, APP_NAME, 0, winreg.REG_SZ, cmd)
-        winreg.CloseKey(key)
-        logger.info(f"Successfully installed HKCU Registry autostart: {cmd}")
-        success = True
-    except Exception as e:
-        logger.error(f"Failed to install HKCU autostart registry key: {e}")
+    """Install ONE persistence mechanism: the Watchdog Scheduled Task.
 
-    # Also try HKLM for system-wide persistence
-    try:
-        key_lm = winreg.OpenKey(winreg.HKEY_LOCAL_MACHINE, REG_PATH, 0, winreg.KEY_WRITE)
-        winreg.SetValueEx(key_lm, APP_NAME, 0, winreg.REG_SZ, cmd)
-        winreg.CloseKey(key_lm)
-        logger.info(f"Successfully installed HKLM Registry autostart: {cmd}")
-        success = True
-    except Exception:
-        pass
-
-    # Also install scheduled task
+    Deliberately does NOT write HKCU/HKLM Run keys. Using Run keys AND the
+    scheduled task at the same time launches the watchdog from multiple sources
+    at logon (same second), which — combined with a DACL-less Global mutex —
+    produced duplicate watchdog+agent pairs. The Scheduled Task is the single
+    source: it is battery-safe, runs at logon, repeats every 2 min for
+    self-healing, and its `MultipleInstances IgnoreNew` guarantees at most one
+    supervisor even if the trigger fires more than once.
+    """
     task_success = install_scheduled_task()
-    return success or task_success
+    if task_success:
+        logger.info("Autostart installed via Scheduled Task only (no Run keys).")
+    return task_success
 
 
 def remove_autostart() -> bool:
-    """Remove agent from Windows Registry Startup and Scheduled Tasks."""
+    """Remove agent from Scheduled Tasks AND any leftover Registry Run keys."""
     success = False
-    try:
-        key = winreg.OpenKey(winreg.HKEY_CURRENT_USER, REG_PATH, 0, winreg.KEY_WRITE)
-        winreg.DeleteValue(key, APP_NAME)
-        winreg.CloseKey(key)
-        logger.info("Successfully removed Registry autostart.")
-        success = True
-    except Exception as e:
-        logger.warning(f"Failed or key not found when removing autostart: {e}")
+    # Remove both HKCU and HKLM Run keys (older installs may have created them).
+    for hive in (winreg.HKEY_CURRENT_USER, winreg.HKEY_LOCAL_MACHINE):
+        try:
+            key = winreg.OpenKey(hive, REG_PATH, 0, winreg.KEY_WRITE)
+            winreg.DeleteValue(key, APP_NAME)
+            winreg.CloseKey(key)
+            logger.info(f"Removed Registry autostart from hive {hive}.")
+            success = True
+        except FileNotFoundError:
+            pass
+        except Exception as e:
+            logger.warning(f"Failed or key not found when removing autostart (hive {hive}): {e}")
 
     task_removed = remove_scheduled_task()
     return success or task_removed

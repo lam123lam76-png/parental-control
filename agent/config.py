@@ -53,7 +53,7 @@ def normalize_server_url(raw_url: str) -> tuple[str, str]:
     return backend_url, ws_url
 
 # Server URL Configuration (Supports SERVER_URL, API_BASE_URL, or BACKEND_URL env overrides)
-RAW_SERVER_URL: str = os.getenv("SERVER_URL") or os.getenv("API_BASE_URL") or os.getenv("BACKEND_URL") or "https://nguyentruclam.io.vn"
+RAW_SERVER_URL: str = os.getenv("SERVER_URL") or os.getenv("API_BASE_URL") or os.getenv("BACKEND_URL") or "https://quanlypc-api-backup.vercel.app"
 BACKEND_URL, WS_URL = normalize_server_url(RAW_SERVER_URL)
 
 import socket
@@ -66,6 +66,14 @@ HEARTBEAT_INTERVAL: int = int(os.getenv("HEARTBEAT_INTERVAL", "15"))
 LOG_BATCH_INTERVAL: int = int(os.getenv("LOG_BATCH_INTERVAL", "300"))
 ALERT_RETRY_INTERVAL: int = int(os.getenv("ALERT_RETRY_INTERVAL", "3"))
 PROCESS_SCAN_INTERVAL: int = int(os.getenv("PROCESS_SCAN_INTERVAL", "15"))
+
+# Anti-network-unplug: if the agent is offline (no successful poll) longer than
+# this, lock the screen (fail-closed) so a child can't bypass parental control
+# simply by unplugging the network. Tune to allow brief Wi-Fi blips.
+# NOTE: offline NOTIFICATION ("đã tắt") is handled by the BACKEND detecting that
+# the agent stopped polling /commands (last_seen_at stale > OFFLINE_THRESHOLD).
+# The agent cannot self-report when it is offline (no network to send the alert).
+OFFLINE_LOCK_SECONDS: int = int(os.getenv("OFFLINE_LOCK_SECONDS", "180"))
 
 # Storage paths
 _appdata = os.getenv("APPDATA") or os.path.expanduser("~")

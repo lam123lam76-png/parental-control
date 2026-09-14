@@ -41,10 +41,10 @@ import requests
 # ---------------------------------------------------------------------------
 # Constants
 # ---------------------------------------------------------------------------
-DEFAULT_BACKEND_URL = "https://nguyentruclam.io.vn"
-# BACKUP_SERVER_URL mặc định trỏ về chính Worker (nguyentruclam.io.vn) — Worker đã
-# xử lý failover home→backup, nên agent không cần biết URL Vercel cụ thể.
-DEFAULT_BACKUP_URL = "https://nguyentruclam.io.vn"
+DEFAULT_BACKEND_URL = "https://quanlypc-api-backup.vercel.app"
+# Trỏ thẳng tới Vercel API (không qua domain) — nhanh hơn và tránh DNS domain
+# không ổn định. Domain nguyentruclam.io.vn chỉ để dễ nhớ / cho web UI.
+DEFAULT_BACKUP_URL = "https://quanlypc-api-backup.vercel.app"
 # Cloud update package source (R2). Home machine removed -> download agent
 # package from here (fallback to backend static path for legacy).
 CLOUD_UPDATE_URL = "https://pub-68ac9fad65e94c8f886542276f2e490c.r2.dev"
@@ -383,6 +383,27 @@ def stop_agent_processes() -> None:
     time.sleep(2)
 
 
+def clear_single_instance_locks(target_dir: Path) -> None:
+    """Delete stale single-instance lock files before (re)starting the agent.
+
+    The agent/watchdog use byte-range file locks (agent.lock / watchdog.lock) held
+    open for the process lifetime. After we kill old processes, any leftover lock
+    FILE remains on disk. Previously a stale agent.lock with a reused/dead PID made
+    the new agent always think another instance was alive and exit immediately
+    ("Another Agent instance is running") -> infinite restart loop. Deleting the
+    lock files here (only safe AFTER killing the processes that held them) lets
+    the freshly started agent acquire a clean lock.
+    """
+    for name in ("agent.lock", "watchdog.lock"):
+        lock = target_dir / name
+        try:
+            if lock.exists():
+                lock.unlink()
+                log(f"  cleared stale lock: {lock}")
+        except Exception as e:
+            log(f"  could not clear lock {lock}: {e}")
+
+
 def write_shutdown_flag(target_dir: Path) -> None:
     """Block watchdog from racing while we overwrite binaries."""
     try:
@@ -433,6 +454,7 @@ def cmd_install(args) -> int:
         download_zip(backend_url, zip_path)
         extract_zip(zip_path, extracted)
         install_agent(backend_url, target_dir, extracted, enable_autostart=not args.no_autostart, backup_url=args.backup_url or DEFAULT_BACKUP_URL)
+        clear_single_instance_locks(target_dir)
         if not args.no_start:
             start_watchdog(target_dir)
         log("Cài đặt hoàn tất.")
@@ -476,6 +498,8 @@ def cmd_update(args) -> int:
     try:
         write_shutdown_flag(target_dir)
         stop_agent_processes()
+        # Clear stale single-instance lock files now that old processes are dead.
+        clear_single_instance_locks(target_dir)
         download_zip(backend_url, zip_path)
         extract_zip(zip_path, extracted)
 

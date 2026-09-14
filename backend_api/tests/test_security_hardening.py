@@ -36,21 +36,39 @@ LEAKED_BOT_TOKENS = [
 ]
 
 SOURCE_GLOBS = [
+    (REPO_ROOT / "agent", "**/*.py"),
     (BACKEND_DIR / "core", "*.py"),
     (BACKEND_DIR / "routers", "*.py"),
-    (REPO_ROOT / "agent", "*.py"),
-    (REPO_ROOT / "manager-web" / "src", "*.js"),
-    (REPO_ROOT / "manager-web" / "src", "*.jsx"),
+    (BACKEND_DIR / "api", "*.py"),
+    (REPO_ROOT / "manager-web" / "src", "**/*.js"),
+    (REPO_ROOT / "manager-web" / "src", "**/*.jsx"),
     (REPO_ROOT / "docs", "*.md"),
     (REPO_ROOT, "*.py"),
     (REPO_ROOT, "*.md"),
+    (REPO_ROOT, "*.bat"),
 ]
 
 
+SOURCE_DIRS = [
+    BACKEND_DIR / "core",
+    BACKEND_DIR / "routers",
+    BACKEND_DIR / "api",
+    REPO_ROOT / "agent",  # rglob → phủ cả communication/, enforcement/, protection/, utils/, local_store/
+    REPO_ROOT / "manager-web" / "src",
+    REPO_ROOT / "docs",
+    REPO_ROOT,  # script/tài liệu ở gốc repo
+]
+SOURCE_SUFFIXES = (".py", ".js", ".jsx", ".md")
+
+
 def _source_files():
+    seen = set()
     for base, pattern in SOURCE_GLOBS:
         if base.exists():
-            yield from base.glob(pattern)
+            for path in base.glob(pattern):
+                if path.is_file() and path not in seen:
+                    seen.add(path)
+                    yield path
 
 
 @pytest.mark.parametrize(

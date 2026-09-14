@@ -1,4 +1,4 @@
-# Parental Control — Self‑Hosted (Handover README)
+# Parental Control — Cloud Architecture (Handover README)
 
 Phiên bản: 2026-08-07
 
@@ -14,17 +14,17 @@ Tài liệu này là bản Handover (bàn giao) chi tiết cho dự án "parenta
 
 Mục đích hệ thống
 - Hệ thống Parental Control giám sát và (tuỳ vào cấu hình) kiểm soát hành vi sử dụng máy tính của trẻ em: thu thập tiến trình đang chạy, ghi nhật ký hoạt động, chụp ảnh màn hình, lưu lịch sử trình duyệt, gửi/nhận lệnh điều khiển, và hiển thị dashboard quản trị.
-- Hướng đi hiện tại: chuyển từ Supabase + Vercel sang mô hình Self‑Hosted (chạy trên máy gia đình / máy chủ nội bộ) để bảo mật dữ liệu, giảm chi phí và giảm độ trễ nội bộ.
+- Hướng đi hiện tại: Triển khai trên nền tảng Cloud (Vercel cho Frontend, VPS/Cloudflare cho Backend FastAPI) để quản lý tập trung và dễ dàng truy cập từ xa mọi lúc mọi nơi.
 
 Các thành phần chính
 - Agent (Python): chạy trên máy con (Windows được ưu tiên) — thu thập dữ liệu, upload ảnh, polling lệnh, thực thi lệnh và gửi heartbeat.
-- Backend API (FastAPI): REST API self-hosted thay thế Supabase. Cung cấp endpoints: /api/query, /api/rpc/{procedure}, /api/storage/{bucket}/(upload|download|remove), /api/health, v.v.
+- Backend API (FastAPI): REST API chạy trên VPS (có Cloudflare Tunnel) để thay thế cho Supabase. Cung cấp endpoints: /api/query, /api/rpc/{procedure}, /api/storage/{bucket}/(upload|download|remove), /api/health, v.v.
 - Database (PostgreSQL): lưu devices, logs, cấu hình, commands.
 - Manager Web (React + Vite): dashboard dùng để xem trạng thái, gửi lệnh, quản lý quy tắc.
 
 ---
 
-2) Kiến trúc & Môi trường Self‑Hosted (Architecture & Environment)
+2) Kiến trúc & Môi trường Cloud (Architecture & Environment)
 
 Kiến trúc hiện tại (Docker Compose)
 - docker-compose.yml orchestrates 3 services chính:
@@ -70,7 +70,7 @@ Tóm tắt các bước đã hoàn thành
 
 Các sửa đổi/patch chi tiết (vị trí & nội dung)
 - Authentication change: thống nhất sang Bearer token
-  - Reason: self-hosted API dùng API_KEY so với Supabase token; agent & frontend cần gửi header Authorization dạng Bearer.
+  - Reason: API tự build dùng API_KEY so với Supabase token; agent & frontend cần gửi header Authorization dạng Bearer.
   - Files patched:
     - agent/supabase.py
       - Mục đích: supabase wrapper (local) đã được cập nhật để gắn header Authorization = f"Bearer {key}" khi khởi tạo client.

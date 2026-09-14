@@ -48,3 +48,17 @@ backend_api/_diag_*.py
 backend_api/_chk_*.py
 backend_api/_test_*.py
 backend_api/_cleanup_*.py
+.vercel
+.env*
+
+# Scratch/backup files giữ trên máy, KHÔNG bao giờ phát hành (xoá tay khi không cần):
+/_backup_ui_before/
+/old_dashboard.jsx
+/FastAPIDashboard.jsx
+/fix.py
+/test_db.py
+/test_flow.py
+/test_flow2.py
+/update_kg.py
+# Plugin/agent tooling cài cục bộ (có node_modules, không thuộc sản phẩm)
+.agents/plugins/

@@ -70,6 +70,7 @@ class BlockerUI:
         self.current_reason = DEFAULT_MESSAGE
         self.countdown_label: tk.Label | None = None
         self.lock_start_time: float = 0.0
+        self._dialog_open = False  # set True while a dialog (e.g. Wi-Fi) is up
         # ── Bảo vệ brute-force mật khẩu ──
         self._failed_attempts: int = 0
         self._lockout_until: float = 0.0
@@ -97,6 +98,13 @@ class BlockerUI:
     def _keep_topmost_loop(self):
         """Periodically ensure all blocker windows stay on top and update countdown timer."""
         if not self.is_showing or not self.root:
+            return
+
+        # While a child dialog (e.g. Wi-Fi picker) is open, do not re-raise the
+        # blocker over it — otherwise the full-screen blocker covers the dialog.
+        if self._dialog_open:
+            if self.root and self.is_showing:
+                self.root.after(1000, self._keep_topmost_loop)
             return
 
         for win in self.windows:
@@ -210,6 +218,21 @@ class BlockerUI:
             os.system("shutdown /s /t 0")
         except Exception as e:
             logger.error(f"Failed to execute shutdown command: {e}")
+
+    def _open_wifi(self):
+        """Open the Wi-Fi connection dialog on the lock screen."""
+        try:
+            from protection.wifi_ui import show_wifi_dialog
+            if self.root:
+                self._dialog_open = True
+                show_wifi_dialog(self.root, on_close=self._on_dialog_closed)
+        except Exception as e:
+            self._dialog_open = False
+            logger.error(f"_open_wifi error: {e}")
+
+    def _on_dialog_closed(self):
+        """Re-enable blocker top-most enforcement once a child dialog closes."""
+        self._dialog_open = False
 
     def _build_ui(self):
         """Build Tkinter root and multi-monitor windows."""
@@ -348,6 +371,24 @@ class BlockerUI:
                 )
                 shutdown_btn.pack(side="right", expand=True, fill="x", padx=(5, 0))
 
+                # Wi-Fi button — let the user reconnect to the internet directly
+                # from the lock screen (unlock via backend needs connectivity).
+                wifi_btn = tk.Button(
+                    btn_frame,
+                    text="📶 Kết nối Wi-Fi",
+                    command=lambda: self._open_wifi(),
+                    font=("Segoe UI", 11, "bold"),
+                    bg="#1f7a4d",
+                    fg="#ffffff",
+                    activebackground="#17603a",
+                    activeforeground="#ffffff",
+                    relief="flat",
+                    padx=20,
+                    pady=8,
+                    cursor="hand2"
+                )
+                wifi_btn.pack(side="left", expand=True, fill="x", padx=(5, 5))
+
             else:
                 # Secondary monitors get simple dark overlay message
                 sub_header = tk.Label(
@@ -402,7 +443,7 @@ class BlockerUI:
                                     lbl.config(text=self.current_reason)
                             except Exception:
                                 pass
-                        if self.is_showing:
+                        if self.is_showing and not self._dialog_open:
                             for win in self.windows:
                                 try:
                                     if win.state() != "normal":

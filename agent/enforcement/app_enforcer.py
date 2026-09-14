@@ -3,12 +3,115 @@ app_enforcer.py — Application Rule Enforcement Engine.
 
 Monitors running processes, enforces banned application blocks, and tracks usage
 time against daily limit thresholds.
+
+SAFETY (Task 6): process matching is hardened so a loose substring rule can never
+kill the OS or the agent itself:
+  1. HARD_WHITELIST — OS-critical + agent processes are never matched/killed.
+  2. Smart folder match — the exe path is split into path segments and matched
+     segment-by-segment, so "pro" cannot hit "program files" but "minecraft" still
+     matches "...\AppData\Roaming\.minecraft\runtime\java.exe".
+  3. Min-length guard — a bare target shorter than 3 chars is ignored unless it
+     ends in ".exe" (explicit exact file).
 """
 import datetime
+import os
 import subprocess
 import time
 
 import psutil
+
+
+# Tier 1 — processes that must never be killed, regardless of any rule.
+HARD_WHITELIST = {
+    "svchost.exe", "csrss.exe", "winlogon.exe", "wininit.exe", "smss.exe",
+    "lsass.exe", "services.exe", "explorer.exe", "taskhost.exe",
+    "taskhostw.exe", "dwm.exe", "conhost.exe", "fontdrvhost.exe",
+    "sihost.exe", "ctfmon.exe", "registry", "system", "system idle process",
+    "parentalcontrolagent.exe", "parentalcontrolwatchdog.exe", "updater.exe",
+    "agent_check_good.exe",
+}
+
+# Minimum length for a fuzzy (substring) target unless it carries a ".exe" suffix.
+MIN_TARGET_LEN = 3
+
+
+def _split_path_segments(path: str) -> list[str]:
+    """Split an absolute path into normalized lowercase segments (folders + file)."""
+    segments = []
+    for part in path.replace("/", "\\").split("\\"):
+        part = part.strip()
+        if part:
+            segments.append(part.lower())
+    return segments
+
+
+def _is_system_protected(p_name: str, p_exe: str) -> bool:
+    """True if the process is OS/agent core and must never be killed."""
+    base = os.path.basename(p_name or "").lower()
+    if base in HARD_WHITELIST:
+        return True
+    exe_base = os.path.basename(p_exe or "").lower()
+    if exe_base in HARD_WHITELIST:
+        return True
+    # Fallback: any exe under System32 / Windows dirs that isn't a known app.
+    if p_exe:
+        segs = _split_path_segments(p_exe)
+        if segs and segs[0] in ("c:", "c$"):
+            # protect core OS binaries in case whitelist misses one
+            if any(s in ("windows", "system32", "syswow64") for s in segs[:4]):
+                return True
+    return False
+
+
+def _target_is_actionable(target_lower: str) -> bool:
+    """Tier 3 guard: ignore overly short fuzzy targets unless it's an explicit file."""
+    if target_lower.endswith(".exe"):
+        return True
+    return len(target_lower) >= MIN_TARGET_LEN
+
+
+def _matches_target(target_lower: str, p_name_lower: str, p_exe_lower: str) -> bool:
+    """
+    Tier 2 matching:
+      - exact process name (chrome.exe) OR
+      - substring in process name (a short name) OR
+      - segment-wise match in exe path (so "minecraft" matches
+        "...\AppData\Roaming\.minecraft\runtime\java.exe" but "pro" does NOT match
+        "c:\program files\...").
+    """
+    # Exact name match always allowed.
+    if p_name_lower == target_lower:
+        return True
+    # Substring in process name (e.g. "minecraft" matching some exe named "minecraftlauncher.exe").
+    if p_name_lower and target_lower in p_name_lower:
+        return True
+    # Smart folder match on the exe path segments.
+    if p_exe_lower:
+        segments = _split_path_segments(p_exe_lower)
+        # Folders that must never be fuzzy-matched (system / program roots).
+        _NO_FUZZ_FOLDERS = {
+            "c:", "windows", "system32", "syswow64", "program files",
+            "program files (x86)", "programdata", "users", "appdata",
+            "local", "locallow", "roaming", "microsoft", "microsoft shared",
+        }
+        for i, seg in enumerate(segments):
+            # Exact segment match: "minecraft" matches a folder/file literally
+            # named "minecraft", "pro" does NOT match "program files".
+            if seg == target_lower:
+                return True
+            # Fuzzy match inside the final file segment (name.exe) — e.g.
+            # "minecraft" matches "minecraft.jar.exe".
+            is_file_segment = (i == len(segments) - 1)
+            if is_file_segment and len(seg) >= len(target_lower) and target_lower in seg:
+                return True
+            # Fuzzy match inside a NON-system folder segment too — e.g. a game
+            # installed in "AppData\Roaming\.minecraft" still needs to match
+            # "minecraft". Skip reserved system/program folders so "pro" can't hit
+            # "program files" and "win" can't hit "windows".
+            if not is_file_segment and seg not in _NO_FUZZ_FOLDERS:
+                if len(seg) >= len(target_lower) and target_lower in seg:
+                    return True
+    return False
 
 
 class AppEnforcer:
@@ -71,6 +174,10 @@ class AppEnforcer:
 
             target_lower = target.lower()
 
+            # Tier 3: reject overly short fuzzy targets (unless explicit .exe).
+            if not _target_is_actionable(target_lower):
+                continue
+
             is_banned = bool(
                 rule.get("is_banned")
                 or rule.get("is_forbidden")
@@ -83,7 +190,7 @@ class AppEnforcer:
             except (ValueError, TypeError):
                 daily_limit_minutes = 0.0
 
-            # Match running processes with target (case-insensitive match or substring match)
+            # Match running processes with target (safe matching, see module docstring).
             matched_processes = []
             for proc in running_processes:
                 p_name = str(proc.get("name") or "").strip()
@@ -92,12 +199,11 @@ class AppEnforcer:
                 p_name_lower = p_name.lower()
                 p_exe_lower = p_exe.lower()
 
-                # Case-insensitive match or substring match
-                if (
-                    target_lower == p_name_lower
-                    or target_lower in p_name_lower
-                    or (p_exe_lower and target_lower in p_exe_lower)
-                ):
+                # Tier 1: never touch OS/agent core processes.
+                if _is_system_protected(p_name, p_exe):
+                    continue
+
+                if _matches_target(target_lower, p_name_lower, p_exe_lower):
                     matched_processes.append(proc)
 
             if not matched_processes:

@@ -16,7 +16,7 @@ set "BACKEND_STORAGE=%PROJECT_ROOT%backend_api\storage\updates"
 set "ZIP_PATH=%BACKEND_STORAGE%\agent-update.zip"
 
 rem --- Nho TANG so version moi lan build (v0004, v0005, ...) ---
-set "AGENT_VERSION=v0012"
+set "AGENT_VERSION=v0031"
 
 if not exist "%BACKEND_STORAGE%" mkdir "%BACKEND_STORAGE%"
 
@@ -30,7 +30,7 @@ del /f /q "%AGENT_DIR%\Updater.spec" 2>nul
 
 echo     - Building ParentalControlAgent.exe ...
 cd /d "%AGENT_DIR%"
-python -m PyInstaller --noconsole --onefile --name="ParentalControlAgent" --hidden-import="win32gui" --hidden-import="win32process" --hidden-import="win32crypt" --hidden-import="mss" --hidden-import="PIL" --hidden-import="websocket" main.py
+python -m PyInstaller --noconsole --onefile --name="ParentalControlAgent" --hidden-import="win32gui" --hidden-import="win32process" --hidden-import="win32crypt" --hidden-import="win32api" --hidden-import="win32con" --hidden-import="mss" --hidden-import="PIL" --hidden-import="websocket" main.py
 if errorlevel 1 (
     echo     [ERROR] Agent build FAILED - xem output o tren.
     goto :failed
@@ -80,11 +80,27 @@ powershell -NoProfile -Command "Compress-Archive -Path '%AGENT_DIR%\dist\*', '%A
 powershell -NoProfile -Command "$v = @{ version = '%AGENT_VERSION%'; download_url = '/static/updates/agent-update.zip'; created_at = (Get-Date).ToUniversalTime().ToString('o') }; $v | ConvertTo-Json | Set-Content -Path '%BACKEND_STORAGE%\version.json' -Encoding ascii"
 
 echo.
+echo [5/5] Upload len R2 (neu co R2 credentials trong env)...
+if not defined R2_ACCESS_KEY goto :skip_r2
+if not defined R2_SECRET_KEY goto :skip_r2
+python "%PROJECT_ROOT%upload_r2.py" --access-key "%R2_ACCESS_KEY%" --secret-key "%R2_SECRET_KEY%"
+if errorlevel 1 goto :r2_fail
+echo     Upload R2 thanh cong.
+goto :after_r2
+:r2_fail
+echo     [WARN] Upload R2 that bai - vui long chay upload_r2.py thu cong.
+goto :after_r2
+:skip_r2
+echo     Bo qua (chua dat R2_ACCESS_KEY / R2_SECRET_KEY env).
+echo     Chay thu cong bang lenh upload_r2.py voi Access Key va Secret Key.
+:after_r2
+
+echo.
 echo ============================================================
 echo   DONE. Exe moi da o C:\Test (version %AGENT_VERSION%).
 echo   Zip:  %ZIP_PATH%
-echo   Tiep theo: upload zip len backend (deploy-update) roi
-echo   chay AgentInstaller.exe (admin) tren may dich.
+echo   Tiep theo: chay AgentInstaller.exe (admin) tren may dich,
+echo   hoac dung force-update tren web de cap nhat tu xa.
 echo ============================================================
 pause
 exit /b 0

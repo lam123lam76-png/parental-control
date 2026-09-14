@@ -14,7 +14,6 @@ import threading
 
 import requests
 from local_store.local_db import LocalDB
-from utils.config import API_KEY
 from utils.logger import log_debug
 
 
@@ -30,6 +29,7 @@ class AlertSender:
         self,
         backend_url: str | None = None,
         device_id: str | None = None,
+        secret_token: str | None = None,
         retry_interval: float = ALERT_RETRY_INTERVAL,
         local_db: LocalDB | None = None,
     ):
@@ -37,12 +37,23 @@ class AlertSender:
         self.base_url = backend_url or BACKEND_URL
         self.backup_url = BACKUP_SERVER_URL
         self.device_id = device_id or os.getenv("DEVICE_ID") or os.getenv("DEVICE_NAME", "May_Em_Trai")
+        # Credential của CHÍNH máy này (không dùng key dùng chung nữa). Endpoint
+        # /api/alerts vốn nhận diện thiết bị qua device_id nên token chỉ để hợp lệ
+        # hoá request; gửi kèm cũng giúp server siết quyền sau này.
+        self.secret_token = (secret_token or "").strip()
         self.retry_interval = retry_interval
         self.db = local_db or LocalDB()
 
         self._running = False
         self._worker_thread: threading.Thread | None = None
         self._trigger_event = threading.Event()
+
+    @property
+    def _headers(self) -> dict:
+        headers = {"Content-Type": "application/json"}
+        if self.secret_token:
+            headers["Authorization"] = f"Bearer {self.secret_token}"
+        return headers
 
     @property
     def alert_url(self) -> str:
@@ -75,7 +86,7 @@ class AlertSender:
             res = requests.post(
                 self.alert_url,
                 json=alert_item,
-                headers={"Content-Type": "application/json", "Authorization": f"Bearer {API_KEY}"},
+                headers=self._headers,
                 timeout=5,
             )
             return 200 <= res.status_code < 300
@@ -141,7 +152,7 @@ class AlertSender:
                 response = requests.post(
                     self.alert_url,
                     json=alert_item,
-                    headers={"Content-Type": "application/json", "Authorization": f"Bearer {API_KEY}"},
+                    headers=self._headers,
                     timeout=10,
                 )
 

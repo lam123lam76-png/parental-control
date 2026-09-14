@@ -15,7 +15,6 @@ import time
 
 import requests
 from local_store.local_db import LocalDB
-from utils.config import API_KEY
 from utils.logger import log_debug
 
 
@@ -33,6 +32,7 @@ class LogUploader:
         self,
         backend_url: str | None = None,
         device_id: str | None = None,
+        secret_token: str | None = None,
         batch_interval: float = LOG_BATCH_INTERVAL,
         local_db: LocalDB | None = None,
     ):
@@ -40,12 +40,21 @@ class LogUploader:
         self.base_url = backend_url or BACKEND_URL
         self.backup_url = BACKUP_SERVER_URL
         self.device_id = device_id or os.getenv("DEVICE_ID") or os.getenv("DEVICE_NAME", "May_Em_Trai")
+        # Credential riêng của máy này — không dùng key dùng chung nữa.
+        self.secret_token = (secret_token or "").strip()
         self.batch_interval = batch_interval
         self.db = local_db or LocalDB()
 
         self._running = False
         self._worker_thread: threading.Thread | None = None
         self._trigger_event = threading.Event()
+
+    @property
+    def _headers(self) -> dict:
+        headers = {"Content-Type": "application/json"}
+        if self.secret_token:
+            headers["Authorization"] = f"Bearer {self.secret_token}"
+        return headers
 
     @property
     def upload_url(self) -> str:
@@ -120,6 +129,7 @@ class LogUploader:
                 "process_name": process_name,
                 "window_title": window_title,
                 "timestamp": timestamp,
+                "duration": item.get("duration") or 0,
             })
             if log_id is not None:
                 log_ids.append(log_id)
@@ -137,7 +147,7 @@ class LogUploader:
             response = requests.post(
                 self.upload_url,
                 json=payload,
-                headers={"Content-Type": "application/json", "Authorization": f"Bearer {API_KEY}"},
+                headers=self._headers,
                 timeout=10,
             )
 

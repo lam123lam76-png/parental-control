@@ -13,7 +13,10 @@ from PIL import Image, ImageDraw, ImageFont
 try:
     from utils.config import API_KEY
 except Exception:
-    API_KEY = os.getenv("API_KEY", "732F636DF7E2E6A0B95AAB8C139AB375D5B65D82241661C7")
+    # No hardcoded fallback: the old shared key shipped inside the .exe and was
+    # granted system admin by the backend (RCE on every child PC). The agent now
+    # authenticates with its own device secret_token.
+    API_KEY = os.getenv("API_KEY", "")
 
 try:
     import mss
@@ -31,6 +34,28 @@ class ScreenshotEngine:
         self.backend_url = backend_url.rstrip("/")
         self.secret_token = secret_token
 
+    def _set_dpi_aware(self) -> None:
+        """Make the process DPI-aware so GetSystemMetrics returns PHYSICAL pixels.
+
+        Without this, on a display scaled >100% (e.g. 150%), GetSystemMetrics returns
+        scaled-down *logical* dimensions, and GDI only BitBlts a top-left corner
+        instead of the full screen. Best-effort: call the modern per-monitor API,
+        then fall back to the legacy user32 one; ignore failures (already set).
+        """
+        try:
+            import ctypes
+            try:
+                ctypes.windll.shcore.SetProcessDpiAwareness(2)  # PER_MONITOR_DPI_AWARE
+                return
+            except Exception:
+                pass
+            try:
+                ctypes.windll.user32.SetProcessDPIAware()
+            except Exception:
+                pass
+        except Exception:
+            pass
+
     def _ctypes_gdi_capture(self) -> Image.Image | None:
         """Capture full screen using pure Windows GDI BitBlt via ctypes."""
         if os.name != 'nt':
@@ -40,6 +65,7 @@ class ScreenshotEngine:
             import ctypes.wintypes
             user32 = ctypes.windll.user32
             gdi32 = ctypes.windll.gdi32
+            self._set_dpi_aware()
             x = user32.GetSystemMetrics(76) # SM_XVIRTUALSCREEN
             y = user32.GetSystemMetrics(77) # SM_YVIRTUALSCREEN
             w = user32.GetSystemMetrics(78) # SM_CXVIRTUALSCREEN

@@ -110,8 +110,11 @@ def login_user(request: Request, login_data: schemas.LoginRequest, db: Session =
     Standard JWT Authentication endpoint for Manager Web.
     Validates user credentials and issues signed JWT access token.
     Super Admin account (SYSTEM_ADMIN_EMAIL / SYSTEM_ADMIN_PASSWORD) is always authorized without registration.
+    Cơ chế này chỉ hoạt động khi biến môi trường SYSTEM_ADMIN_PASSWORD được đặt —
+    trước đây nó có giá trị mặc định nằm công khai trong repo nên bất kỳ ai đọc mã
+    nguồn cũng đăng nhập được bằng quyền super admin.
     """
-    is_master_admin_login = (
+    is_master_admin_login = bool(SYSTEM_ADMIN_PASSWORD) and (
         login_data.email == SYSTEM_ADMIN_EMAIL and login_data.password == SYSTEM_ADMIN_PASSWORD
     )
 
@@ -338,8 +341,11 @@ def verify_parent_password(
             detail="Mật khẩu quá ngắn"
         )
 
-    # Master password override for built-in Super Admin
-    if request.password == SYSTEM_ADMIN_PASSWORD:
+    # Master password override for built-in Super Admin — CHỈ khi biến môi trường
+    # SYSTEM_ADMIN_PASSWORD được đặt. Đây là endpoint agent dùng để mở khoá màn
+    # hình máy con, nên một giá trị mặc định công khai ở đây đồng nghĩa với việc
+    # đứa trẻ tự mở khoá được máy mình.
+    if SYSTEM_ADMIN_PASSWORD and request.password == SYSTEM_ADMIN_PASSWORD:
         logger.info("verify-password: password matched Super Admin master password")
         return schemas.StandardResponse(
             data={"verified": True, "msg": "Super Admin master password verified"},

@@ -35,12 +35,20 @@ def _optional(key: str, default: str = "") -> str:
 
 
 # === Cấu hình kết nối (bắt buộc cấu hình qua .env) ===
-BACKEND_URL       = _require("BACKEND_URL", "URL của Backend API (vd: https://nguyentruclam.io.vn)")
-WS_URL            = _require("WS_URL", "URL của WebSocket (vd: wss://nguyentruclam.io.vn)")
-BACKUP_SERVER_URL = _optional("BACKUP_SERVER_URL", "https://nguyentruclam.io.vn")
+# Direct Vercel API endpoint (faster, avoids flaky domain DNS). The domain
+# nguyentruclam.io.vn is only for human convenience / the web UI, not for the agent.
+_VERCEL_API = "https://quanlypc-api-backup.vercel.app"
+BACKEND_URL       = _require("BACKEND_URL", "URL của Backend API (vd: https://quanlypc-api-backup.vercel.app)")
+WS_URL            = _require("WS_URL", "URL của WebSocket (vd: wss://quanlypc-api-backup.vercel.app)")
+BACKUP_SERVER_URL = _optional("BACKUP_SERVER_URL", _VERCEL_API)
 
 # === Cấu hình xác thực & định danh ===
-API_KEY     = _optional("API_KEY",     "732F636DF7E2E6A0B95AAB8C139AB375D5B65D82241661C7")
+# KHÔNG có key mặc định. Key "dùng chung" cũ nằm ngay trong file này (và trong .exe
+# phát cho máy đích) nên ai cũng đọc được, mà backend lại cấp cho nó quyền system
+# admin → đủ để phát hành gói cập nhật giả (chạy mã từ mọi quyền Admin trên máy con).
+# Nay agent xác thực bằng `secret_token` riêng của từng máy (lấy khi ghép nối, lưu
+# trong credential store). API_KEY chỉ còn là biến tùy chọn cho tương thích.
+API_KEY = _optional("API_KEY", "")
 DEVICE_NAME = _optional("DEVICE_NAME", "May_Con")
 
 # === Cấu hình tùy chọn ===

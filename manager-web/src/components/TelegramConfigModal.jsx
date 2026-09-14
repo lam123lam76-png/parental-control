@@ -3,8 +3,11 @@ import { Send, CheckCircle2, AlertCircle, Save, X } from "lucide-react";
 import { api } from "../lib/api";
 
 export default function TelegramConfigModal({ isOpen, onClose, theme = "dark" }) {
-  const [botToken, setBotToken] = useState("8754890738:AAEGB2dZCXJzlQ-Bzk1zwN3n2HLxAyj8imA");
-  const [chatId, setChatId] = useState("1326412172");
+  // KHÔNG có giá trị mặc định: token bot từng bị hardcode ở đây nên nó nằm luôn
+  // trong bundle JS công khai (và trong repo). Cấu hình thật được nạp từ
+  // /api/telegram/config khi mở modal (yêu cầu quyền system admin).
+  const [botToken, setBotToken] = useState("");
+  const [chatId, setChatId] = useState("");
   const [statusMsg, setStatusMsg] = useState("");
   const [isError, setIsError] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -98,7 +101,7 @@ export default function TelegramConfigModal({ isOpen, onClose, theme = "dark" })
             <label className="block font-bold uppercase text-[10px] opacity-75 mb-1">Telegram Bot Token</label>
             <input
               type="text"
-              placeholder="e.g., 8754890738:AAEGB2dZCXJzlQ-Bzk1zwN3n2HLxAyj8imA"
+              placeholder="1234567890:AAxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
               value={botToken}
               onChange={(e) => setBotToken(e.target.value)}
               className={`w-full p-2 rounded-md border focus:outline-none font-mono text-xs ${

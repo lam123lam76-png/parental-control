@@ -158,7 +158,7 @@ async def send_chat_message(
     )
 
 
-@router.get("/api/device/{device_id}/chat/history", response_model=schemas.StandardResponse, dependencies=[Depends(verify_api_key)])
+@router.get("/api/device/{device_id}/chat/history", response_model=schemas.StandardResponse, dependencies=[Depends(require_permission("can_view_logs"))])
 def get_chat_history(device_id: str, limit: int = 100, db: Session = Depends(get_db)):
     """Fetches chat history for device."""
     dev_uuid = _resolve_device_uuid(device_id, db)

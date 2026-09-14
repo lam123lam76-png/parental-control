@@ -57,7 +57,8 @@ Cách hoàn thiện (cần xác nhận project Vercel hosting web + test UX):
    ```bat
    cd manager-web
    set VITE_BACKEND_URL=https://quanlypc-api-backup.vercel.app
-   set VITE_API_KEY=732F636DF7E2E6A0B95AAB8C139AB375D5B65D82241661C7
+   rem KHÔNG đặt VITE_API_KEY: Vite nhúng giá trị này vào bundle công khai.
+   rem Web đăng nhập bằng tài khoản phụ huynh để lấy JWT.
    npm run build
    ```
 2. Deploy bản build lên Vercel/Cloudflare Pages (project web riêng, vd `quanlypcemhoang`):

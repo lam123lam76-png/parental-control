@@ -61,12 +61,17 @@ vercel deploy --prod --yes
 | Tên | Giá trị / nguồn | Ghi chú |
 |---|---|---|
 | `DATABASE_URL` | Supabase SG pooler (xem mục 5) | bắt buộc |
-| `API_KEY` | `732F636DF7E2E6A0B95AAB8C139AB375D5B65D82241661C7` | agent auth |
+| `API_KEY` | *(bí mật riêng của server — KHÔNG dùng giá trị từng nằm trong repo, xem mục 7b)* | agent auth |
 | `SUPABASE_PROJECT_URL` | `https://xqscnzdghjvgdozwfdbj.supabase.co` | storage |
 | `SUPABASE_SERVICE_KEY` | service_role key (Secret) | storage upload/quota |
 | `SUPABASE_STORAGE_BUCKET` | `screenshots` | mặc định đúng |
-| `TELEGRAM_BOT_TOKEN` | `8791493245:AAGzaUQiS5XiLlsUt9xjBQZqh-OM2zb1rv4` | bot cha |
-| `TELEGRAM_CHAT_ID` | `1326412172,8628346561` | các phụ huynh (phẩy) |
+| `JWT_SECRET_KEY` | *(chuỗi ngẫu nhiên ≥ 48 ký tự — BẮT BUỘC, xem mục 7b)* | ký token đăng nhập web |
+| `TELEGRAM_BOT_TOKEN` | *(token bot thật, KHÔNG ghi vào repo)* | bot cha |
+| `TELEGRAM_CHAT_ID` | *(chat ID phụ huynh, phân tách bằng phẩy)* | các phụ huynh |
+| `R2_ACCESS_KEY` / `R2_SECRET_KEY` | token R2 quyền Object Read & Write | phát hành agent update |
+
+> ⚠️ Không đặt giá trị bí mật vào file này. Mọi token/key từng nằm trong repo phải coi
+> như đã lộ và phải thu hồi (mục 7b).
 
 > Supabase storage đọc env theo thứ tự: `SUPABASE_SERVICE_KEY` → `SUPABASE_SERVICE_ROLE_KEY` → `SUPABASE_SECRET_KEY`. Đặt ít nhất 1 trong 3.
 
@@ -122,8 +127,10 @@ UPDATE process_logs SET duration = 15 WHERE duration IS NULL OR duration = 0;
 
 ## 6. Telegram — webhook & bot
 
-- Bot: **`@pheduyetdangky_bot`**, token `8791493245:AAGzaUQiS5XiLlsUt9xjBQZqh-OM2zb1rv4`
-- Chat ID phụ huynh (nhiều, phân tách phẩy): `1326412172,8628346561`
+- Bot Telegram dùng cho phê duyệt đăng ký (tên bot xem trong BotFather). **Token không
+  ghi vào tài liệu này** — đặt qua `TELEGRAM_BOT_TOKEN` trên Vercel hoặc nhập ở
+  **Cài đặt → Telegram** trong web (lưu vào DB `telegram_settings`).
+- Chat ID phụ huynh (nhiều, phân tách phẩy): nhập ở cùng chỗ, hoặc `TELEGRAM_CHAT_ID`.
 - Webhook trỏ tới API:
   - URL: `https://quanlypc-api-backup.vercel.app/telegram/webhook`
   - Phải bật cả `message` lẫn `callback_query` (dùng JSON body):
@@ -187,21 +194,32 @@ curl "https://api.telegram.org/bot<TOKEN>/getWebhookInfo"
 
 ---
 
-## 7b. Tồn đọng bảo mật (đã báo cáo 14/09/2026, CHƯA sửa)
+## 7b. Bảo mật: bí mật từng bị lộ — đã sửa ngày 14/09/2026
 
-1. **JWT secret mặc định trên production.** `core/config.py` để mặc định
-   `PMQL_JWT_SECRET_KEY_CHANGE_ME_IN_PROD` và Vercel chưa đặt `JWT_SECRET_KEY`, nên một
-   token tự ký bằng chuỗi công khai đó được API chấp nhận (đã thử: `HTTP 200`). Hệ quả:
-   ai đọc repo đều giả được token admin → phát hành gói Agent giả (RCE trên máy con),
-   xem ảnh chụp, mở khoá máy. **Fix:** đặt `JWT_SECRET_KEY` ngẫu nhiên mạnh trên Vercel
-   rồi redeploy (mọi phiên web phải đăng nhập lại).
-2. **API key tĩnh hardcode được cấp quyền system admin.** Chuỗi
-   `732F636DF7E2E6A0B95AAB8C139AB375D5B65D82241661C7` nằm trong `core/security.py`
-   (`VALID_API_KEYS`) và trong agent (`utils/config.py`, `screenshot_engine.py`,
-   `telegram_registration.py` — tức có cả trong file .exe phát cho máy con), và
-   `get_current_user` biến nó thành system admin. **Fix đúng:** agent chỉ dùng
-   `secret_token` riêng của từng máy (backend đã hỗ trợ), bỏ key tĩnh khỏi
-   `VALID_API_KEYS`/`get_current_user`, build agent mới rồi phát hành qua luồng R2 ở trên.
+Repo này **public**, nên mọi giá trị bí mật từng nằm trong mã nguồn/tài liệu phải coi như
+đã lộ và đã được thu hồi. Các lỗ hổng đã tìm thấy và cách xử lý:
+
+| Lỗ hổng | Triệu chứng thực tế | Đã sửa thế nào |
+|---|---|---|
+| JWT secret mặc định có sẵn trong repo | Tôi tự ký token admin bằng chuỗi mặc định → API trả `HTTP 200`; ai đọc repo cũng phát hành được gói Agent giả (RCE trên máy con) | `core/config.py` **không còn secret mặc định**: thiếu `JWT_SECRET_KEY` thì sinh secret ngẫu nhiên theo tiến trình + log lỗi. Vercel đã đặt `JWT_SECRET_KEY` riêng |
+| Mật khẩu admin mặc định trong repo, dùng làm "mật khẩu chủ" | Đăng nhập web bằng quyền super admin **và** mở khoá màn hình máy con qua `POST /api/auth/verify-password` — đứa trẻ tự mở khoá được máy mình | `SYSTEM_ADMIN_PASSWORD` không còn giá trị mặc định; cơ chế master password chỉ chạy khi biến môi trường được đặt (rỗng = tắt) |
+| API key tĩnh hardcode được cấp quyền **system admin** | Key nằm trong `core/security.py` **và** trong agent (`.exe` phát cho máy con) → ai có nó phát hành được gói cập nhật giả | `get_current_user` nay ánh xạ mọi key tĩnh sang danh tính tối thiểu (`can_view_screenshots`), **không bao giờ** là system admin; `/api/telegram/config`, `/api/device/{id}/shutdown`, `/api/device/{id}/chat/history` đã siết lên quyền admin. Sau khi agent v0032 phổ biến thì xoá hẳn key tĩnh |
+| Bot token Telegram hardcode (3 token khác nhau) | Nằm trong `routers/system.py`, `TelegramConfigModal.jsx` (⇒ **nhúng vào bundle JS công khai**), `docs/DEPLOY_VERCEL_SUPABASE.md`, `docs/FAILOVER.md`, guide test | Xoá hết khỏi code/docs/bundle; token chỉ lấy từ DB `telegram_settings` hoặc `TELEGRAM_BOT_TOKEN`. **Phải revoke các token cũ trong BotFather** |
+| Vite nhúng `VITE_API_KEY` vào bundle | Bản build local chứa key tĩnh → ai xem JS cũng đọc được (bản production thì không, vì `.env` không lên Git) | `manager-web/.env` để trống `VITE_API_KEY` |
+
+Bổ sung: `backend_api/tests/test_security_hardening.py` khoá các thuộc tính trên lại —
+test sẽ **fail** nếu bất kỳ chuỗi bí mật cũ nào quay lại trong source, nếu key tĩnh được
+cấp quyền admin, hoặc nếu key tĩnh bị phát tán ra ngoài `core/security.py`.
+
+**Việc anh phải làm tay sau khi đổi key** (không thể tự động hoá):
+1. BotFather → `/mybots` → chọn bot → **Revoke token** cho mọi bot đã từng bị lộ, rồi
+   nhập token mới ở **Cài đặt → Telegram** trên web (lưu vào DB) hoặc đặt
+   `TELEGRAM_BOT_TOKEN` trên Vercel.
+2. Đổi mật khẩu tài khoản admin trên web (mật khẩu cũ đã lộ).
+3. Muốn giữ "mật khẩu chủ" mở khoá máy con: đặt `SYSTEM_ADMIN_PASSWORD` (chuỗi mạnh,
+   khác mật khẩu đăng nhập) trên Vercel rồi redeploy; không đặt thì cơ chế này tắt.
+4. Sau khi máy đích đã cập nhật agent v0032: xoá `LEGACY_AGENT_KEY` khỏi
+   `core/security.py` và xoá `API_KEY` khỏi `.env` của agent/backend.
 
 ---
 

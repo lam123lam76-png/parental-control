@@ -53,9 +53,33 @@ for _d in (SCREENSHOTS_DIR, UPDATES_DIR, TRASH_SHOTS_DIR, TRASH_RECORDS_DIR):
 
 # Admin
 SYSTEM_ADMIN_EMAIL = os.getenv("SYSTEM_ADMIN_EMAIL", "admin@nguyentruclam.io.vn")
-SYSTEM_ADMIN_PASSWORD = os.getenv("SYSTEM_ADMIN_PASSWORD", "Truc@1905s")
+# KHÔNG có mật khẩu mặc định. Mật khẩu mặc định cũ (đã nằm công khai trong repo
+# này) là MẬT KHẨU VẠN NĂNG: vừa đăng nhập được web bằng quyền super admin, vừa
+# mở khoá được màn hình máy con qua /api/auth/verify-password. Nay chỉ khi biến môi
+# trường được đặt thì cơ chế "master password" mới hoạt động (rỗng = tắt hẳn); tài
+# khoản admin vẫn đăng nhập bình thường bằng hash trong DB.
+SYSTEM_ADMIN_PASSWORD = os.getenv("SYSTEM_ADMIN_PASSWORD", "").strip()
 
 # JWT Configuration
-JWT_SECRET_KEY = os.getenv("JWT_SECRET_KEY", "PMQL_JWT_SECRET_KEY_CHANGE_ME_IN_PROD")
+# KHÔNG có secret mặc định. Trước đây để mặc định một chuỗi có sẵn trong repo (dạng
+# PMQL_JWT_SECRET_KEY_..._IN_PROD) và production không đặt biến này, nên bất kỳ ai
+# đọc repo (đang public) đều tự ký được token system-admin — đã kiểm chứng thực tế
+# (HTTP 200 trên endpoint admin). Nay nếu thiếu biến môi trường thì sinh secret ngẫu
+# nhiên theo tiến trình: token giả không dùng được nữa, đổi lại phiên đăng nhập hết
+# hiệu lực mỗi lần instance khởi động lại — đúng hướng an toàn, kèm log báo lỗi để
+# nhắc đặt biến.
+_jwt_secret_env = os.getenv("JWT_SECRET_KEY", "").strip()
+if _jwt_secret_env:
+    JWT_SECRET_KEY = _jwt_secret_env
+else:
+    import logging as _logging
+    import secrets as _secrets
+
+    JWT_SECRET_KEY = _secrets.token_urlsafe(48)
+    _logging.getLogger(__name__).error(
+        "JWT_SECRET_KEY chưa được đặt — đang dùng secret ngẫu nhiên tạm thời cho tiến "
+        "trình này (mọi phiên đăng nhập sẽ mất hiệu lực khi khởi động lại). "
+        "Hãy đặt JWT_SECRET_KEY trong biến môi trường của server."
+    )
 JWT_ALGORITHM = os.getenv("JWT_ALGORITHM", "HS256")
 ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", "43200"))

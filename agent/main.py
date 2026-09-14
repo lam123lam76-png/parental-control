@@ -133,8 +133,8 @@ class AgentApp:
         from utils.time_sync import SecureTime
         SecureTime.start_sync_thread()
         
-        self.alert_sender = AlertSender(backend_url=config.BACKEND_URL, device_id=self.device_id)
-        self.log_uploader = LogUploader(backend_url=config.BACKEND_URL, device_id=self.device_id, local_db=self.local_db)
+        self.alert_sender = AlertSender(backend_url=config.BACKEND_URL, device_id=self.device_id, secret_token=self.secret_token)
+        self.log_uploader = LogUploader(backend_url=config.BACKEND_URL, device_id=self.device_id, secret_token=self.secret_token, local_db=self.local_db)
         self.screenshot_engine = ScreenshotEngine(device_id=self.device_id, backend_url=config.BACKEND_URL, secret_token=self.secret_token)
         self.browser_tracker = BrowserTracker(device_id=self.device_id, backend_url=config.BACKEND_URL)
         self.ws_client = WebSocketClient(device_id=self.device_id, secret_token=self.secret_token, ws_url=config.WS_URL)
@@ -299,8 +299,12 @@ class AgentApp:
                             from utils.config import BACKEND_URL, BACKUP_SERVER_URL
                             import utils.state as _state
                             base = BACKUP_SERVER_URL.rstrip("/") if _state.FALLBACK_MODE and BACKUP_SERVER_URL else BACKEND_URL.rstrip("/")
+                            # Dùng credential riêng của máy (không dùng key dùng chung nữa):
+                            # backend cấp cho key tĩnh quyền tối thiểu, còn secret_token
+                            # của thiết bị được phép can_view_screenshots.
                             from utils.config import API_KEY
-                            resp = _req.get(f"{base}/api/device/{se.device_id}/screenshots", headers={"Authorization": f"Bearer {API_KEY}"}, timeout=10)
+                            auth_token = getattr(se, "secret_token", None) or API_KEY
+                            resp = _req.get(f"{base}/api/device/{se.device_id}/screenshots", headers={"Authorization": f"Bearer {auth_token}"}, timeout=10)
                             if resp.status_code == 200:
                                 data = resp.json().get("data") or []
                                 if data:

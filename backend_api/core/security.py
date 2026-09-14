@@ -6,8 +6,10 @@ from fastapi import Security, HTTPException, status, Depends
 from fastapi.security.api_key import APIKeyHeader
 from core.config import JWT_SECRET_KEY, JWT_ALGORITHM, ACCESS_TOKEN_EXPIRE_MINUTES
 
-# Load from environment, fallback to default for dev only
-API_KEY = os.getenv("API_KEY", "PMQL_DEFAULT_SECRET_KEY_CHANGE_ME_IN_PROD")
+# Load from environment. NO shipped default: a default here is a public credential
+# (this repo is public) that the whole system would then trust. The old default was
+# the string PMQL_DEFAULT_SECRET_KEY_..._IN_PROD.
+API_KEY = os.getenv("API_KEY", "").strip()
 API_KEY_NAME = "Authorization"
 
 api_key_header = APIKeyHeader(name=API_KEY_NAME, auto_error=False)
@@ -38,13 +40,27 @@ def decode_access_token(token: str) -> Optional[Dict[str, Any]]:
         return None
 
 
-# Standard valid API keys
-VALID_API_KEYS = {
-    os.getenv("API_KEY", ""),
-    "732F636DF7E2E6A0B95AAB8C139AB375D5B65D82241661C7",
-    "PMQL_DEFAULT_SECRET_KEY_CHANGE_ME_IN_PROD",
+# Static (shared) keys. These are NOT secrets in any real sense — the agent key
+# ships inside the .exe handed to the child PC and used to live in this public
+# repo — so they are only accepted as "some credential" by `verify_api_key`, and
+# they map to a MINIMAL identity in `get_current_user` (never system admin).
+#
+# WHY: while a static key was mapped to `is_system_admin: True`, anyone holding
+# it could publish an agent update (RCE as Administrator on every child PC),
+# rewrite rules, delete data or open the Telegram config — with a value printed
+# in the source code. Admin-only endpoints now require a real admin JWT.
+LEGACY_AGENT_KEY = "732F636DF7E2E6A0B95AAB8C139AB375D5B65D82241661C7"
+VALID_API_KEYS = {k for k in (API_KEY, LEGACY_AGENT_KEY) if k}
+
+# Quyền tối thiểu cho danh tính dùng key tĩnh. `can_view_screenshots` là thứ agent
+# v0031 còn cần (luồng /shot lấy URL ảnh rồi gửi Telegram); không cấp gì thêm.
+STATIC_KEY_PERMISSIONS = {
+    "can_view_screenshots": True,
+    "can_manage_rules": False,
+    "can_view_logs": False,
+    "can_remote_control": False,
+    "can_manage_users": False,
 }
-VALID_API_KEYS = {k.strip() for k in VALID_API_KEYS if k and k.strip()}
 
 
 from database import get_db
@@ -113,19 +129,15 @@ async def get_current_user(
 
     token = api_key_header.replace("Bearer ", "").strip() if api_key_header.startswith("Bearer ") else api_key_header
 
-    # System key or agent token -> full access
+    # Static/shared key -> MINIMAL identity, never system admin (see the note on
+    # VALID_API_KEYS: a key that ships inside the agent .exe cannot be a secret,
+    # and it must not be able to publish updates / manage users / delete data).
     if token in VALID_API_KEYS:
         return {
-            "type": "system",
-            "role": "admin",
-            "is_system_admin": True,
-            "permissions": {
-                "can_view_screenshots": True,
-                "can_manage_rules": True,
-                "can_view_logs": True,
-                "can_remote_control": True,
-                "can_manage_users": True,
-            }
+            "type": "service",
+            "role": "service",
+            "is_system_admin": False,
+            "permissions": dict(STATIC_KEY_PERMISSIONS),
         }
 
     # Check registered device token

@@ -243,7 +243,7 @@ async def send_device_command(
         )
 
 
-@router.post("/api/device/{device_id}/shutdown", response_model=schemas.StandardResponse, dependencies=[Depends(verify_api_key)])
+@router.post("/api/device/{device_id}/shutdown", response_model=schemas.StandardResponse, dependencies=[Depends(require_permission("can_remote_control"))])
 async def shutdown_device(
     device_id: str,
     payload: dict = None,

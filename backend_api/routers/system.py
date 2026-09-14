@@ -720,11 +720,18 @@ def receive_diagnostic_report(report: DiagnosticReport):
     logger.info("==================================")
     return schemas.StandardResponse(data={"msg": "Report received"}, status_code=200)
 
-@router.get("/api/telegram/config", response_model=schemas.StandardResponse)
+@router.get("/api/telegram/config", response_model=schemas.StandardResponse, dependencies=[Depends(require_system_admin)])
 def get_telegram_config(db: Session = Depends(get_db)):
+    """Trả cấu hình Telegram cho giao diện quản trị.
+
+    SECURITY: endpoint này trả về bot_token (bí mật điều khiển bot), nên phải là
+    system admin — chỉ `verify_api_key` là không đủ vì key tĩnh nằm trong .exe
+    phát cho máy con, ai có nó cũng đọc được token. Không còn giá trị mặc định
+    hardcode: token chỉ lấy từ DB (cấu hình qua web) hoặc biến môi trường.
+    """
     t_setting = db.query(models.TelegramSetting).first()
-    bot_token = t_setting.bot_token if (t_setting and t_setting.bot_token) else "8838573041:AAFhpXyKVZib1_Y0wv29At1JlkiC1F-V-w4"
-    chat_id = t_setting.chat_id if (t_setting and t_setting.chat_id) else "1326412172"
+    bot_token = (t_setting.bot_token if t_setting and t_setting.bot_token else None) or os.getenv("TELEGRAM_BOT_TOKEN", "")
+    chat_id = (t_setting.chat_id if t_setting and t_setting.chat_id else None) or os.getenv("TELEGRAM_CHAT_ID", "")
     return schemas.StandardResponse(data={"bot_token": bot_token, "chat_id": chat_id}, status_code=200)
 
 @router.post("/api/telegram/config", response_model=schemas.StandardResponse, dependencies=[Depends(require_system_admin)])

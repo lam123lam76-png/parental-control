@@ -22,11 +22,17 @@ class RegisterRequest(BaseModel):
     hardware_uuid: str
     device_name: str
 
-@router.post("/api/register-request", response_model=schemas.StandardResponse, dependencies=[Depends(verify_api_key)])
-@limiter.limit("5/minute")
+@router.post("/api/register-request", response_model=schemas.StandardResponse)
+@limiter.limit("3/minute")
 def request_registration(request: Request, body: RegisterRequest, db: Session = Depends(get_db)):
     """
     Agent requests registration. Backend sends Telegram message for approval.
+
+    SECURITY: không yêu cầu API key. Máy chưa ghép nối thì chưa có credential nào
+    để xác thực, và trước đây nó dùng key tĩnh nằm trong .exe → key đó thành bí mật
+    dùng chung, không thể thu hồi. Nay hàng rào thật là: rate-limit theo IP ở đây
+    + phụ huynh phải bấm duyệt trên Telegram (chat_id đã cấu hình) mới sinh
+    device_id/secret_token. Không duyệt thì không có credential nào được cấp.
     """
     # Rate limit check (1 active per hw_uuid)
     existing = db.query(models.PendingRegistration).filter(
@@ -112,7 +118,7 @@ def get_registration_status(reg_id: str, db: Session = Depends(get_db)):
     return schemas.StandardResponse(data=resp_data, status_code=200)
 
 
-@router.post("/api/register-request/{reg_id}/resend", response_model=schemas.StandardResponse, dependencies=[Depends(verify_api_key)])
+@router.post("/api/register-request/{reg_id}/resend", response_model=schemas.StandardResponse)
 @limiter.limit("2/minute")
 def resend_registration(request: Request, reg_id: str, db: Session = Depends(get_db)):
     try:

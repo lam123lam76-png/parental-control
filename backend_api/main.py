@@ -70,6 +70,15 @@ def seed_system_admin():
     try:
         user = db.query(models.User).filter(models.User.email == SYSTEM_ADMIN_EMAIL).first()
         if not user:
+            # SECURITY: chỉ tạo tài khoản admin khi có mật khẩu đến từ biến môi
+            # trường. Trước đây mật khẩu có giá trị mặc định nằm công khai trong
+            # repo, nên trên một DB mới thì bất kỳ ai cũng đăng nhập được.
+            if not SYSTEM_ADMIN_PASSWORD:
+                logger.error(
+                    "[Seed] Bỏ qua tạo tài khoản system admin: chưa đặt "
+                    "SYSTEM_ADMIN_PASSWORD trong biến môi trường."
+                )
+                return
             hashed = _ctx.hash(SYSTEM_ADMIN_PASSWORD)
             user = models.User(
                 email=SYSTEM_ADMIN_EMAIL,

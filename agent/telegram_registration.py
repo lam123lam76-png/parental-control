@@ -27,7 +27,10 @@ logger = logging.getLogger("TelegramRegistration")
 try:
     from utils.config import API_KEY
 except Exception:
-    API_KEY = "732F636DF7E2E6A0B95AAB8C139AB375D5B65D82241661C7"
+    # No hardcoded fallback (see utils/config.py). The registration endpoints no
+    # longer require a key: while unpaired the machine has no credential at all,
+    # and the real gate is the parent approving the request in Telegram.
+    API_KEY = os.getenv("API_KEY", "")
 
 SHUTDOWN_SECRET = "PC_WATCHDOG_SAFE_EXIT_a8f3e1b9c2d7"
 TARGET_DIR = Path(r"C:\ProgramData\ParentalControl")
@@ -122,7 +125,12 @@ def run_telegram_registration(backend_url: str) -> bool:
         target_backend_url = backend_url
 
     endpoint_request = f"{target_backend_url.rstrip('/')}/api/register-request"
-    headers = {"Authorization": f"Bearer {API_KEY}", "Content-Type": "application/json"}
+    # Không gửi key dùng chung nữa: endpoint đăng ký chỉ giới hạn theo IP và bắt
+    # buộc phụ huynh duyệt trên Telegram mới cấp credential. Nếu bản cũ của server
+    # còn đòi key thì vẫn gửi kèm khi .env có API_KEY.
+    headers = {"Content-Type": "application/json"}
+    if API_KEY:
+        headers["Authorization"] = f"Bearer {API_KEY}"
 
     logger.info(f"Sending registration request for {hw_uuid} ({device_name}) to {endpoint_request}")
     try:

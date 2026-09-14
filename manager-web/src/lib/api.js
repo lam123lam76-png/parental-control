@@ -107,6 +107,47 @@ async function request(endpoint, options = {}) {
   return data;
 }
 
+/**
+ * PUT a release package straight to Cloudflare R2 with a presigned URL.
+ *
+ * Deliberately NOT part of `api`/`request()`: the target is the R2 host (not our
+ * backend), the signature in the URL IS the auth so no Authorization header may
+ * be sent, and XMLHttpRequest (not fetch) is required to report upload progress
+ * for a ~43 MB file.
+ */
+export function uploadFileToR2(uploadUrl, file, onProgress) {
+  return new Promise((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+    xhr.open("PUT", uploadUrl, true);
+    xhr.setRequestHeader("Content-Type", "application/zip");
+    xhr.upload.onprogress = (e) => {
+      if (e.lengthComputable && typeof onProgress === "function") {
+        onProgress(Math.round((e.loaded / e.total) * 100));
+      }
+    };
+    xhr.onload = () => {
+      if (xhr.status >= 200 && xhr.status < 300) {
+        resolve(xhr.status);
+      } else {
+        const detail = (xhr.responseText || "").slice(0, 200);
+        reject(
+          new Error(
+            `R2 từ chối tải lên (HTTP ${xhr.status})${detail ? `: ${detail}` : ""}`
+          )
+        );
+      }
+    };
+    xhr.onerror = () =>
+      reject(
+        new Error(
+          "Không tải được lên R2. Nếu là lỗi CORS, hãy bấm 'Thiết lập CORS cho R2' rồi thử lại."
+        )
+      );
+    xhr.ontimeout = () => reject(new Error("Hết thời gian tải gói lên R2."));
+    xhr.send(file);
+  });
+}
+
 export const api = {
   baseUrl: BASE_URL,
 
@@ -266,22 +307,31 @@ export const api = {
     request(`/api/device/${deviceId}/chat/history?limit=${limit}`),
 
   // Silent Auto-Updater
+  // Phiên bản đang phát hành lấy từ R2 (nguồn chuẩn trên cloud) — KHÔNG phải đĩa
+  // của backend, vì đĩa Vercel là /tmp tạm thời nên trước đây luôn báo sai (v0001).
   getAgentVersion: () =>
     request("/api/v1/agent/version"),
 
-  packAgentZip: (version) => {
-    const formData = new FormData();
-    formData.append("version", version);
-    return request("/api/v1/agent/pack-zip", {
-      method: "POST",
-      body: formData,
-    });
-  },
+  // Cấp URL PUT có chữ ký để tải gói .zip trực tiếp lên R2 (gói ~43 MB, vượt
+  // giới hạn 4.5 MB body của Vercel function nên không thể proxy qua backend).
+  presignAgentRelease: (version) =>
+    request("/api/v1/agent/r2-presign", { method: "POST", body: { version } }),
 
-  deployAgentUpdate: (formData) =>
-    request("/api/v1/agent/deploy-update", {
+  // Ghi version.json lên R2 sau khi zip đã nằm trong bucket.
+  publishAgentRelease: ({ version, sha256 = "", size_bytes = 0 }) =>
+    request("/api/v1/agent/r2-publish", {
       method: "POST",
-      body: formData,
+      body: { version, sha256, size_bytes },
+    }),
+
+  // Chẩn đoán R2: token, gói trong bucket, CORS cho trình duyệt.
+  getAgentR2Status: () =>
+    request("/api/v1/agent/r2-status"),
+
+  setupAgentR2Cors: (origins) =>
+    request("/api/v1/agent/r2-setup-cors", {
+      method: "POST",
+      body: origins ? { origins } : {},
     }),
 
   forceUpdateAllDevices: () =>

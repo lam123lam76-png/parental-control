@@ -66,6 +66,9 @@ export const THEME_CONFIG = {
     badge: "bg-[#0E3746] text-[#F4F2EC] font-bold shadow-[0_1px_4px_rgba(14,55,70,0.25)]",
     badgeMuted: "bg-[#0E3746]/10 text-[#0E3746] font-bold shadow-[0_1px_3px_rgba(14,55,70,0.10)]",
 
+    /* Hairline separator between stacked sections (never used to outline a shape). */
+    divider: "border-[#0E3746]/15",
+
     header: "bg-[#F4F2EC]/95 shadow-[0_1px_6px_rgba(14,55,70,0.10)]",
     navActive: "bg-[#0E3746] text-[#F4F2EC] shadow-[0_2px_8px_rgba(14,55,70,0.30)]",
     navInactive: "text-[#0E3746] hover:bg-[#EAE8DC]",
@@ -109,6 +112,9 @@ export const THEME_CONFIG = {
 
     badge: "bg-zinc-800 text-zinc-100 font-bold shadow-[0_1px_4px_rgba(0,0,0,0.40)]",
     badgeMuted: "bg-zinc-900 text-zinc-400 font-bold shadow-[0_1px_3px_rgba(0,0,0,0.35)]",
+
+    /* Hairline separator between stacked sections (never used to outline a shape). */
+    divider: "border-white/10",
 
     header: "bg-zinc-950/95 shadow-[0_1px_6px_rgba(0,0,0,0.50)]",
     navActive: "bg-zinc-100 text-zinc-900 shadow-[0_2px_8px_rgba(0,0,0,0.50)]",

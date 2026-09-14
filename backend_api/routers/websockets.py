@@ -289,8 +289,13 @@ async def shutdown_device(
 
 @router.post("/api/devices/force-update-all", response_model=schemas.StandardResponse, dependencies=[Depends(require_system_admin)])
 async def force_update_all_devices(db: AsyncSession = Depends(get_db_async)):
-    """Broadcasts WebSocket force_update command to all online devices;
-    queues it for offline devices so they update when they come back (fallback)."""
+    """Phát hành bản Agent đang có trên R2 tới TẤT CẢ máy đích.
+
+    Máy đang bật nhận lệnh trong ~5s (qua hàng đợi poll), máy đang tắt nhận ngay
+    khi bật lên lần sau. Trả về cả số máy online/offline thật để web hiển thị
+    đúng thay vì báo "0 máy" như trước (số cũ đếm theo kết nối WebSocket, mà
+    agent cloud không dùng WebSocket nữa nên luôn bằng 0).
+    """
     import json
     import requests as _http
 
@@ -322,6 +327,10 @@ async def force_update_all_devices(db: AsyncSession = Depends(get_db_async)):
         "payload": vdata
     }
 
+    # Delivery: WebSocket for devices that happen to hold a live socket, queued
+    # poll for everyone else. This MUST stay "queue unless WS-delivered": the
+    # cloud agent has no WebSocket at all (commands arrive through the 5s poll),
+    # so anything not queued would silently never arrive.
     broadcast_count = 0
     online_ids = set(manager.active_connections.keys())
     for device_id in list(online_ids):
@@ -329,13 +338,29 @@ async def force_update_all_devices(db: AsyncSession = Depends(get_db_async)):
         if success:
             broadcast_count += 1
 
-    # Queue for offline devices (fallback polling will deliver it)
+    # Reporting is separate from delivery: "online" means the device polled
+    # recently (same freshness rule as core/presence), so the manager UI can say
+    # "N máy đang bật / M máy đang tắt" instead of the misleading WS count (0).
+    from core.presence import ONLINE_SECONDS
+
+    now = datetime.now(timezone.utc)
+    all_devices = (await db.execute(select(models.Device))).scalars().all()
+    online_devices = 0
+    offline_devices = 0
     queued = 0
-    offline_devices = (await db.execute(select(models.Device))).scalars().all()
-    for dev in offline_devices:
+    for dev in all_devices:
+        last = dev.last_seen_at
+        if last is not None and last.tzinfo is None:
+            last = last.replace(tzinfo=timezone.utc)
+        age = (now - last).total_seconds() if last is not None else None
+        if age is not None and age <= ONLINE_SECONDS:
+            online_devices += 1
+        else:
+            offline_devices += 1
+
         dev_id_str = str(dev.id)
         if dev_id_str in online_ids:
-            continue
+            continue  # already delivered over WebSocket
         db.add(models.PendingCommand(
             device_id=dev.id,
             command="force_update",
@@ -345,7 +370,17 @@ async def force_update_all_devices(db: AsyncSession = Depends(get_db_async)):
     await db.commit()
 
     return schemas.StandardResponse(
-        data={"notified_devices": broadcast_count, "queued_offline": queued, "version": vdata["version"]},
+        data={
+            "version": vdata["version"],
+            # Số liệu thật để web hiển thị.
+            "online_devices": online_devices,
+            "offline_devices": offline_devices,
+            "queued": queued,
+            "ws_delivered": broadcast_count,
+            # Tương thích ngược với bản web cũ.
+            "notified_devices": online_devices,
+            "queued_offline": offline_devices,
+        },
         status_code=200
     )
 @router.get("/api/device/{device_id}/commands", dependencies=[Depends(verify_api_key)])

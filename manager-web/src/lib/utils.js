@@ -211,6 +211,20 @@ export function fmtDur(sec) {
   return `${s}s`;
 }
 
+/**
+ * Format a byte count as "42,8 MB" / "512 KB" / "—" when unknown.
+ * Unknown/zero renders as "—" on purpose: the UI must never show a fake 0.
+ * Shared by the Agent release card (package size, upload progress).
+ */
+export function fmtBytes(bytes) {
+  const n = Number(bytes) || 0;
+  if (n <= 0) return "—";
+  if (n >= 1024 ** 3) return `${(n / 1024 ** 3).toFixed(2)} GB`;
+  if (n >= 1024 ** 2) return `${(n / 1024 ** 2).toFixed(1)} MB`;
+  if (n >= 1024) return `${Math.round(n / 1024)} KB`;
+  return `${n} B`;
+}
+
 // ================================================================
 // 🔥 HÀM CN CHO SHADCN/UI (THÊM MỚI)
 // ================================================================

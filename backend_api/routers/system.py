@@ -1,9 +1,12 @@
 import os
+import re
 import time
 import shutil
 import json
 import logging
+from typing import List, Optional
 from fastapi import APIRouter, Depends, UploadFile, File, Form
+from pydantic import BaseModel
 from sqlalchemy.orm import Session
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import text, cast, String, select
@@ -13,6 +16,7 @@ from pathlib import Path
 from database import get_db, get_db_async, SessionLocal
 import models
 import schemas
+from core import r2_storage
 from core.security import verify_api_key, require_system_admin
 from core.config import SCREENSHOTS_DIR, UPDATES_DIR, TRASH_DIR, TRASH_SHOTS_DIR, TRASH_RECORDS_DIR
 
@@ -440,19 +444,247 @@ async def pack_agent_zip(version: str = Form(...)):
 
 @router.get("/api/v1/agent/version", response_model=schemas.StandardResponse)
 def get_latest_agent_version():
-    """Returns current published Agent version information."""
-    version_json_path = UPDATES_DIR / "version.json"
-    if not version_json_path.exists():
-        return schemas.StandardResponse(
-            data={"version": "v0001", "download_url": "/static/updates/agent-update.zip"},
-            status_code=200
-        )
-    with open(version_json_path, "r", encoding="utf-8") as vf:
-        vdata = json.load(vf)
-    return schemas.StandardResponse(data=vdata, status_code=200)
+    """Phiên bản Agent đang phát hành — NGUỒN CHUẨN LÀ R2, không phải đĩa local.
 
-from pydantic import BaseModel
-from typing import List, Optional
+    Trước đây hàm này đọc `UPDATES_DIR/version.json` (ổ đĩa của server). Trên
+    Vercel ổ đĩa đó là /tmp tạm thời nên nó luôn trả về fallback `v0001` trong
+    khi bản thật đang phát hành là `v0031` → thẻ "Đóng gói & Cập nhật" hiển thị
+    sai và còn gợi ý lùi phiên bản (v0002). R2 (bucket cloud) mới là nguồn đúng;
+    đĩa local chỉ còn là fallback cho backend chạy tại nhà (chế độ dev).
+    """
+    data = None
+    try:
+        cloud = r2_storage.fetch_version_json()
+        if cloud and cloud.get("version"):
+            data = dict(cloud)
+            data["source"] = "r2"
+            data["public_url"] = r2_storage.public_url(r2_storage.ZIP_KEY)
+            size = r2_storage.object_size(r2_storage.ZIP_KEY)
+            data["size_bytes"] = size if size is not None else 0
+            data.setdefault("download_url", data["public_url"])
+            data["sha256"] = (data.get("sha256") or "").strip()
+    except Exception as e:
+        logger.warning(f"agent/version: could not read R2 version.json: {e}")
+
+    if data is None:
+        # Fallback: backend chạy local (pack-zip ghi thẳng ra đĩa như cũ).
+        version_json_path = UPDATES_DIR / "version.json"
+        if version_json_path.exists():
+            try:
+                with open(version_json_path, "r", encoding="utf-8") as vf:
+                    data = json.load(vf)
+                data["source"] = "local"
+                data["size_bytes"] = int(data.get("size_bytes") or 0)
+                data["sha256"] = (data.get("sha256") or "").strip()
+            except Exception as e:
+                logger.warning(f"agent/version: local version.json unreadable: {e}")
+                data = None
+    if data is None:
+        data = {
+            "version": "v0001",
+            "download_url": "/static/updates/agent-update.zip",
+            "sha256": "",
+            "size_bytes": 0,
+            "source": "none",
+        }
+
+    data["r2_configured"] = r2_storage.is_configured()
+    data["bucket"] = r2_storage.bucket_name()
+    return schemas.StandardResponse(data=data, status_code=200)
+
+
+# --------------------------------------------------------------------------- #
+# Phát hành gói Agent lên R2 (thay cho việc ghi ra đĩa local — đĩa Vercel chỉ
+# đọc/tạm thời nên bản build không bao giờ tới được máy đích).
+# --------------------------------------------------------------------------- #
+_VERSION_RE = re.compile(r"^[vV]?(\d{1,5})$")
+
+
+def _normalize_version(raw: str) -> str:
+    """Chuẩn hoá số phiên bản: '32' / 'v32' / 'V0032' -> 'v0032'."""
+    match = _VERSION_RE.match((raw or "").strip())
+    if not match:
+        raise ValueError("Số phiên bản không hợp lệ — định dạng đúng: v0032")
+    return f"v{int(match.group(1)):04d}"
+
+
+def _agent_web_origins() -> List[str]:
+    """Origins được phép PUT gói lên bucket (CORS cho trình duyệt)."""
+    env = (os.getenv("ALLOWED_ORIGINS") or "").strip()
+    origins = [o.strip() for o in env.split(",") if o.strip()]
+    for fallback in (
+        "https://nguyentruclam.io.vn",
+        "https://www.nguyentruclam.io.vn",
+        "http://localhost:5173",
+        "http://127.0.0.1:5173",
+    ):
+        if fallback not in origins:
+            origins.append(fallback)
+    return origins
+
+
+class AgentReleasePresignRequest(BaseModel):
+    version: str = ""
+
+
+class AgentReleasePublishRequest(BaseModel):
+    version: str
+    sha256: str = ""
+    size_bytes: int = 0
+
+
+class AgentCorsSetupRequest(BaseModel):
+    origins: Optional[List[str]] = None
+
+
+@router.post("/api/v1/agent/r2-presign", response_model=schemas.StandardResponse, dependencies=[Depends(require_system_admin)])
+def presign_agent_release_upload(req: AgentReleasePresignRequest):
+    """Cấp URL PUT có chữ ký để trình duyệt tải gói .zip TRỰC TIẾP lên R2.
+
+    Gói ~43 MB, vượt giới hạn 4.5 MB body của Vercel function, nên không thể
+    proxy qua backend — trình duyệt phải PUT thẳng lên bucket.
+    """
+    if not r2_storage.is_configured():
+        return schemas.StandardResponse(
+            error="Server chưa cấu hình R2_ACCESS_KEY / R2_SECRET_KEY nên không thể tải gói lên R2.",
+            status_code=503,
+        )
+    try:
+        version = _normalize_version(req.version)
+    except ValueError as e:
+        return schemas.StandardResponse(error=str(e), status_code=400)
+
+    try:
+        upload_url = r2_storage.presign_put(r2_storage.ZIP_KEY, expires=1800)
+    except Exception as e:
+        logger.error(f"r2-presign failed: {e}", exc_info=True)
+        return schemas.StandardResponse(error=f"Không tạo được URL tải lên R2: {e}", status_code=502)
+
+    return schemas.StandardResponse(
+        data={
+            "version": version,
+            "key": r2_storage.ZIP_KEY,
+            "upload_url": upload_url,
+            "public_url": r2_storage.public_url(r2_storage.ZIP_KEY),
+            "expires_in": 1800,
+            "max_bytes": 300 * 1024 * 1024,
+        },
+        status_code=200,
+    )
+
+
+@router.post("/api/v1/agent/r2-publish", response_model=schemas.StandardResponse, dependencies=[Depends(require_system_admin)])
+def publish_agent_release(req: AgentReleasePublishRequest):
+    """Ghi `version.json` lên R2 sau khi zip đã nằm trong bucket.
+
+    Trình duyệt tính SHA-256 của file và gửi kèm, nên agent tải về kiểm tra được
+    đúng gói trước khi chạy (AutoUpdater từ chối cài nếu hash lệch).
+    """
+    if not r2_storage.is_configured():
+        return schemas.StandardResponse(
+            error="Server chưa cấu hình R2_ACCESS_KEY / R2_SECRET_KEY nên không thể phát hành.",
+            status_code=503,
+        )
+    try:
+        version = _normalize_version(req.version)
+    except ValueError as e:
+        return schemas.StandardResponse(error=str(e), status_code=400)
+
+    sha = (req.sha256 or "").strip().lower()
+    if sha and not re.fullmatch(r"[0-9a-f]{64}", sha):
+        return schemas.StandardResponse(
+            error="Mã SHA-256 không hợp lệ (phải là 64 ký tự hex).", status_code=400
+        )
+
+    # Đối chiếu với thứ thật sự đã nằm trong bucket: không bao giờ phát hành
+    # version.json trỏ tới một gói không tồn tại (máy đích sẽ tải lỗi 404).
+    actual = r2_storage.object_size(r2_storage.ZIP_KEY)
+    if actual is None:
+        time.sleep(1.5)  # r2.dev có thể trễ vài trăm ms sau khi PUT xong
+        actual = r2_storage.object_size(r2_storage.ZIP_KEY)
+    if actual is None:
+        return schemas.StandardResponse(
+            error="Bucket R2 chưa có agent-update.zip — hãy tải gói lên R2 trước khi phát hành.",
+            status_code=409,
+        )
+
+    warning = None
+    if req.size_bytes and actual != int(req.size_bytes):
+        # Chỉ cảnh báo: r2.dev có thể trả số byte của bản cache cũ. Agent vẫn
+        # kiểm tra SHA-256 trước khi cài nên gói lỗi không thể chạy được.
+        warning = (
+            f"Kích thước gói trên R2 ({actual} byte) khác file vừa tải lên "
+            f"({int(req.size_bytes)} byte) — có thể là bản cache cũ của r2.dev."
+        )
+
+    data = {
+        "version": version,
+        "download_url": r2_storage.public_url(r2_storage.ZIP_KEY),
+        "created_at": datetime.now(timezone.utc).isoformat(),
+        "sha256": sha,
+        "size_bytes": actual,
+    }
+    try:
+        r2_storage.upload_version_json(data)
+    except Exception as e:
+        logger.error(f"r2-publish failed: {e}", exc_info=True)
+        return schemas.StandardResponse(error=f"Không ghi được version.json lên R2: {e}", status_code=502)
+
+    if warning:
+        data["warning"] = warning
+    return schemas.StandardResponse(data=data, status_code=200)
+
+
+@router.get("/api/v1/agent/r2-status", response_model=schemas.StandardResponse, dependencies=[Depends(require_system_admin)])
+def agent_r2_status():
+    """Chẩn đoán nhanh: token R2, gói trong bucket, CORS cho trình duyệt."""
+    status = {
+        "configured": r2_storage.is_configured(),
+        "bucket": r2_storage.bucket_name(),
+        "public_base": r2_storage.public_base(),
+        "zip_size_bytes": None,
+        "cors_configured": False,
+        "cors_origins": [],
+        "error": None,
+    }
+    if not status["configured"]:
+        status["error"] = "Thiếu R2_ACCESS_KEY / R2_SECRET_KEY trong biến môi trường của server."
+        return schemas.StandardResponse(data=status, status_code=200)
+
+    try:
+        status["zip_size_bytes"] = r2_storage.object_size(r2_storage.ZIP_KEY)
+        cors_xml = r2_storage.get_bucket_cors()
+        if cors_xml:
+            status["cors_configured"] = True
+            status["cors_origins"] = re.findall(r"<AllowedOrigin>(.*?)</AllowedOrigin>", cors_xml)
+    except Exception as e:
+        status["error"] = str(e)
+
+    return schemas.StandardResponse(data=status, status_code=200)
+
+
+@router.post("/api/v1/agent/r2-setup-cors", response_model=schemas.StandardResponse, dependencies=[Depends(require_system_admin)])
+def setup_agent_r2_cors(req: AgentCorsSetupRequest = None):
+    """Bật CORS trên bucket R2 để trình duyệt PUT gói trực tiếp lên được."""
+    if not r2_storage.is_configured():
+        return schemas.StandardResponse(
+            error="Server chưa cấu hình R2_ACCESS_KEY / R2_SECRET_KEY.", status_code=503
+        )
+    origins = (req.origins if req and req.origins else None) or _agent_web_origins()
+    origins = [o.strip().rstrip("/") for o in origins if o and o.strip()]
+    if not origins:
+        return schemas.StandardResponse(error="Danh sách origin rỗng.", status_code=400)
+
+    try:
+        r2_storage.set_bucket_cors(origins)
+    except Exception as e:
+        logger.error(f"r2-setup-cors failed: {e}", exc_info=True)
+        return schemas.StandardResponse(error=f"Không đặt được CORS trên R2: {e}", status_code=502)
+
+    return schemas.StandardResponse(
+        data={"msg": f"Đã cho phép {len(origins)} origin tải gói lên R2.", "origins": origins},
+        status_code=200,
+    )
 
 class DiagnosticCheck(BaseModel):
     name: str

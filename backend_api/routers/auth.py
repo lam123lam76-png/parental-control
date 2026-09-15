@@ -22,11 +22,12 @@ def _get_real_client_ip(request: Request) -> str:
 limiter = Limiter(key_func=_get_real_client_ip)
 import uuid
 import logging
+import secrets
 
 from database import get_db
 import models
 import schemas
-from core.config import SYSTEM_ADMIN_EMAIL, SYSTEM_ADMIN_PASSWORD
+from core.config import SYSTEM_ADMIN_EMAIL, MASTER_UNLOCK_PASSWORD
 from passlib.context import CryptContext
 
 logger = logging.getLogger(__name__)
@@ -114,17 +115,17 @@ def register_parent(request: schemas.ParentCreate, db: Session = Depends(get_db)
 @limiter.limit("5/minute")
 def login_user(request: Request, login_data: schemas.LoginRequest, db: Session = Depends(get_db)):
     """
-    Standard JWT Authentication endpoint for Manager Web.
-    Validates user credentials and issues signed JWT access token.
-    Super Admin account (SYSTEM_ADMIN_EMAIL / SYSTEM_ADMIN_PASSWORD) is always authorized without registration.
-    Cơ chế này chỉ hoạt động khi biến môi trường SYSTEM_ADMIN_PASSWORD được đặt —
-    trước đây nó có giá trị mặc định nằm công khai trong repo nên bất kỳ ai đọc mã
-    nguồn cũng đăng nhập được bằng quyền super admin.
-    """
-    is_master_admin_login = bool(SYSTEM_ADMIN_PASSWORD) and (
-        login_data.email == SYSTEM_ADMIN_EMAIL and login_data.password == SYSTEM_ADMIN_PASSWORD
-    )
+    Đăng nhập Web Manager. CHỈ chấp nhận mật khẩu tài khoản trong DB.
 
+    HAI LOẠI MẬT KHẨU, TÁCH BIỆT HOÀN TOÀN (yêu cầu nghiệp vụ):
+      - mật khẩu WEB (bảng users/parents)      -> đăng nhập quản trị, KHÔNG mở khoá máy con
+      - mật khẩu MỞ MÁY CON (SYSTEM_ADMIN_PASSWORD) -> chỉ dùng ở /api/auth/verify-password
+
+    Vì sao không còn "master login" ở đây: khi SYSTEM_ADMIN_PASSWORD còn được nhận
+    làm mật khẩu đăng nhập, đặt biến đó vừa cấp quyền system admin cho web vừa khiến
+    seeder ghi đè mật khẩu tài khoản admin (xem main.py) — tức mật khẩu "chỉ để mở
+    máy" lại trở thành mật khẩu web và xoá mất mật khẩu web thật.
+    """
     # Mật khẩu rỗng/whitespace KHÔNG BAO GIỜ hợp lệ. Đây là lỗ hổng đã xảy ra thật:
     # bảng users có tài khoản admin với hash của chuỗi rỗng (do seed khi biến
     # SYSTEM_ADMIN_PASSWORD tồn tại nhưng rỗng), nên POST /api/auth/login với
@@ -139,41 +140,12 @@ def login_user(request: Request, login_data: schemas.LoginRequest, db: Session =
     user = db.query(models.User).filter(models.User.email == login_data.email).first()
     parent = db.query(models.Parent).filter(models.Parent.email == login_data.email).first()
 
-    if is_master_admin_login:
-        # Auto-provision Super Admin if missing in DB
-        hashed_pwd = pwd_context.hash(SYSTEM_ADMIN_PASSWORD)
-        if not parent:
-            parent = models.Parent(email=SYSTEM_ADMIN_EMAIL, password_hash=hashed_pwd)
-            db.add(parent)
-            db.commit()
-            db.refresh(parent)
-        if not user:
-            user = models.User(email=SYSTEM_ADMIN_EMAIL, password_hash=hashed_pwd, role="admin", is_system_admin=True)
-            db.add(user)
-            db.commit()
-            db.refresh(user)
-
-            perm = models.UserPermission(
-                user_id=user.id,
-                can_view_screenshots=True,
-                can_manage_rules=True,
-                can_view_logs=True,
-                can_remote_control=True,
-                can_manage_users=True
-            )
-            db.add(perm)
-            db.commit()
-        else:
-            if not user.is_system_admin:
-                user.is_system_admin = True
-                db.commit()
-    else:
-        auth_target = user or parent
-        if not auth_target or not pwd_context.verify(login_data.password, auth_target.password_hash):
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Email hoặc mật khẩu không chính xác",
-            )
+    auth_target = user or parent
+    if not auth_target or not pwd_context.verify(login_data.password, auth_target.password_hash):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Email hoặc mật khẩu không chính xác",
+        )
     
     # Sync user record if missing in users table
     if not user and parent:
@@ -354,8 +326,13 @@ def verify_parent_password(
     db: Session = Depends(get_db)
 ):
     """
-    Xác thực mật khẩu phụ huynh từ màn hình khóa Agent.
-    Trả về 200 nếu đúng, 401 nếu sai — không tạo/sửa bất kỳ bản ghi nào.
+    Xác thực mật khẩu để MỞ KHOÁ MÀN HÌNH máy con. Trả 200 nếu đúng, 401 nếu sai —
+    không tạo/sửa bất kỳ bản ghi nào.
+
+    Nhận CẢ HAI loại mật khẩu (đúng thiết kế 2 mật khẩu tách biệt):
+      1. mật khẩu MỞ MÁY CON  = SYSTEM_ADMIN_PASSWORD (biến môi trường của server)
+      2. mật khẩu TÀI KHOẢN   = hash trong DB (bảng users role=admin + bảng parents)
+    Ngược lại, mật khẩu mở máy con KHÔNG dùng để đăng nhập web (xem login_user).
     """
     if not request.password or len(request.password) < 4:
         raise HTTPException(
@@ -363,14 +340,13 @@ def verify_parent_password(
             detail="Mật khẩu quá ngắn"
         )
 
-    # Master password override for built-in Super Admin — CHỈ khi biến môi trường
-    # SYSTEM_ADMIN_PASSWORD được đặt. Đây là endpoint agent dùng để mở khoá màn
-    # hình máy con, nên một giá trị mặc định công khai ở đây đồng nghĩa với việc
-    # đứa trẻ tự mở khoá được máy mình.
-    if SYSTEM_ADMIN_PASSWORD and request.password == SYSTEM_ADMIN_PASSWORD:
-        logger.info("verify-password: password matched Super Admin master password")
+    # 1. Mật khẩu chuyên dụng để mở khoá máy con (KHÔNG phải mật khẩu đăng nhập web).
+    # Chỉ hoạt động khi biến môi trường được đặt — trước đây nó có giá trị mặc định
+    # công khai trong repo, nghĩa là đứa trẻ tự mở khoá được máy mình.
+    if MASTER_UNLOCK_PASSWORD and secrets.compare_digest(request.password, MASTER_UNLOCK_PASSWORD):
+        logger.info("verify-password: khớp mật khẩu mở khoá máy con")
         return schemas.StandardResponse(
-            data={"verified": True, "msg": "Super Admin master password verified"},
+            data={"verified": True, "msg": "Đã mở khoá bằng mật khẩu mở máy"},
             status_code=200
         )
 

@@ -53,12 +53,25 @@ for _d in (SCREENSHOTS_DIR, UPDATES_DIR, TRASH_SHOTS_DIR, TRASH_RECORDS_DIR):
 
 # Admin
 SYSTEM_ADMIN_EMAIL = os.getenv("SYSTEM_ADMIN_EMAIL", "admin@nguyentruclam.io.vn")
-# KHÔNG có mật khẩu mặc định. Mật khẩu mặc định cũ (đã nằm công khai trong repo
-# này) là MẬT KHẨU VẠN NĂNG: vừa đăng nhập được web bằng quyền super admin, vừa
-# mở khoá được màn hình máy con qua /api/auth/verify-password. Nay chỉ khi biến môi
-# trường được đặt thì cơ chế "master password" mới hoạt động (rỗng = tắt hẳn); tài
-# khoản admin vẫn đăng nhập bình thường bằng hash trong DB.
-SYSTEM_ADMIN_PASSWORD = os.getenv("SYSTEM_ADMIN_PASSWORD", "").strip()
+
+# ==== HAI LOẠI MẬT KHẨU, TÁCH BIỆT HOÀN TOÀN ====
+# 1. MẬT KHẨU WEB (đăng nhập quản trị): lưu dạng hash trong bảng users/parents và chỉ
+#    đổi khi có người chủ động đổi — KHÔNG bao giờ bị ghi từ biến môi trường.
+#    WEB_ADMIN_PASSWORD chỉ dùng để tạo tài khoản admin trên một DB hoàn toàn mới.
+WEB_ADMIN_PASSWORD = os.getenv("WEB_ADMIN_PASSWORD", "").strip()
+
+# 2. MẬT KHẨU MỞ MÁY CON: dùng ở màn hình khoá của Agent
+#    (POST /api/auth/verify-password) để mở khoá máy con khẩn cấp, KHÔNG đăng nhập web.
+#    Nhận cả hai tên biến: MASTER_UNLOCK_PASSWORD (tên đúng nghĩa) và
+#    SYSTEM_ADMIN_PASSWORD (tên cũ, giữ để không phá cấu hình đang chạy).
+#    KHÔNG có giá trị mặc định: mật khẩu mặc định cũ từng nằm công khai trong repo,
+#    nghĩa là đứa trẻ tự mở khoá được máy mình.
+MASTER_UNLOCK_PASSWORD = (
+    os.getenv("MASTER_UNLOCK_PASSWORD", "").strip()
+    or os.getenv("SYSTEM_ADMIN_PASSWORD", "").strip()
+)
+# Tên cũ, giữ cho code/agent đang tham chiếu.
+SYSTEM_ADMIN_PASSWORD = MASTER_UNLOCK_PASSWORD
 
 # JWT Configuration
 # KHÔNG có secret mặc định. Trước đây để mặc định một chuỗi có sẵn trong repo (dạng

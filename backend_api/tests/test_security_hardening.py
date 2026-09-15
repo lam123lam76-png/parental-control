@@ -159,5 +159,63 @@ def test_seed_never_rewrites_the_admin_password_with_an_empty_value():
     """Startup seeding không được ghi lại hash("") (đó là cách lỗ hổng tái sinh)."""
     src = (BACKEND_DIR / "main.py").read_text(encoding="utf-8")
     assert 'verify("", user.password_hash)' in src, "phải kiểm tra hash chuỗi rỗng"
-    assert "if SYSTEM_ADMIN_PASSWORD:" in src, "chỉ ghi khi có mật khẩu thật"
-    assert "user.password_hash = _ctx2.hash(SYSTEM_ADMIN_PASSWORD)" in src
+    assert "if WEB_ADMIN_PASSWORD:" in src, "chỉ ghi khi có mật khẩu web thật"
+    assert "user.password_hash = _ctx2.hash(SYSTEM_ADMIN_PASSWORD)" not in src, (
+        "seeder không được lấy mật khẩu MỞ MÁY CON làm mật khẩu web"
+    )
+
+
+# --------------------------------------------------------------------------- #
+# Hai loại mật khẩu tách biệt (yêu cầu nghiệp vụ)
+#   - mật khẩu WEB        -> đăng nhập quản trị, KHÔNG mở khoá máy con
+#   - mật khẩu MỞ MÁY CON -> CHỈ mở khoá màn hình máy con, KHÔNG vào web
+# --------------------------------------------------------------------------- #
+def test_web_login_never_accepts_the_unlock_password():
+    """login_user không được dùng mật khẩu mở máy con (nếu không lại thành 1 mật khẩu).
+
+    Chỉ soi phần CODE, bỏ docstring — docstring có nhắc tên biến để giải thích.
+    """
+    import ast
+
+    src = (BACKEND_DIR / "routers" / "auth.py").read_text(encoding="utf-8")
+    tree = ast.parse(src)
+    fn = next(
+        node for node in ast.walk(tree)
+        if isinstance(node, ast.FunctionDef) and node.name == "login_user"
+    )
+    # Bỏ docstring (biểu thức chuỗi đầu tiên) rồi mới kiểm tra tên biến được dùng.
+    body = [n for n in fn.body if not (isinstance(n, ast.Expr) and isinstance(n.value, ast.Constant))]
+    code = "\n".join(ast.unparse(node) for node in body)
+    for forbidden in ("MASTER_UNLOCK_PASSWORD", "SYSTEM_ADMIN_PASSWORD", "WEB_ADMIN_PASSWORD"):
+        assert forbidden not in code, f"login_user không được dùng {forbidden}"
+    assert "pwd_context.verify" in code, "login phải kiểm tra hash trong DB"
+
+
+def test_unlock_endpoint_accepts_both_password_kinds():
+    """verify-password nhận mật khẩu mở máy (env) và mật khẩu tài khoản (hash trong DB)."""
+    src = (BACKEND_DIR / "routers" / "auth.py").read_text(encoding="utf-8")
+    unlock_body = src.split("def verify_parent_password", 1)[1]
+    assert "MASTER_UNLOCK_PASSWORD" in unlock_body, "phải nhận mật khẩu mở máy con"
+    assert "pwd_context.verify(request.password" in unlock_body, "phải nhận mật khẩu tài khoản"
+    assert "compare_digest" in unlock_body, "so sánh theo thời gian hằng định"
+
+
+def test_unlock_password_comes_from_either_env_name(monkeypatch):
+    """Hai tên biến đều được nhận; tên cũ vẫn tương thích."""
+    import importlib
+
+    from core import config
+
+    monkeypatch.setenv("MASTER_UNLOCK_PASSWORD", "unlock-A")
+    monkeypatch.setenv("SYSTEM_ADMIN_PASSWORD", "legacy-B")
+    reloaded = importlib.reload(config)
+    assert reloaded.MASTER_UNLOCK_PASSWORD == "unlock-A"
+    assert reloaded.SYSTEM_ADMIN_PASSWORD == "unlock-A"
+
+    monkeypatch.delenv("MASTER_UNLOCK_PASSWORD", raising=False)
+    reloaded = importlib.reload(config)
+    assert reloaded.MASTER_UNLOCK_PASSWORD == "legacy-B"
+
+    monkeypatch.delenv("SYSTEM_ADMIN_PASSWORD", raising=False)
+    reloaded = importlib.reload(config)
+    assert reloaded.MASTER_UNLOCK_PASSWORD == ""

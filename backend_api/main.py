@@ -63,23 +63,33 @@ def _init_schema_background():
 threading.Thread(target=_init_schema_background, daemon=True).start()
 
 def seed_system_admin():
-    """Ensure the built-in super admin account exists on every startup."""
+    """Tạo tài khoản system admin NẾU CHƯA CÓ, và chỉ cấp lại quyền — không đụng mật khẩu.
+
+    HAI LOẠI MẬT KHẨU TÁCH BIỆT (xem routers/auth.py):
+      - mật khẩu WEB          = hash trong bảng users/parents (chỉ đổi khi có người chủ động đổi)
+      - mật khẩu MỞ MÁY CON   = SYSTEM_ADMIN_PASSWORD (chỉ dùng ở /api/auth/verify-password)
+    Hàm này TUYỆT ĐỐI không ghi mật khẩu web từ biến môi trường: trước đây nó ghi đè
+    hash mỗi khi hash hiện tại không khớp SYSTEM_ADMIN_PASSWORD, nên mỗi lần server
+    khởi động lại nó âm thầm đổi mật khẩu đăng nhập web (kể cả thành hash chuỗi rỗng
+    khi biến rỗng) và xoá mất mật khẩu web mà phụ huynh đang dùng.
+    """
     from passlib.context import CryptContext
     _ctx = CryptContext(schemes=["pbkdf2_sha256"], deprecated="auto")
     db = SessionLocal()
     try:
         user = db.query(models.User).filter(models.User.email == SYSTEM_ADMIN_EMAIL).first()
         if not user:
-            # SECURITY: chỉ tạo tài khoản admin khi có mật khẩu đến từ biến môi
-            # trường. Trước đây mật khẩu có giá trị mặc định nằm công khai trong
-            # repo, nên trên một DB mới thì bất kỳ ai cũng đăng nhập được.
-            if not SYSTEM_ADMIN_PASSWORD:
+            # DB mới hoàn toàn: tạo tài khoản với mật khẩu web lấy từ biến môi trường
+            # WEB_ADMIN_PASSWORD; nếu chưa đặt thì KHÔNG tạo (tránh tài khoản không
+            # mật khẩu hoặc mật khẩu công khai).
+            web_pw = WEB_ADMIN_PASSWORD
+            if not web_pw:
                 logger.error(
-                    "[Seed] Bỏ qua tạo tài khoản system admin: chưa đặt "
-                    "SYSTEM_ADMIN_PASSWORD trong biến môi trường."
+                    "[Seed] Bỏ qua tạo tài khoản system admin: chưa đặt WEB_ADMIN_PASSWORD "
+                    "(mật khẩu đăng nhập web) trong biến môi trường."
                 )
                 return
-            hashed = _ctx.hash(SYSTEM_ADMIN_PASSWORD)
+            hashed = _ctx.hash(web_pw)
             user = models.User(
                 email=SYSTEM_ADMIN_EMAIL,
                 password_hash=hashed,
@@ -109,29 +119,30 @@ def seed_system_admin():
                 user.is_system_admin = True
             if user.role != "admin":
                 user.role = "admin"
-            # KHÔNG BAO GIỜ ghi đè một mật khẩu đang dùng được. Khối này chạy ở MỖI
-            # lần server khởi động, và trước đây nó ghi lại hash của
-            # SYSTEM_ADMIN_PASSWORD bất cứ khi nào hash hiện tại không khớp — nên khi
-            # biến môi trường rỗng, nó âm thầm đặt lại mật khẩu admin thành hash của
-            # CHUỖI RỖNG (đăng nhập bằng mật khẩu trống = quyền system admin). Đó
-            # chính là lý do lỗ hổng quay lại sau khi đã sửa DB.
-            # Nay chỉ sửa đúng trường hợp hash đang ở trạng thái hỏng đó, và chỉ khi
-            # có mật khẩu thật trong biến môi trường.
+            # KHÔNG BAO GIỜ ghi mật khẩu WEB vào đây. Khối này chạy ở MỖI lần server
+            # khởi động; trước đây nó ghi lại hash của SYSTEM_ADMIN_PASSWORD bất cứ
+            # khi hash hiện tại không khớp — nên khi biến rỗng nó âm thầm đặt mật
+            # khẩu web thành hash CHUỖI RỖNG (đăng nhập bằng mật khẩu trống = quyền
+            # system admin), còn khi biến có giá trị thì nó biến mật khẩu "chỉ để mở
+            # máy con" thành mật khẩu web và xoá mật khẩu web đang dùng.
+            # Chỉ còn đúng một việc: NẾU hash đang hỏng (khớp chuỗi rỗng) VÀ có
+            # WEB_ADMIN_PASSWORD thì thay bằng mật khẩu web thật; nếu không thì báo lỗi
+            # để không ai lặng lẽ chạy với mật khẩu trống.
             try:
                 broken_hash = _ctx2.verify("", user.password_hash)
             except Exception:
                 broken_hash = True  # hash rỗng/không đọc được
             if broken_hash:
-                if SYSTEM_ADMIN_PASSWORD:
-                    user.password_hash = _ctx2.hash(SYSTEM_ADMIN_PASSWORD)
+                if WEB_ADMIN_PASSWORD:
+                    user.password_hash = _ctx2.hash(WEB_ADMIN_PASSWORD)
                     logger.warning(
-                        "[Seed] Hash mật khẩu admin đang là hash chuỗi rỗng — đã thay bằng "
-                        "mật khẩu từ SYSTEM_ADMIN_PASSWORD."
+                        "[Seed] Hash mật khẩu web đang là hash chuỗi rỗng — đã thay bằng "
+                        "mật khẩu từ WEB_ADMIN_PASSWORD."
                     )
                 else:
                     logger.error(
                         "[Seed] Tài khoản admin đang giữ hash mật khẩu RỖNG (đăng nhập bằng "
-                        "mật khẩu trống). Hãy đặt SYSTEM_ADMIN_PASSWORD hoặc đặt lại mật khẩu "
+                        "mật khẩu trống). Hãy đặt WEB_ADMIN_PASSWORD hoặc đặt lại mật khẩu "
                         "trong DB — code sẽ KHÔNG ghi hash rỗng nữa."
                     )
             perm = db.query(models.UserPermission).filter(models.UserPermission.user_id == user.id).first()

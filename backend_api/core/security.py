@@ -41,21 +41,22 @@ def decode_access_token(token: str) -> Optional[Dict[str, Any]]:
 
 
 # Static (shared) keys. These are NOT secrets in any real sense — the agent key
-# ships inside the .exe handed to the child PC and used to live in this public
+# shipped inside the .exe handed to the child PC and used to live in this public
 # repo — so they are only accepted as "some credential" by `verify_api_key`, and
 # they map to a MINIMAL identity in `get_current_user` (never system admin).
 #
-# WHY: while a static key was mapped to `is_system_admin: True`, anyone holding
-# it could publish an agent update (RCE as Administrator on every child PC),
-# rewrite rules, delete data or open the Telegram config — with a value printed
-# in the source code. Admin-only endpoints now require a real admin JWT.
-LEGACY_AGENT_KEY = "732F636DF7E2E6A0B95AAB8C139AB375D5B65D82241661C7"
-VALID_API_KEYS = {k for k in (API_KEY, LEGACY_AGENT_KEY) if k}
+# The hardcoded legacy agent key was REMOVED on 2026-09-15: the child PC now runs
+# agent v0032, which authenticates with its own per-device `secret_token`
+# (verified live — commands, logs, browser history and screenshots all arrive with
+# the device token). The legacy literal is no longer accepted anywhere. Only a
+# key supplied via the API_KEY environment variable is still honoured, which is
+# enough for local/dev tooling and cannot be read from the public source.
+VALID_API_KEYS = {k for k in (API_KEY,) if k}
 
-# Quyền tối thiểu cho danh tính dùng key tĩnh. `can_view_screenshots` là thứ agent
-# v0031 còn cần (luồng /shot lấy URL ảnh rồi gửi Telegram); không cấp gì thêm.
+# Quyền tối thiểu cho danh tính dùng key tĩnh. Nếu một key tĩnh (API_KEY) được
+# dùng, nó CHỈ có quyền này — không bao giờ là system admin.
 STATIC_KEY_PERMISSIONS = {
-    "can_view_screenshots": True,
+    "can_view_screenshots": False,
     "can_manage_rules": False,
     "can_view_logs": False,
     "can_remote_control": False,

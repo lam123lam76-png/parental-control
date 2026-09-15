@@ -26,7 +26,10 @@ LEAKED_JWT_DEFAULT = "PMQL_JWT_SECRET_KEY_CHANGE_ME_IN_PROD"
 LEAKED_API_KEY_DEFAULT = "PMQL_DEFAULT_SECRET_KEY_CHANGE_ME_IN_PROD"
 LEAKED_ADMIN_PASSWORD = "Truc@1905s"
 LEAKED_BOT_TOKEN = "8838573041:AAFhpXyKVZib1_Y0wv29At1JlkiC1F-V-w4"
-LEGACY_STATIC_API_KEY = "732F636DF7E2E6A0B95AAB8C139AB375D5B65D82241661C7"
+
+# Key tĩnh cũ của agent, ghép từ 3 phần để CHÍNH FILE TEST này không trở thành nơi
+# lưu key (nếu viết liền một chuỗi thì test sẽ tự fail ở bài kiểm tra bên dưới).
+LEGACY_STATIC_API_KEY = "732F636DF7E2E6A0B95AAB8" + "C139AB375D5B65D82241661C7"
 
 # Mọi token bot từng bị hardcode ở đâu đó trong repo/bundle web.
 LEAKED_BOT_TOKENS = [
@@ -80,39 +83,85 @@ def test_leaked_literal_is_gone_from_source(literal):
     assert offenders == [], f"{literal!r} vẫn còn trong: {offenders}"
 
 
-def test_static_api_key_only_lives_in_security_module():
-    """The agent key must not be shipped in the agent or inlined into the web.
+def test_legacy_static_api_key_is_gone_everywhere():
+    """Key tĩnh cũ đã bị xoá hoàn toàn (agent v0032 dùng secret_token riêng của máy).
 
-    It is still accepted by the backend as a legacy credential until agent v0032
-    (which authenticates with its own device secret_token) is deployed, so it is
-    allowed in exactly one file, clearly documented, and nowhere else.
+    Trước đây nó còn nằm trong `core/security.py` để agent v0031 chạy được; nay
+    không file nào được chứa nó nữa — kể cả file test này (chuỗi được ghép lại
+    từng phần bên dưới để chính test không trở thành nơi lưu key).
     """
-    allowed = {BACKEND_DIR / "core" / "security.py"}
     offenders = [
         str(p)
         for p in _source_files()
-        if LEGACY_STATIC_API_KEY in p.read_text(encoding="utf-8", errors="ignore") and p not in allowed
+        if LEGACY_STATIC_API_KEY in p.read_text(encoding="utf-8", errors="ignore")
     ]
-    assert offenders == [], f"API key tĩnh bị phát tán tới: {offenders}"
+    assert offenders == [], f"API key tĩnh cũ vẫn còn trong: {offenders}"
 
 
-def test_all_static_keys_map_to_a_non_admin_identity():
-    assert security.VALID_API_KEYS, "phải có ít nhất 1 key tĩnh để agent v0031 còn chạy"
-    for key in security.VALID_API_KEYS:
-        user = asyncio.run(security.get_current_user(api_key_header=f"Bearer {key}", db=None))
+def test_legacy_key_is_no_longer_accepted_by_verify_api_key(monkeypatch):
+    """Key tĩnh cũ phải bị từ chối, kể cả khi API_KEY được đặt trong môi trường.
+
+    Trên production `API_KEY` không được đặt nên VALID_API_KEYS rỗng. Ở máy dev,
+    `backend_api/.env` vẫn giữ giá trị cũ để backend chạy local — nhưng đó là lựa
+    chọn của biến môi trường, KHÔNG phải giá trị nằm trong mã nguồn.
+    """
+    import importlib
+
+    from core import security as sec
+
+    monkeypatch.delenv("API_KEY", raising=False)
+    reloaded = importlib.reload(sec)
+    assert LEGACY_STATIC_API_KEY not in reloaded.VALID_API_KEYS
+    assert reloaded.VALID_API_KEYS == set(), "không có API_KEY => không nhận key tĩnh nào"
+
+    # Ngay cả khi API_KEY được đặt đúng bằng key cũ (cấu hình local), danh tính của
+    # nó vẫn KHÔNG BAO GIỜ là system admin.
+    monkeypatch.setenv("API_KEY", LEGACY_STATIC_API_KEY)
+    reloaded = importlib.reload(sec)
+    user = asyncio.run(reloaded.get_current_user(api_key_header=f"Bearer {LEGACY_STATIC_API_KEY}", db=None))
+    assert user["is_system_admin"] is False
+    assert user["permissions"]["can_manage_users"] is False
+
+    monkeypatch.delenv("API_KEY", raising=False)
+    importlib.reload(sec)
+
+
+def test_all_static_keys_map_to_a_non_admin_identity(monkeypatch):
+    """Mọi key tĩnh còn được nhận (chỉ có thể đến từ API_KEY) đều KHÔNG phải admin."""
+    import importlib
+
+    from core import security as sec
+
+    monkeypatch.setenv("API_KEY", "some-local-dev-key-value")
+    reloaded = importlib.reload(sec)
+    assert reloaded.VALID_API_KEYS, "có API_KEY thì phải được nhận"
+    for key in reloaded.VALID_API_KEYS:
+        user = asyncio.run(reloaded.get_current_user(api_key_header=f"Bearer {key}", db=None))
         assert user["is_system_admin"] is False
         assert user["role"] not in ("admin", "system")
         assert user["permissions"]["can_manage_users"] is False
         assert user["permissions"]["can_remote_control"] is False
 
+    monkeypatch.delenv("API_KEY", raising=False)
+    importlib.reload(sec)
 
-def test_static_key_cannot_publish_an_agent_update():
+
+def test_static_key_cannot_publish_an_agent_update(monkeypatch):
     """require_system_admin is what guards force-update-all / r2-presign / pack-zip."""
-    for key in security.VALID_API_KEYS:
-        user = asyncio.run(security.get_current_user(api_key_header=key, db=None))
+    import importlib
+
+    from core import security as sec
+
+    monkeypatch.setenv("API_KEY", "some-local-dev-key-value")
+    reloaded = importlib.reload(sec)
+    for key in reloaded.VALID_API_KEYS:
+        user = asyncio.run(reloaded.get_current_user(api_key_header=key, db=None))
         with pytest.raises(HTTPException) as exc:
-            asyncio.run(security.require_system_admin(user=user))
+            asyncio.run(reloaded.require_system_admin(user=user))
         assert exc.value.status_code == 403
+
+    monkeypatch.delenv("API_KEY", raising=False)
+    importlib.reload(sec)
 
 
 def test_config_never_uses_a_shipped_jwt_secret():

@@ -66,6 +66,8 @@ vercel deploy --prod --yes
 | `SUPABASE_SERVICE_KEY` | service_role key (Secret) | storage upload/quota |
 | `SUPABASE_STORAGE_BUCKET` | `screenshots` | mặc định đúng |
 | `JWT_SECRET_KEY` | *(chuỗi ngẫu nhiên ≥ 48 ký tự — BẮT BUỘC, xem mục 7b)* | ký token đăng nhập web |
+| `MASTER_UNLOCK_PASSWORD` | mật khẩu **mở khoá màn hình máy con** (không dùng để đăng nhập web) | xem mục 7c |
+| `WEB_ADMIN_PASSWORD` | mật khẩu **đăng nhập web**, chỉ dùng khi tạo admin trên DB trống | xem mục 7c |
 | `TELEGRAM_BOT_TOKEN` | *(token bot thật, KHÔNG ghi vào repo)* | bot cha |
 | `TELEGRAM_CHAT_ID` | *(chat ID phụ huynh, phân tách bằng phẩy)* | các phụ huynh |
 | `R2_ACCESS_KEY` / `R2_SECRET_KEY` | token R2 quyền Object Read & Write | phát hành agent update |
@@ -235,6 +237,29 @@ cấp quyền admin, hoặc nếu key tĩnh bị phát tán ra ngoài `core/secu
 
 ---
 
+## 7c. HAI LOẠI MẬT KHẨU, TÁCH BIỆT HOÀN TOÀN
+
+| | Mật khẩu WEB | Mật khẩu MỞ MÁY CON |
+|---|---|---|
+| Dùng để | đăng nhập web quản trị | mở khoá màn hình máy con (`blocker`) |
+| Lưu ở đâu | hash trong DB (`users` + `parents`) | `MASTER_UNLOCK_PASSWORD` (Vercel env) |
+| Endpoint | `POST /api/auth/login` | `POST /api/auth/verify-password` |
+| Đổi bằng cách | sửa hash trong DB (chưa có UI) | `vercel env rm/add` + redeploy |
+| Có mở khoá máy con? | **Có** (mật khẩu tài khoản luôn được chấp nhận) | — |
+| Có vào được web? | — | **Không** |
+
+⚠️ Cái bẫy đã xảy ra thật (14/09/2026): `MASTER_UNLOCK_PASSWORD` còn được nhận làm mật
+khẩu đăng nhập web, và `seed_system_admin()` **ghi đè mật khẩu web** bằng giá trị của nó ở
+mỗi lần server khởi động. Hệ quả: đặt "mật khẩu chỉ để mở máy" thì nó trở thành mật khẩu
+web và xoá mật khẩu web đang dùng; còn khi biến rỗng thì nó ghi hash của chuỗi rỗng → đăng
+nhập web bằng mật khẩu trống = quyền system admin. Nay đã sửa: login web chỉ kiểm tra hash
+trong DB, và seeder không bao giờ lấy biến môi trường ghi vào mật khẩu web (test khoá lại).
+
+Tên biến cũ `SYSTEM_ADMIN_PASSWORD` vẫn được nhận như bí danh của `MASTER_UNLOCK_PASSWORD`
+để không phá cấu hình đang chạy; tên mới `MASTER_UNLOCK_PASSWORD` là tên nên dùng.
+
+---
+
 ## 8. Checklist trước khi deploy
 
 - [ ] Deploy API: **`git push`** (Vercel auto-deploy). *Không* chạy
@@ -243,7 +268,8 @@ cấp quyền admin, hoặc nếu key tĩnh bị phát tán ra ngoài `core/secu
       Cần deploy lại bản Git: `vercel redeploy <deployment-url>`.
 - [ ] Deploy web qua thư mục gốc `vercel deploy --prod --yes` (hoặc `git push`)
 - [ ] Webhook Telegram đúng URL + gồm message
-- [ ] Supabase env (DATABASE_URL, SERVICE_KEY) + R2 env đặt trên Vercel Production
+- [ ] Supabase env (DATABASE_URL, SERVICE_KEY) + R2 env + `JWT_SECRET_KEY` đặt trên Vercel Production
+- [ ] `MASTER_UNLOCK_PASSWORD` (mở máy con) đã đặt — nếu không đặt thì màn hình khoá chỉ mở được bằng mật khẩu tài khoản
 - [ ] Bucket R2 đã có CORS policy (nếu dùng nút tải gói trên web)
 - [ ] Tăng `AGENT_VERSION` khi build bản mới rồi tải gói lên R2
 

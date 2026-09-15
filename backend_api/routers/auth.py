@@ -27,7 +27,7 @@ import secrets
 from database import get_db
 import models
 import schemas
-from core.config import SYSTEM_ADMIN_EMAIL, MASTER_UNLOCK_PASSWORD
+from core.config import SYSTEM_ADMIN_EMAIL, MASTER_UNLOCK_PASSWORD, WEB_ADMIN_PASSWORD
 from passlib.context import CryptContext
 
 logger = logging.getLogger(__name__)
@@ -318,6 +318,25 @@ from pydantic import BaseModel as _BaseModel
 
 class VerifyPasswordRequest(_BaseModel):
     password: str
+
+
+@router.get("/api/auth/_diag-passwords", response_model=schemas.StandardResponse)
+def diag_passwords():
+    """CHẨN ĐOÁN TẠM: cho biết server có nhận được biến mật khẩu hay không.
+
+    Chỉ trả về ĐỘ DÀI và vài ký tự đầu/cuối — không bao giờ trả mật khẩu đầy đủ.
+    Dùng để kiểm tra biến môi trường đã tới được function chưa (Vercel chỉ nạp env
+    cho deployment tạo SAU khi biến được thêm/cập nhật).
+    """
+    unlock = MASTER_UNLOCK_PASSWORD or ""
+    web = WEB_ADMIN_PASSWORD or ""
+    return schemas.StandardResponse(data={
+        "unlock_len": len(unlock),
+        "unlock_head": unlock[:2],
+        "unlock_tail": unlock[-2:] if unlock else "",
+        "web_len": len(web),
+        "web_head": web[:2],
+    }, status_code=200)
 
 
 @router.post("/api/auth/verify-password", response_model=schemas.StandardResponse)

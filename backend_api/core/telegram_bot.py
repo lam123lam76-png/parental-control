@@ -22,6 +22,21 @@ SCAN_INTERVAL_SEC = 15
 
 logger = logging.getLogger(__name__)
 
+
+def _to_vn(dt) -> datetime:
+    """Đổi một mốc thời gian (lưu UTC trong DB) sang giờ Việt Nam để HIỂN THỊ.
+
+    Vì sao cần: DB lưu UTC (đúng), nhưng caption/ảnh gửi cho phụ huynh phải là giờ
+    Việt Nam. Trước đây caption in thẳng giá trị UTC nên ảnh chụp lúc 17:57 giờ VN
+    lại hiện "10:57" — phụ huynh đọc sai giờ. Giá trị naive (hiếm, do dữ liệu cũ)
+    được coi là UTC.
+    """
+    if dt is None:
+        return datetime.now(VIETNAM_TZ)
+    if dt.tzinfo is None:
+        dt = dt.replace(tzinfo=timezone.utc)
+    return dt.astimezone(VIETNAM_TZ)
+
 HELP_TEXT = (
     "<b>🛡️ Parental Control Bot</b>\n"
     "Điều khiển thiết bị ngay trên Telegram:\n\n"
@@ -268,7 +283,7 @@ def cmd_shot(token, chat_id, db, arg):
         ).order_by(models.Screenshot.timestamp.desc()).first()
         if shot and shot.timestamp and shot.timestamp > before_ts:
             send_photo(token, chat_id, shot.image_url,
-                       caption=f"📸 {dev.device_name} — {shot.timestamp.strftime('%d/%m %H:%M:%S')}")
+                       caption=f"📸 {dev.device_name} — {_to_vn(shot.timestamp).strftime('%d/%m %H:%M:%S')}")
             return
     send_message(token, chat_id, f"⏳ Chưa nhận được ảnh từ {dev.device_name} (thiết bị có thể offline).")
 

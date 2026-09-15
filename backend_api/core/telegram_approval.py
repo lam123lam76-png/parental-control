@@ -2,12 +2,15 @@ import requests
 import logging
 import uuid
 import time
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from sqlalchemy.orm import Session
 
 import models
 from database import SessionLocal
 from core import telegram_bot  # điều khiển thiết bị qua text commands
+
+# Múi giờ Việt Nam cho mọi thời gian hiển thị cho phụ huynh (DB lưu UTC).
+VIETNAM_TZ = timezone(timedelta(hours=7))
 
 logger = logging.getLogger(__name__)
 
@@ -24,11 +27,17 @@ def _tg_send(method: str, payload: dict, bot_token: str):
         return None
 
 def send_registration_message(registration: models.PendingRegistration, bot_token: str, chat_id: str):
+    # Hiển thị giờ Việt Nam (DB lưu UTC) — phụ huynh đọc theo giờ VN, không phải UTC.
+    expires_vn = registration.expires_at
+    if expires_vn is not None:
+        if expires_vn.tzinfo is None:
+            expires_vn = expires_vn.replace(tzinfo=timezone.utc)
+        expires_vn = expires_vn.astimezone(VIETNAM_TZ)
     text = (
         f"🔒 <b>Yêu cầu kết nối thiết bị mới</b>\n\n"
         f"💻 Tên thiết bị: <b>{registration.device_name}</b>\n"
         f"🔑 ID phần cứng: <code>{registration.hardware_uuid}</code>\n"
-        f"⏳ Hết hạn: {registration.expires_at.strftime('%Y-%m-%d %H:%M:%S')} UTC\n\n"
+        f"⏳ Hết hạn: {expires_vn.strftime('%d/%m/%Y %H:%M') if expires_vn else '—'} (giờ VN)\n\n"
         f"Bạn có muốn cho phép thiết bị này kết nối không?"
     )
     

@@ -9,8 +9,10 @@
 CREATE TABLE IF NOT EXISTS public.app_config (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     device_name TEXT UNIQUE NOT NULL,
-    agent_password TEXT DEFAULT 'Truc@1905s0825811915',
-    admin_pin TEXT DEFAULT '123456',
+    -- KHÔNG đặt mật khẩu/PIN mặc định trong SQL (repo public). Mật khẩu mở máy con
+    -- do server cấp qua MASTER_UNLOCK_PASSWORD.
+    agent_password TEXT,
+    admin_pin TEXT,
     screenshot_interval_minutes INT DEFAULT 3,
     custom_roles JSONB DEFAULT '["Phụ huynh", "Em trai", "Gia sư"]'::jsonb,
     role_passwords JSONB DEFAULT '{}'::jsonb,

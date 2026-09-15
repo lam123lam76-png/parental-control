@@ -153,3 +153,11 @@ def test_auth_module_guards_against_empty_passwords():
     auth_src = (BACKEND_DIR / "routers" / "auth.py").read_text(encoding="utf-8")
     assert "not login_data.password" in auth_src
     assert "not request.parent_password" in auth_src
+
+
+def test_seed_never_rewrites_the_admin_password_with_an_empty_value():
+    """Startup seeding không được ghi lại hash("") (đó là cách lỗ hổng tái sinh)."""
+    src = (BACKEND_DIR / "main.py").read_text(encoding="utf-8")
+    assert 'verify("", user.password_hash)' in src, "phải kiểm tra hash chuỗi rỗng"
+    assert "if SYSTEM_ADMIN_PASSWORD:" in src, "chỉ ghi khi có mật khẩu thật"
+    assert "user.password_hash = _ctx2.hash(SYSTEM_ADMIN_PASSWORD)" in src

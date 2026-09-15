@@ -109,8 +109,31 @@ def seed_system_admin():
                 user.is_system_admin = True
             if user.role != "admin":
                 user.role = "admin"
-            if not _ctx2.verify(SYSTEM_ADMIN_PASSWORD, user.password_hash):
-                user.password_hash = _ctx2.hash(SYSTEM_ADMIN_PASSWORD)
+            # KHÔNG BAO GIỜ ghi đè một mật khẩu đang dùng được. Khối này chạy ở MỖI
+            # lần server khởi động, và trước đây nó ghi lại hash của
+            # SYSTEM_ADMIN_PASSWORD bất cứ khi nào hash hiện tại không khớp — nên khi
+            # biến môi trường rỗng, nó âm thầm đặt lại mật khẩu admin thành hash của
+            # CHUỖI RỖNG (đăng nhập bằng mật khẩu trống = quyền system admin). Đó
+            # chính là lý do lỗ hổng quay lại sau khi đã sửa DB.
+            # Nay chỉ sửa đúng trường hợp hash đang ở trạng thái hỏng đó, và chỉ khi
+            # có mật khẩu thật trong biến môi trường.
+            try:
+                broken_hash = _ctx2.verify("", user.password_hash)
+            except Exception:
+                broken_hash = True  # hash rỗng/không đọc được
+            if broken_hash:
+                if SYSTEM_ADMIN_PASSWORD:
+                    user.password_hash = _ctx2.hash(SYSTEM_ADMIN_PASSWORD)
+                    logger.warning(
+                        "[Seed] Hash mật khẩu admin đang là hash chuỗi rỗng — đã thay bằng "
+                        "mật khẩu từ SYSTEM_ADMIN_PASSWORD."
+                    )
+                else:
+                    logger.error(
+                        "[Seed] Tài khoản admin đang giữ hash mật khẩu RỖNG (đăng nhập bằng "
+                        "mật khẩu trống). Hãy đặt SYSTEM_ADMIN_PASSWORD hoặc đặt lại mật khẩu "
+                        "trong DB — code sẽ KHÔNG ghi hash rỗng nữa."
+                    )
             perm = db.query(models.UserPermission).filter(models.UserPermission.user_id == user.id).first()
             if not perm:
                 perm = models.UserPermission(

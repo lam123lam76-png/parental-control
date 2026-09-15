@@ -19,6 +19,13 @@ def create_sub_account(req: schemas.UserCreate, db: Session = Depends(get_db)):
     if existing:
         return schemas.StandardResponse(error="Email đã được đăng ký", status_code=409)
 
+    # Không tạo tài khoản với mật khẩu rỗng/ngắn (hash chuỗi rỗng từng cho phép
+    # đăng nhập bằng mật khẩu trống).
+    if not req.password or len(req.password.strip()) < 8:
+        return schemas.StandardResponse(
+            error="Mật khẩu phải có ít nhất 8 ký tự.", status_code=400
+        )
+
     owner_id = None
     if req.admin_email:
         admin_user = db.query(models.User).filter(models.User.email == req.admin_email).first()

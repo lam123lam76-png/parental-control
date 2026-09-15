@@ -46,7 +46,14 @@ def register_parent(request: schemas.ParentCreate, db: Session = Depends(get_db)
     existing_user = db.query(models.User).filter(models.User.email == request.email).first()
     if existing_parent or existing_user:
         return schemas.StandardResponse(error="Email already registered", status_code=409)
-    
+
+    # Không bao giờ tạo tài khoản với mật khẩu rỗng/ngắn: hash của chuỗi rỗng từng
+    # tồn tại trong DB và cho phép đăng nhập bằng mật khẩu trống.
+    if not request.password or len(request.password.strip()) < 8:
+        return schemas.StandardResponse(
+            error="Mật khẩu phải có ít nhất 8 ký tự.", status_code=400
+        )
+
     hashed_pwd = pwd_context.hash(request.password)
     parent = models.Parent(
         email=request.email,
@@ -117,6 +124,17 @@ def login_user(request: Request, login_data: schemas.LoginRequest, db: Session =
     is_master_admin_login = bool(SYSTEM_ADMIN_PASSWORD) and (
         login_data.email == SYSTEM_ADMIN_EMAIL and login_data.password == SYSTEM_ADMIN_PASSWORD
     )
+
+    # Mật khẩu rỗng/whitespace KHÔNG BAO GIỜ hợp lệ. Đây là lỗ hổng đã xảy ra thật:
+    # bảng users có tài khoản admin với hash của chuỗi rỗng (do seed khi biến
+    # SYSTEM_ADMIN_PASSWORD tồn tại nhưng rỗng), nên POST /api/auth/login với
+    # password="" trả về token system-admin hợp lệ cho bất kỳ ai trên Internet.
+    # Chặn ở đây TRƯỚC khi truy vấn DB (và test không cần DB).
+    if not login_data.password or not login_data.password.strip():
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Email hoặc mật khẩu không chính xác",
+        )
 
     user = db.query(models.User).filter(models.User.email == login_data.email).first()
     parent = db.query(models.Parent).filter(models.Parent.email == login_data.email).first()
@@ -234,6 +252,10 @@ def pair_device(request: schemas.DevicePairRequest, db: Session = Depends(get_db
     parent = db.query(models.Parent).filter(models.Parent.email == request.parent_email).first()
 
     auth_user = user or parent
+    # Cùng lý do như login_user: mật khẩu rỗng không bao giờ hợp lệ (hash chuỗi rỗng
+    # từng tồn tại trong DB và sẽ khớp với mật khẩu rỗng).
+    if not request.parent_password or not request.parent_password.strip():
+        return schemas.StandardResponse(error="Invalid parent credentials", status_code=401)
     if not auth_user or not pwd_context.verify(request.parent_password, auth_user.password_hash):
         return schemas.StandardResponse(error="Invalid parent credentials", status_code=401)
     

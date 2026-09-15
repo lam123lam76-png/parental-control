@@ -126,3 +126,30 @@ def test_default_admin_password_is_not_shipped():
     from core import config
 
     assert config.SYSTEM_ADMIN_PASSWORD != LEAKED_ADMIN_PASSWORD
+
+
+# --------------------------------------------------------------------------- #
+# Mật khẩu rỗng — lỗ hổng có thật: DB giữ hash của chuỗi rỗng nên login với
+# password="" trả về token system-admin hợp lệ.
+# --------------------------------------------------------------------------- #
+def test_login_rejects_empty_password_before_touching_the_db():
+    """Chốt chặn nằm TRƯỚC truy vấn DB nên test này không cần database."""
+    from fastapi.testclient import TestClient
+
+    import main
+
+    client = TestClient(main.app)
+    for password in ("", "   "):
+        resp = client.post(
+            "/api/auth/login",
+            json={"email": "admin@nguyentruclam.io.vn", "password": password},
+        )
+        assert resp.status_code == 401, f"{password!r} phải bị từ chối, nhận {resp.status_code}"
+        assert "access_token" not in resp.text
+
+
+def test_auth_module_guards_against_empty_passwords():
+    """Cả /api/auth/login và /api/pair đều phải có chốt chặn mật khẩu rỗng."""
+    auth_src = (BACKEND_DIR / "routers" / "auth.py").read_text(encoding="utf-8")
+    assert "not login_data.password" in auth_src
+    assert "not request.parent_password" in auth_src
